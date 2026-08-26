@@ -11,7 +11,7 @@ class RestaurantTableSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = RestaurantTable
-        fields = ['id', 'table_id', 'table_number', 'display_number', 'active', 'status']
+        fields = ['id', 'table_id', 'table_number', 'display_number', 'qr_token', 'active', 'status']
 
     def get_status(self, obj):
         has_active_order = obj.orders.exclude(
