@@ -164,18 +164,42 @@ let cart = {}; // itemId -> { item, quantity, special_instructions }
 let customerSessionId = null;
 let customerName = null;
 
-document.addEventListener('DOMContentLoaded', async () => {
+// Initial server-rendered payload for 0ms instantaneous paint
+const INITIAL_CATEGORIES = {{ categories_json|default:"[]"|safe }};
+
+function initMenuFromData(data) {
+    if (!data || data.length === 0) return;
+    menuCategories = data;
+    allMenuItems = [];
+    menuCategories.forEach(cat => {
+        if (cat.items) {
+            cat.items.forEach(item => {
+                item.category_id = cat.id;
+                item.category_name = cat.name;
+                allMenuItems.push(item);
+            });
+        }
+    });
+    renderCategoryTabs();
+    renderMenu(menuCategories);
+}
+
+document.addEventListener('DOMContentLoaded', () => {
     // 1. Purge any stale localStorage keys from older versions
     localStorage.removeItem('orderless_customer_session');
     localStorage.removeItem('orderless_customer_name');
     localStorage.removeItem('orderless_customer_phone');
 
-    // 2. Validate current tab session with backend
-    await initTableSession();
-
-    // 3. Load live menu
-    await loadMenu();
+    // 2. Render menu INSTANTLY without waiting for network
+    if (INITIAL_CATEGORIES && INITIAL_CATEGORIES.length > 0) {
+        initMenuFromData(INITIAL_CATEGORIES);
+    } else {
+        loadMenu();
+    }
     loadCartFromStorage();
+
+    // 3. Validate session asynchronously in background
+    initTableSession();
 });
 
 async function initTableSession() {
@@ -332,28 +356,17 @@ async function loadMenu() {
     try {
         const res = await fetch('/api/menu/');
         if (!res.ok) throw new Error('Failed to load menu');
-        menuCategories = await res.json();
-        
-        allMenuItems = [];
-        menuCategories.forEach(cat => {
-            if (cat.items) {
-                cat.items.forEach(item => {
-                    item.category_id = cat.id;
-                    item.category_name = cat.name;
-                    allMenuItems.push(item);
-                });
-            }
-        });
-
-        renderCategoryTabs();
-        renderMenu(menuCategories);
+        const data = await res.json();
+        initMenuFromData(data);
     } catch (err) {
-        document.getElementById('menuSection').innerHTML = `
-            <div class="text-center py-5 text-danger">
-                <i class="bi bi-exclamation-triangle" style="font-size:2.5rem;"></i>
-                <p class="mt-2 font-weight-bold">Unable to load menu.</p>
-                <button onclick="loadMenu()" class="btn btn-outline-primary btn-sm mt-2">Retry</button>
-            </div>`;
+        if (allMenuItems.length === 0) {
+            document.getElementById('menuSection').innerHTML = `
+                <div class="text-center py-5 text-danger">
+                    <i class="bi bi-exclamation-triangle" style="font-size:2.5rem;"></i>
+                    <p class="mt-2 font-weight-bold">Unable to load menu.</p>
+                    <button onclick="loadMenu()" class="btn btn-outline-primary btn-sm mt-2">Retry</button>
+                </div>`;
+        }
     }
 }
 

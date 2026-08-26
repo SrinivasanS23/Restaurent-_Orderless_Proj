@@ -1,5 +1,5 @@
 import uuid
-"""Views for customer-facing pages."""
+import json
 import re
 import logging
 from django.shortcuts import render
@@ -7,6 +7,8 @@ from django.http import Http404
 from django.conf import settings
 from django.views.decorators.csrf import ensure_csrf_cookie
 from tables.models import RestaurantTable
+from menu.models import MenuCategory
+from menu.serializers import MenuCategorySerializer
 
 logger = logging.getLogger('security')
 
@@ -16,6 +18,17 @@ def customer_home_view(request):
     return render(request, 'home.html', {
         'restaurant_name': settings.RESTAURANT_NAME,
     })
+
+
+def _get_menu_categories_json():
+    """Helper to fetch active categories and serialized menu items for instant first paint."""
+    try:
+        categories = MenuCategory.objects.filter(active=True).prefetch_related('items')
+        serializer = MenuCategorySerializer(categories, many=True)
+        return json.dumps(serializer.data)
+    except Exception as e:
+        logger.error(f"[MENU_PREFETCH_ERROR] {e}", exc_info=True)
+        return "[]"
 
 
 @ensure_csrf_cookie
@@ -43,11 +56,14 @@ def customer_menu_view(request, table_number):
             'restaurant_name': settings.RESTAURANT_NAME,
         })
 
+    categories_json = _get_menu_categories_json()
+
     return render(request, 'customer/menu.html', {
         'table': table,
         'table_number': table.table_number,
         'table_display': table.display_number,
         'restaurant_name': settings.RESTAURANT_NAME,
+        'categories_json': categories_json,
     })
 
 
@@ -80,10 +96,13 @@ def customer_qr_view(request, token):
             'restaurant_name': settings.RESTAURANT_NAME,
         }, status=404)
 
+    categories_json = _get_menu_categories_json()
+
     return render(request, 'customer/menu.html', {
         'table': table,
         'table_number': table.table_number,
         'table_display': table.display_number,
         'qr_token': str(table.qr_token),
         'restaurant_name': settings.RESTAURANT_NAME,
+        'categories_json': categories_json,
     })
