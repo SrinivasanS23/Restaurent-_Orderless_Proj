@@ -1,10 +1,13 @@
 venv/
+.venv/
 __pycache__/
 *.pyc
 .env
+.env.local
 db.sqlite3
 staticfiles/
 media/qr_codes/
 media/menu_images/
+media/receipts/
 *.log
 .DS_Store

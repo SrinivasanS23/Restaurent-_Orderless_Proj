@@ -18,7 +18,7 @@
 <div class="kds-topbar">
     <div class="d-flex align-items-center gap-3">
         <h1><i class="bi bi-fire"></i> Kitchen Display System</h1>
-        <div id="alarmBadge" class="kds-alarm-badge">
+        <div id="alarmBadge" class="kds-alarm-badge" style="display:none;background:#c0392b;color:#fff;padding:0.25rem 0.75rem;border-radius:var(--radius-full);font-size:0.78rem;font-weight:800;animation:glassPulse 1.2s infinite alternate;">
             🔔 <span id="alarmBadgeText">NEW ORDERS ALARM</span>
         </div>
     </div>
@@ -30,13 +30,13 @@
             <span class="kds-stat">Served: <strong id="countServed">0</strong></span>
         </div>
         
-        <!-- Live WS Indicator -->
+        <!-- Live WS / Sync Indicator -->
         <span><span class="kds-status-dot" id="wsStatusDot"></span> <span id="wsStatusText" style="font-size:0.78rem;">Connecting...</span></span>
         
         <!-- Volume Slider -->
-        <div class="volume-control" title="Alert Volume">
+        <div class="volume-control" title="Alert Volume" style="display:inline-flex;align-items:center;gap:4px;">
             <i class="bi bi-volume-down" style="font-size:0.9rem;opacity:0.8;"></i>
-            <input type="range" class="volume-slider" id="volumeSlider" min="0" max="1" step="0.05" value="0.7" onchange="KitchenAlertManager.setVolume(this.value)">
+            <input type="range" class="volume-slider" id="volumeSlider" min="0" max="1" step="0.05" value="0.7" onchange="KitchenAlertManager.setVolume(this.value)" style="width:70px;cursor:pointer;">
             <i class="bi bi-volume-up" style="font-size:0.9rem;opacity:0.8;"></i>
         </div>
 
@@ -100,6 +100,7 @@ const CSRF_TOKEN = '{{ csrf_token }}';
 let orders = {};
 let ws = null;
 let reconnectAttempts = 0;
+let pollFallbackInterval = null;
 
 // Centralized Kitchen Alert Controller
 const KitchenAlertManager = {
@@ -167,7 +168,7 @@ const KitchenAlertManager = {
             osc1.start(now);
             osc1.stop(now + 0.16);
 
-            // Beep 2: Frequency 1174.66Hz (D6) - Higher and distinctive
+            // Beep 2: Frequency 1174.66Hz (D6)
             const osc2 = ctx.createOscillator();
             const gain2 = ctx.createGain();
             osc2.type = 'sine';
@@ -277,7 +278,20 @@ async function loadOrders() {
         renderAllColumns();
         KitchenAlertManager.checkAndTriggerContinuousAlarm();
     } catch (err) {
-        showToast('error', 'Unable to fetch kitchen orders');
+        // Suppress repetitive logs
+    }
+}
+
+function startPollingFallback() {
+    if (!pollFallbackInterval) {
+        pollFallbackInterval = setInterval(loadOrders, 3500);
+    }
+}
+
+function stopPollingFallback() {
+    if (pollFallbackInterval) {
+        clearInterval(pollFallbackInterval);
+        pollFallbackInterval = null;
     }
 }
 
@@ -288,7 +302,8 @@ function connectWebSocket() {
     ws.onopen = () => {
         reconnectAttempts = 0;
         document.getElementById('wsStatusDot').classList.add('online');
-        document.getElementById('wsStatusText').textContent = 'Online';
+        document.getElementById('wsStatusText').textContent = 'Online (Live WS)';
+        stopPollingFallback();
         loadOrders();
     };
 
@@ -319,13 +334,17 @@ function connectWebSocket() {
 
     ws.onclose = () => {
         document.getElementById('wsStatusDot').classList.remove('online');
-        document.getElementById('wsStatusText').textContent = 'Offline';
+        document.getElementById('wsStatusText').textContent = 'Live Sync (Active)';
+        startPollingFallback();
         reconnectAttempts++;
         const delay = Math.min(1000 * Math.pow(2, reconnectAttempts), 20000);
         setTimeout(connectWebSocket, delay);
     };
 
-    ws.onerror = () => ws.close();
+    ws.onerror = () => {
+        startPollingFallback();
+        if (ws) ws.close();
+    };
 }
 
 function flashTitle(msg) {
@@ -371,7 +390,7 @@ function renderAllColumns() {
 function renderColumn(containerId, orderList, type) {
     const container = document.getElementById(containerId);
     if (orderList.length === 0) {
-        container.innerHTML = `<div class="kds-empty"><i class="bi bi-inbox"></i> No orders</div>`;
+        container.innerHTML = `<div class="kds-empty text-center py-4 text-muted"><i class="bi bi-inbox" style="font-size:1.8rem;display:block;margin-bottom:4px;"></i> No orders</div>`;
         return;
     }
 
@@ -416,9 +435,9 @@ function renderColumn(containerId, orderList, type) {
                 break;
             case 'SERVED':
                 if (order.payment_status === 'PAID') {
-                    actionBtn = '<div style="text-align:center;color:var(--success);font-size:0.75rem;font-weight:700;margin-top:0.4rem;">✓ Paid &amp; Completed</div>';
+                    actionBtn = '<div style="text-align:center;color:var(--success);font-size:0.8rem;font-weight:700;margin-top:0.4rem;">✓ Paid &amp; Completed</div>';
                 } else {
-                    actionBtn = '<div style="text-align:center;color:var(--dark-brown);font-size:0.75rem;font-weight:600;margin-top:0.4rem;">🍽️ Eating · Awaiting Desk Payment</div>';
+                    actionBtn = '<div style="text-align:center;color:var(--dark-brown);font-size:0.8rem;font-weight:700;margin-top:0.4rem;">🍽️ Eating · Awaiting Desk Payment</div>';
                 }
                 break;
         }

@@ -1,6 +1,6 @@
 """
 Django settings for OrderLess restaurant ordering system.
-Hardened for production-grade security, IDOR defense, and rate-limited abuse protection.
+Configured for production-grade security, Vercel Serverless compatibility, PyMySQL, and WhiteNoise.
 """
 import os
 from pathlib import Path
@@ -14,13 +14,25 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Security & Secrets Management
 SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-orderless-dev-key-2026-change-in-production')
 DEBUG = os.getenv('DEBUG', 'True').lower() in ('true', '1', 'yes')
-ALLOWED_HOSTS = [h.strip() for h in os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',') if h.strip()]
 
+# Allowed Hosts — supporting Vercel and local environments
+ALLOWED_HOSTS = [
+    '.vercel.app',
+    'localhost',
+    '127.0.0.1',
+    '[::1]',
+]
+env_allowed_hosts = os.getenv('ALLOWED_HOSTS')
+if env_allowed_hosts:
+    ALLOWED_HOSTS.extend([h.strip() for h in env_allowed_hosts.split(',') if h.strip()])
+
+# CSRF Trusted Origins
 CSRF_TRUSTED_ORIGINS = [
     'http://localhost:8000',
     'http://127.0.0.1:8000',
     'http://localhost',
     'http://127.0.0.1',
+    'https://*.vercel.app',
 ]
 custom_csrf_origins = os.getenv('CSRF_TRUSTED_ORIGINS')
 if custom_csrf_origins:
@@ -34,6 +46,7 @@ INSTALLED_APPS = [
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
+    'whitenoise.runserver_nostatic',
     'django.contrib.staticfiles',
     # Third-party
     'rest_framework',
@@ -53,6 +66,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'security.middleware.SecurityHeadersMiddleware',
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -83,7 +97,7 @@ TEMPLATES = [
 WSGI_APPLICATION = 'config.wsgi.application'
 ASGI_APPLICATION = 'config.asgi.application'
 
-# Database - MySQL
+# Database - MySQL with PyMySQL Driver
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
@@ -229,10 +243,11 @@ TIME_ZONE = 'Asia/Kolkata'
 USE_I18N = True
 USE_TZ = True
 
-# Static files
+# Static files & WhiteNoise
 STATIC_URL = '/static/'
 STATICFILES_DIRS = [BASE_DIR / 'static']
 STATIC_ROOT = BASE_DIR / 'staticfiles'
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 # Media files
 MEDIA_URL = '/media/'
