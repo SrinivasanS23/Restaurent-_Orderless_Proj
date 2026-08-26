@@ -5,6 +5,124 @@
 {% block body_class %}customer-app{% endblock %}
 
 {% block body %}
+<style>
+/* Scoped Cart & Drawer Panel Styles */
+.floating-cart {
+    position: fixed !important;
+    bottom: 20px !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+    width: calc(100% - 32px) !important;
+    max-width: 500px !important;
+    background: #24140e !important;
+    border: 1.5px solid rgba(216, 187, 154, 0.4) !important;
+    border-radius: 20px !important;
+    padding: 0.9rem 1.4rem !important;
+    display: none;
+    align-items: center !important;
+    justify-content: space-between !important;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.45) !important;
+    z-index: 950 !important;
+    color: #ffffff !important;
+    cursor: pointer !important;
+    transition: all .25s ease !important;
+}
+.floating-cart.visible {
+    display: flex !important;
+}
+.floating-cart:hover {
+    transform: translateX(-50%) scale(1.02) !important;
+}
+.cart-overlay {
+    position: fixed !important;
+    inset: 0 !important;
+    background: rgba(20, 10, 5, 0.65) !important;
+    backdrop-filter: blur(6px) !important;
+    -webkit-backdrop-filter: blur(6px) !important;
+    z-index: 1040 !important;
+    display: none;
+}
+.cart-overlay.active {
+    display: block !important;
+}
+.cart-panel {
+    position: fixed !important;
+    bottom: 0 !important;
+    left: 50% !important;
+    transform: translateX(-50%) translateY(105%) !important;
+    width: 100% !important;
+    max-width: 540px !important;
+    max-height: 88vh !important;
+    background: #ffffff !important;
+    border-radius: 28px 28px 0 0 !important;
+    box-shadow: 0 -10px 40px rgba(0,0,0,0.35) !important;
+    z-index: 1060 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    transition: transform 0.32s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    border: 1px solid rgba(216, 187, 154, 0.5) !important;
+    border-bottom: none !important;
+}
+.cart-panel.active {
+    transform: translateX(-50%) translateY(0) !important;
+}
+.cart-body {
+    padding: 1rem 1.5rem !important;
+    overflow-y: auto !important;
+    flex: 1 !important;
+    max-height: 48vh !important;
+}
+.cart-item {
+    display: flex !important;
+    align-items: center !important;
+    gap: 0.85rem !important;
+    padding: 0.75rem 0 !important;
+    border-bottom: 1px solid rgba(216, 187, 154, 0.3) !important;
+}
+.cart-item-emoji {
+    font-size: 1.6rem !important;
+    min-width: 40px !important;
+    height: 40px !important;
+    background: #faf6f0 !important;
+    border-radius: 12px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+.cart-item-info { flex: 1 !important; min-width: 0 !important; }
+.cart-item-name { font-weight: 700 !important; font-size: 0.95rem !important; color: #24140e !important; }
+.cart-item-price { font-size: 0.82rem !important; color: #666 !important; margin-top: 2px !important; }
+.cart-item-remove {
+    background: transparent !important;
+    border: none !important;
+    color: #e74c3c !important;
+    font-size: 1.1rem !important;
+    cursor: pointer !important;
+    padding: 4px !important;
+}
+.cart-footer {
+    padding: 1rem 1.5rem 1.5rem 1.5rem !important;
+    border-top: 1px solid rgba(216, 187, 154, 0.3) !important;
+    background: #faf8f5 !important;
+}
+.place-order-btn {
+    width: 100% !important;
+    background: linear-gradient(135deg, #3d2923, #24140e) !important;
+    color: #ffffff !important;
+    border: none !important;
+    border-radius: 14px !important;
+    padding: 0.95rem !important;
+    font-size: 1rem !important;
+    font-weight: 800 !important;
+    cursor: pointer !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 0.5rem !important;
+    box-shadow: 0 4px 16px rgba(58, 30, 20, 0.35) !important;
+}
+</style>
+
 {% csrf_token %}
 <!-- Customer Check-In Modal (Entry point for dining session) -->
 <div class="modal-backdrop-custom" id="checkinModal" style="display:none;">
