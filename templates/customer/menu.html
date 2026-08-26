@@ -6,36 +6,48 @@
 
 {% block body %}
 {% csrf_token %}
-<!-- Customer Check-In Modal (Entry point for any new dining session) -->
+<!-- Customer Check-In Modal (Entry point for dining session) -->
 <div class="modal-backdrop-custom" id="checkinModal" style="display:none;">
-    <div class="checkin-card">
+    <div class="checkin-card" style="position:relative;max-width:440px;width:92%;background:#ffffff !important;border-radius:24px;padding:2rem 1.8rem;box-shadow:0 25px 60px rgba(0,0,0,0.35);border:1px solid rgba(216,187,154,0.4);">
+        <!-- Close / Dismiss button -->
+        <button type="button" onclick="closeCheckinModal()" style="position:absolute;top:16px;right:16px;background:var(--cream);border:1px solid var(--border-light);border-radius:50%;width:34px;height:34px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--dark-brown);font-size:1rem;" title="Browse menu first">
+            <i class="bi bi-x-lg"></i>
+        </button>
+
         <div class="text-center mb-3">
-            <div style="font-size:2.6rem;margin-bottom:0.25rem;">🍽️</div>
-            <h2 style="font-weight:800;font-size:1.35rem;color:var(--dark-brown);margin-bottom:0.25rem;">Welcome to {{ restaurant_name }}</h2>
-            <span class="badge" style="background:var(--cream);color:var(--dark-brown);border:1px solid var(--tan);font-size:0.85rem;padding:0.35rem 0.75rem;border-radius:var(--radius-full);">
-                <i class="bi bi-geo-alt-fill"></i> Table {{ table_display }}
-            </span>
+            <div style="font-size:2.8rem;margin-bottom:0.25rem;filter:drop-shadow(0 2px 8px rgba(0,0,0,0.1));">🍽️</div>
+            <h2 style="font-weight:900;font-size:1.35rem;color:var(--deepest);margin-bottom:0.35rem;letter-spacing:-0.02em;">Welcome to {{ restaurant_name }}</h2>
+            <div class="d-inline-flex align-items-center gap-1 badge" style="background:var(--cream);color:var(--dark-brown);border:1px solid var(--tan);font-size:0.85rem;padding:0.35rem 0.85rem;border-radius:var(--radius-full);font-weight:700;">
+                <i class="bi bi-geo-alt-fill text-danger"></i> Table {{ table_display }}
+            </div>
         </div>
-        <p class="text-muted text-center" style="font-size:0.85rem;margin-bottom:1.25rem;">Please enter your details to start your dining session.</p>
+        <p class="text-muted text-center" style="font-size:0.88rem;margin-bottom:1.4rem;line-height:1.4;">
+            Enter your details to link your table order and receive your digital receipt.
+        </p>
         
         <form id="checkinForm" onsubmit="handleCheckin(event)">
-            <div class="mb-3">
-                <label class="form-label" style="font-weight:600;font-size:0.85rem;color:var(--dark-brown);">Full Name *</label>
+            <div class="mb-3 text-start">
+                <label class="form-label" style="font-weight:700;font-size:0.85rem;color:var(--deepest);margin-bottom:0.3rem;">Full Name <span style="color:#e74c3c;">*</span></label>
                 <div class="input-group">
-                    <span class="input-group-text" style="background:#fff;border-color:var(--border);"><i class="bi bi-person"></i></span>
-                    <input type="text" class="form-control" id="custName" placeholder="Enter your full name" required minlength="2" style="border-color:var(--border);" autocomplete="off">
+                    <span class="input-group-text" style="background:#f8f9fa;border-color:var(--border);color:var(--text-muted);"><i class="bi bi-person-fill"></i></span>
+                    <input type="text" class="form-control" id="custName" placeholder="e.g. Arun Kumar" required minlength="2" style="border-color:var(--border);padding:0.65rem 0.85rem;font-size:0.92rem;" autocomplete="name">
                 </div>
             </div>
-            <div class="mb-4">
-                <label class="form-label" style="font-weight:600;font-size:0.85rem;color:var(--dark-brown);">Phone Number *</label>
+            <div class="mb-4 text-start">
+                <label class="form-label" style="font-weight:700;font-size:0.85rem;color:var(--deepest);margin-bottom:0.3rem;">Mobile Phone Number <span style="color:#e74c3c;">*</span></label>
                 <div class="input-group">
-                    <span class="input-group-text" style="background:#fff;border-color:var(--border);">+91</span>
-                    <input type="tel" class="form-control" id="custPhone" placeholder="10-digit mobile number" required maxlength="15" style="border-color:var(--border);" autocomplete="off">
+                    <span class="input-group-text" style="background:#f8f9fa;border-color:var(--border);font-weight:700;color:var(--dark-brown);">+91</span>
+                    <input type="tel" class="form-control" id="custPhone" placeholder="10-digit mobile number" required maxlength="15" style="border-color:var(--border);padding:0.65rem 0.85rem;font-size:0.92rem;" autocomplete="tel">
                 </div>
-                <small class="text-muted" style="font-size:0.75rem;">Used for your order record and digital receipt invoice.</small>
+                <small class="text-muted" style="font-size:0.75rem;display:block;margin-top:0.35rem;">Used for payment desk verification &amp; digital bill.</small>
             </div>
-            <button type="submit" class="place-order-btn w-100" id="checkinBtn">
-                <i class="bi bi-arrow-right-circle"></i> Start Order
+
+            <button type="submit" class="place-order-btn w-100 mb-2" id="checkinBtn" style="padding:0.75rem 1rem;font-size:0.95rem;font-weight:800;border-radius:var(--radius-lg);box-shadow:0 4px 15px rgba(217,119,6,0.3);">
+                <i class="bi bi-check-circle-fill"></i> Confirm &amp; Start Ordering
+            </button>
+
+            <button type="button" class="btn btn-link w-100 text-decoration-none text-muted" onclick="closeCheckinModal()" style="font-size:0.82rem;font-weight:600;padding:0.35rem;">
+                <i class="bi bi-eye"></i> Browse Menu First
             </button>
         </form>
     </div>

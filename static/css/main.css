@@ -389,17 +389,36 @@ input:focus, select:focus, textarea:focus {
 .floating-cart-btn:hover { transform: scale(1.04); background: linear-gradient(135deg, #1e824c, #145a32); }
 
 /* Glass Modal & Sliding Sheets */
-.cart-overlay, .modal-backdrop-custom, .confirm-modal-overlay {
+.cart-overlay {
     position: fixed;
     inset: 0;
-    background: rgba(36, 20, 14, 0.5) !important;
-    backdrop-filter: var(--glass-blur);
-    -webkit-backdrop-filter: var(--glass-blur);
-    z-index: 1000;
+    background: rgba(36, 20, 14, 0.6) !important;
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    z-index: 999;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    transition: opacity 0.3s ease;
+}
+.cart-overlay.active {
     display: flex;
+}
+
+.modal-backdrop-custom, .confirm-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(20, 10, 5, 0.65) !important;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    z-index: 1050;
+    display: none;
     align-items: center;
     justify-content: center;
     padding: var(--space-md);
+}
+.modal-backdrop-custom.active, .confirm-modal-overlay.active {
+    display: flex;
 }
 .cart-drawer, .checkin-card, .confirm-modal {
     background: rgba(255, 255, 255, 0.9) !important;
