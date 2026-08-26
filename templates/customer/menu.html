@@ -545,20 +545,21 @@ function showActiveOrderBanner(order) {
 async function handleCheckin(e) {
     e.preventDefault();
     const name = document.getElementById('custName').value.trim();
-    const phone = document.getElementById('custPhone').value.trim().replace(/[^0-9]/g, '');
+    const rawPhone = document.getElementById('custPhone').value.trim();
+    const cleanPhone = rawPhone.replace(/[^0-9]/g, '');
 
     if (!name || name.length < 2) {
-        showToast('error', 'Please enter your full name.');
+        showToast('error', 'Please enter your full name (at least 2 characters).');
         return;
     }
-    if (!phone || phone.length < 10) {
+    if (!cleanPhone || cleanPhone.length < 10) {
         showToast('error', 'Please enter a valid 10-digit mobile number.');
         return;
     }
 
     const btn = document.getElementById('checkinBtn');
     btn.disabled = true;
-    btn.innerHTML = '<span class="spinner"></span> Starting Session...';
+    btn.innerHTML = '<span class="spinner"></span> Starting Dining Session...';
 
     try {
         const res = await fetch('/api/tables/checkin/', {
@@ -566,17 +567,28 @@ async function handleCheckin(e) {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 table_number: TABLE_NUMBER,
+                table_id: TABLE_NUMBER,
+                customer_name: name,
                 name: name,
-                phone: `+91${phone}`
+                customer_phone: cleanPhone,
+                phone: cleanPhone
             })
         });
 
         const data = await res.json();
-        if (!res.ok) throw new Error(data.error || 'Failed to initialize session.');
+        if (!res.ok) {
+            let errorMsg = data.error || 'Failed to initialize session.';
+            if (data.details) {
+                const firstDetail = Object.values(data.details)[0];
+                if (Array.isArray(firstDetail)) errorMsg = firstDetail[0];
+                else if (typeof firstDetail === 'string') errorMsg = firstDetail;
+            }
+            throw new Error(errorMsg);
+        }
 
-        customerSessionId = data.session_token || data.customer_session_id;
-        customerName = name;
-        customerPhone = `+91${phone}`;
+        customerSessionId = data.session_id || data.session_token || data.customer_session_id;
+        customerName = data.customer_name || name;
+        customerPhone = `+91${cleanPhone.slice(-10)}`;
 
         sessionStorage.setItem('orderless_session_token', customerSessionId);
         sessionStorage.setItem('orderless_customer_name', customerName);
@@ -584,7 +596,7 @@ async function handleCheckin(e) {
 
         updateHeaderWithCustomer(customerName);
         closeCheckinModal();
-        showToast('success', `Welcome ${customerName}! You can now place orders.`);
+        showToast('success', `Welcome ${customerName}! Your table is ready.`);
 
     } catch (err) {
         showToast('error', err.message);
