@@ -1,0 +1,363 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Order {{ order_number }} — {{ restaurant_name }}{% endblock %}
+{% block meta_description %}Live tracking for Order {{ order_number }} at {{ restaurant_name }}{% endblock %}
+{% block body_class %}customer-app tracking-page{% endblock %}
+
+{% block body %}
+<!-- Header -->
+<header class="tracking-header">
+    <div style="font-size:1.1rem;font-weight:700;margin-bottom:0.25rem;opacity:0.95;">🍽️ {{ restaurant_name }}</div>
+    <div class="order-number">{{ order_number }}</div>
+    <div style="opacity:0.9;font-size:0.85rem;margin-top:0.25rem;" id="tableInfo">Connecting to live order status...</div>
+</header>
+
+<div class="tracking-content">
+    <!-- Loading State -->
+    <div id="loadingState" class="text-center py-5">
+        <div class="spinner"></div>
+        <p class="mt-2 text-muted" style="font-size:0.85rem;">Retrieving your order details...</p>
+    </div>
+
+    <!-- Error State -->
+    <div id="errorState" style="display:none;" class="text-center py-5">
+        <i class="bi bi-shield-lock" style="font-size:3rem;color:var(--error);"></i>
+        <h3 class="mt-3" style="font-weight:800;color:var(--deepest);">Order Inaccessible</h3>
+        <p class="text-muted" style="font-size:0.85rem;" id="errorMsg">Unable to retrieve details for order {{ order_number }}.</p>
+        <button onclick="startNewSession()" class="btn btn-outline-dark btn-sm mt-2" style="font-weight:600;">Return to Menu</button>
+    </div>
+
+    <!-- Main Order Content -->
+    <div id="orderContent" style="display:none;">
+        
+        <!-- Live Status Tracker Steps -->
+        <div class="status-tracker" id="statusTracker"></div>
+
+        <!-- Pay at Desk Notice (Shown when food is served) -->
+        <div class="payment-notice" id="deskPayNotice" style="display:none;">
+            <div class="notice-icon">🍽️</div>
+            <h3>Enjoy your meal!</h3>
+            <p>Please settle your bill at the payment desk after eating.<br>Share your Order ID: <strong style="font-size:1.15rem;color:var(--dark-brown);">{{ order_number }}</strong></p>
+        </div>
+
+        <!-- Completion Card (Shown when order is paid & completed) -->
+        <div class="completion-card" id="completionCard" style="display:none;">
+            <div class="check-icon">✅</div>
+            <h3 style="font-weight:800;font-size:1.25rem;color:var(--success);">✓ ORDER COMPLETED</h3>
+            <p style="font-size:0.88rem;color:var(--text);margin-bottom:0.25rem;">Thank you for dining with us at {{ restaurant_name }}.</p>
+            <p class="text-muted" style="font-size:0.82rem;margin-bottom:1.25rem;">Table <span id="compTableNum"></span> is now available.</p>
+
+            <!-- Actions -->
+            <div class="d-flex flex-column gap-2">
+                <a id="pdfDownloadLink" href="#" target="_blank" class="btn btn-success btn-lg" style="background:var(--success);border:none;font-weight:700;font-size:0.95rem;">
+                    <i class="bi bi-file-earmark-pdf"></i> Download Official PDF Invoice
+                </a>
+                <button class="btn btn-dark btn-lg" id="whatsappBtn" onclick="triggerWhatsAppSend()" style="font-weight:700;font-size:0.95rem;background:#15803d;border:none;">
+                    <i class="bi bi-whatsapp"></i> <span id="whatsappBtnText">Send Invoice to WhatsApp</span>
+                </button>
+                <button class="btn btn-outline-dark btn-lg mt-2" onclick="startNewSession()" style="font-weight:700;font-size:0.95rem;">
+                    <i class="bi bi-plus-circle"></i> Start New Order
+                </button>
+            </div>
+
+            <!-- WhatsApp delivery status feedback -->
+            <div id="waStatusBox" class="mt-3 p-2 rounded text-muted text-start" style="font-size:0.8rem;background:rgba(255,255,255,0.85);display:none;">
+            </div>
+        </div>
+
+        <!-- Order Items & GST Breakdown Card -->
+        <div class="order-items-card" id="orderItemsCard"></div>
+    </div>
+</div>
+
+<!-- Live Connection Status Alert -->
+<div class="connection-status" id="connectionStatus">
+    <i class="bi bi-wifi-off"></i> Connection lost. Reconnecting...
+</div>
+
+<div class="error-toast" id="errorToast"></div>
+<div class="success-toast" id="successToast"></div>
+
+<script>
+const ORDER_NUMBER = '{{ order_number }}';
+const CSRF_TOKEN = '{{ csrf_token }}';
+let orderData = null;
+let ws = null;
+let reconnectAttempts = 0;
+
+const STATUS_CONFIG = {
+    'ORDER_CREATED': { label: 'Order Placed', icon: '📋', desc: 'Order received by the kitchen' },
+    'ACCEPTED': { label: 'Accepted', icon: '👍', desc: 'Kitchen accepted your order' },
+    'PREPARING': { label: 'Preparing', icon: '🔥', desc: 'Chefs are cooking your meal' },
+    'READY': { label: 'Ready', icon: '✨', desc: 'Food is prepared and plated' },
+    'SERVED': { label: 'Served', icon: '🍽️', desc: 'Served at your table' },
+    'COMPLETED': { label: 'Completed', icon: '✅', desc: 'Meal & payment settled' },
+};
+
+const STATUS_SEQUENCE = ['ORDER_CREATED', 'ACCEPTED', 'PREPARING', 'READY', 'SERVED', 'COMPLETED'];
+
+document.addEventListener('DOMContentLoaded', () => {
+    loadOrder();
+    connectWebSocket();
+});
+
+function getSessionToken() {
+    return sessionStorage.getItem('orderless_session_token') || '';
+}
+
+async function loadOrder() {
+    const token = getSessionToken();
+    try {
+        const res = await fetch(`/api/orders/${ORDER_NUMBER}/receipt/?session_id=${encodeURIComponent(token)}`, {
+            headers: {
+                'X-Session-ID': token
+            }
+        });
+        
+        if (!res.ok) {
+            const data = await res.json().catch(() => ({}));
+            throw new Error(data.error || 'Access denied. You do not own this order session.');
+        }
+        orderData = await res.json();
+        renderOrder();
+    } catch (err) {
+        document.getElementById('loadingState').style.display = 'none';
+        document.getElementById('errorState').style.display = 'block';
+        document.getElementById('errorMsg').textContent = err.message || 'Unable to retrieve order details.';
+    }
+}
+
+function renderOrder() {
+    document.getElementById('loadingState').style.display = 'none';
+    document.getElementById('orderContent').style.display = 'block';
+
+    const tDisplay = orderData.table_display || orderData.table_number;
+    document.getElementById('compTableNum').textContent = tDisplay;
+
+    // Set PDF download link with session token for IDOR protection
+    const token = getSessionToken();
+    document.getElementById('pdfDownloadLink').href = `/api/orders/${ORDER_NUMBER}/receipt/pdf/?session_id=${encodeURIComponent(token)}`;
+
+    // Header info (XSS safe text content)
+    const tableBadge = document.createElement('span');
+    tableBadge.className = 'badge';
+    tableBadge.style.cssText = 'background:rgba(255,255,255,0.2);color:#fff;font-size:0.8rem;padding:0.25rem 0.6rem;border-radius:var(--radius-full);';
+    tableBadge.innerHTML = `<i class="bi bi-geo-alt-fill"></i> Table ${escapeHtml(String(tDisplay))}`;
+
+    const custSpan = document.createElement('span');
+    custSpan.className = 'ms-2';
+    custSpan.textContent = `👤 ${orderData.customer_name || 'Guest'}`;
+
+    const infoContainer = document.getElementById('tableInfo');
+    infoContainer.innerHTML = '';
+    infoContainer.appendChild(tableBadge);
+    infoContainer.appendChild(custSpan);
+
+    renderStatusTracker();
+    renderPaymentNoticeAndCompletion();
+    renderItemsCard();
+
+    // If order is completed & paid, clear table session storage so new order starts fresh
+    if (orderData.payment_status === 'PAID' || orderData.order_status === 'COMPLETED') {
+        clearLocalSessionStorage(orderData.table_number);
+    }
+}
+
+function renderStatusTracker() {
+    const tracker = document.getElementById('statusTracker');
+    const currentStatus = orderData.order_status;
+    const currentIndex = STATUS_SEQUENCE.indexOf(currentStatus);
+
+    let html = '';
+    STATUS_SEQUENCE.forEach((st, idx) => {
+        const conf = STATUS_CONFIG[st];
+        let stateClass = '';
+        if (idx < currentIndex) stateClass = 'completed';
+        else if (idx === currentIndex) stateClass = 'active';
+
+        html += `
+        <div class="status-step ${stateClass}">
+            <div class="status-icon">${idx < currentIndex ? '✓' : conf.icon}</div>
+            <div class="status-info">
+                <h4>${conf.label}</h4>
+                <p>${conf.desc}</p>
+            </div>
+        </div>`;
+    });
+
+    tracker.innerHTML = html;
+}
+
+function renderPaymentNoticeAndCompletion() {
+    const deskNotice = document.getElementById('deskPayNotice');
+    const compCard = document.getElementById('completionCard');
+
+    if (orderData.payment_status === 'PAID' || orderData.order_status === 'COMPLETED') {
+        deskNotice.style.display = 'none';
+        compCard.style.display = 'block';
+    } else if (orderData.order_status === 'SERVED') {
+        deskNotice.style.display = 'block';
+        compCard.style.display = 'none';
+    } else {
+        deskNotice.style.display = 'none';
+        compCard.style.display = 'none';
+    }
+}
+
+function renderItemsCard() {
+    const container = document.getElementById('orderItemsCard');
+    if (!orderData.items) return;
+
+    let subtotal = parseFloat(orderData.subtotal || 0);
+    let cgst = parseFloat(orderData.cgst_amount || 0);
+    let sgst = parseFloat(orderData.sgst_amount || 0);
+    let total = parseFloat(orderData.total_amount || 0);
+
+    let isPaid = (orderData.payment_status === 'PAID');
+    let payBadge = isPaid ? 
+        '<span class="badge" style="background:var(--success-bg);color:var(--success);border:1px solid var(--success);font-size:0.75rem;">PAID</span>' : 
+        '<span class="badge" style="background:var(--warning-bg);color:var(--warning);border:1px solid var(--warning);font-size:0.75rem;">PAY AT DESK</span>';
+
+    let html = `
+    <div class="d-flex align-items-center justify-content-between mb-3">
+        <h3 style="margin:0;font-size:1.05rem;font-weight:700;color:var(--dark-brown);">Order Summary</h3>
+        ${payBadge}
+    </div>
+    
+    <div class="mb-3">
+        ${orderData.items.map(item => `
+            <div class="order-item-row">
+                <div>
+                    <span style="font-weight:600;">${item.emoji || '🍽️'} ${escapeHtml(item.item_name_snapshot || item.name)}</span>
+                    <span class="text-muted ms-1">×${item.quantity}</span>
+                    ${item.special_instructions ? `<div style="font-size:0.72rem;color:var(--brown);font-style:italic;">Note: ${escapeHtml(item.special_instructions)}</div>` : ''}
+                </div>
+                <div style="font-weight:600;">₹${parseFloat(item.subtotal).toFixed(2)}</div>
+            </div>
+        `).join('')}
+    </div>
+
+    <div class="pt-2 border-top">
+        <div class="d-flex justify-content-between text-muted" style="font-size:0.82rem;padding:2px 0;">
+            <span>Subtotal</span>
+            <span>₹${subtotal.toFixed(2)}</span>
+        </div>
+        <div class="d-flex justify-content-between text-muted" style="font-size:0.82rem;padding:2px 0;">
+            <span>CGST (2.5%)</span>
+            <span>₹${cgst.toFixed(2)}</span>
+        </div>
+        <div class="d-flex justify-content-between text-muted" style="font-size:0.82rem;padding:2px 0;">
+            <span>SGST (2.5%)</span>
+            <span>₹${sgst.toFixed(2)}</span>
+        </div>
+        <div class="order-total-row">
+            <span>Total Payable</span>
+            <span>₹${total.toFixed(2)}</span>
+        </div>
+    </div>`;
+
+    container.innerHTML = html;
+}
+
+function connectWebSocket() {
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    ws = new WebSocket(`${protocol}//${window.location.host}/ws/order/${ORDER_NUMBER}/`);
+
+    ws.onopen = () => {
+        reconnectAttempts = 0;
+        const conn = document.getElementById('connectionStatus');
+        conn.classList.remove('show');
+    };
+
+    ws.onmessage = (event) => {
+        try {
+            const data = JSON.parse(event.data);
+            if (data.type === 'order_status_update' || data.type === 'order_update') {
+                const updated = data.order;
+                if (updated.order_number === ORDER_NUMBER) {
+                    orderData.order_status = updated.order_status;
+                    orderData.payment_status = updated.payment_status;
+                    orderData.payment_method = updated.payment_method;
+                    renderOrder();
+                    showToast('success', `Status updated: ${updated.order_status_display || updated.order_status}`);
+                }
+            }
+        } catch (e) {
+            console.warn('WS message parse error:', e);
+        }
+    };
+
+    ws.onclose = () => {
+        const conn = document.getElementById('connectionStatus');
+        conn.classList.add('show');
+        reconnectAttempts++;
+        const delay = Math.min(1000 * Math.pow(2, reconnectAttempts), 15000);
+        setTimeout(connectWebSocket, delay);
+    };
+
+    ws.onerror = () => ws.close();
+}
+
+async function triggerWhatsAppSend() {
+    const btn = document.getElementById('whatsappBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> Dispatching...';
+
+    const token = getSessionToken();
+
+    try {
+        const res = await fetch(`/api/orders/${ORDER_NUMBER}/receipt/send/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Session-ID': token
+            }
+        });
+        const data = await res.json();
+
+        if (!res.ok) throw new Error(data.error || 'Unable to dispatch WhatsApp receipt.');
+
+        if (data.whatsapp_share_url) {
+            window.open(data.whatsapp_share_url, '_blank');
+        }
+        showToast('success', 'Opening WhatsApp with your receipt link!');
+    } catch (err) {
+        showToast('error', err.message || 'Unable to dispatch WhatsApp receipt.');
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-whatsapp"></i> Send Invoice to WhatsApp';
+    }
+}
+
+function clearLocalSessionStorage(tableNum) {
+    const t = tableNum || (orderData && orderData.table_number ? orderData.table_number : 'T05');
+    sessionStorage.removeItem('orderless_session_token');
+    sessionStorage.removeItem('orderless_customer_name');
+    sessionStorage.removeItem(`orderless_cart_${t}`);
+    localStorage.removeItem('orderless_customer_session');
+    localStorage.removeItem('orderless_customer_name');
+    localStorage.removeItem('orderless_customer_phone');
+    localStorage.removeItem(`orderless_cart_${t}`);
+}
+
+function startNewSession() {
+    const tableNum = (orderData && orderData.table_number) ? orderData.table_number : 'T05';
+    clearLocalSessionStorage(tableNum);
+    window.location.href = `/order/${tableNum}/`;
+}
+
+function showToast(type, msg) {
+    const toast = document.getElementById(type === 'error' ? 'errorToast' : 'successToast');
+    toast.textContent = msg;
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 3500);
+}
+
+function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+</script>
+{% endblock %}

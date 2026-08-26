@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}Staff Login — OrderLess{% endblock %}
+{% block meta_description %}Staff Login Portal for OrderLess Restaurant Management System{% endblock %}
+{% block body_class %}login-page{% endblock %}
+
+{% block body %}
+<div class="login-container">
+    <div class="login-card">
+        <div class="login-header">
+            <div class="login-logo">🍽️</div>
+            <h1>OrderLess</h1>
+            <p>Staff &amp; Operations Portal</p>
+        </div>
+        
+        {% if lockout_error %}
+        <div class="alert alert-danger p-2 mb-3 text-center" style="font-size:0.85rem;border-radius:var(--radius-md);">
+            <i class="bi bi-shield-lock-fill"></i> {{ lockout_error }}
+        </div>
+        {% elif form.errors %}
+        <div class="alert alert-danger p-2 mb-3 text-center" style="font-size:0.85rem;border-radius:var(--radius-md);">
+            <i class="bi bi-exclamation-circle"></i> Invalid staff credentials. Please check your username and password.
+        </div>
+        {% endif %}
+
+        <form method="post" class="login-form" autocomplete="off">
+            {% csrf_token %}
+            <div class="form-group mb-3">
+                <label for="id_username">Staff Username</label>
+                <input type="text" id="id_username" name="username" placeholder="Enter username" required autofocus autocomplete="off">
+            </div>
+            <div class="form-group mb-4">
+                <label for="id_password">Password</label>
+                <input type="password" id="id_password" name="password" placeholder="••••••••" required autocomplete="current-password">
+            </div>
+            <input type="hidden" name="next" value="{{ next|default:'/kitchen/' }}">
+            <button type="submit" class="btn-login" {% if lockout_error %}disabled{% endif %}>
+                <i class="bi bi-box-arrow-in-right"></i> Sign In to Portal
+            </button>
+        </form>
+
+        <div class="mt-4 pt-3 border-top text-center" style="font-size:0.75rem;color:var(--text-secondary);">
+            <i class="bi bi-shield-check"></i> Protected by Rate-Limited Brute Force Defense &amp; Audit Logging
+        </div>
+    </div>
+</div>
+{% endblock %}

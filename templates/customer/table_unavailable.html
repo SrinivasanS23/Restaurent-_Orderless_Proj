@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}Table Unavailable — {{ restaurant_name }}{% endblock %}
+{% block body_class %}unavailable-page{% endblock %}
+{% block body %}
+<div class="unavailable-card">
+    <div class="icon">🚫</div>
+    <h2>Table Unavailable</h2>
+    <p>Table {{ table_number }} is currently not accepting orders. Please ask the restaurant staff for assistance.</p>
+</div>
+{% endblock %}

@@ -1,0 +1,262 @@
+"""API views for orders, receipts, and kitchen management with IDOR defense and input validation."""
+import re
+from pathlib import Path
+from django.conf import settings
+from django.http import FileResponse, Http404
+from django.utils.html import escape
+from django.views.decorators.csrf import csrf_exempt
+from rest_framework import status
+from rest_framework.decorators import api_view, permission_classes, authentication_classes
+from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.authentication import SessionAuthentication
+from rest_framework.response import Response
+
+from .models import Order
+from .serializers import OrderSerializer, CreateOrderSerializer, OrderStatusUpdateSerializer
+from .services import OrderService
+from payments.models import Receipt
+from payments.receipt_service import ReceiptService
+from payments.whatsapp_service import WhatsAppService
+from security.permissions import IsStaffOrCashierPermission, verify_order_session_ownership
+from security.rate_limit import rate_limit
+
+ORDER_NUM_REGEX = re.compile(r'^ORD-[A-Za-z0-9]{4,12}$')
+
+
+@csrf_exempt
+@api_view(['POST'])
+@authentication_classes([])
+@permission_classes([AllowAny])
+@rate_limit(limit=10, window=60, key_prefix='order_create')
+def create_order(request):
+    """Create a new order for a table session with input sanitization and rate limiting."""
+    serializer = CreateOrderSerializer(data=request.data)
+    if not serializer.is_valid():
+        error_msgs = []
+        for field, errs in serializer.errors.items():
+            if isinstance(errs, list):
+                error_msgs.append(f"{errs[0]}")
+            else:
+                error_msgs.append(f"{field}: {errs}")
+        error_str = " ".join(error_msgs) if error_msgs else "Invalid order data."
+        return Response({'error': error_str, 'details': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+
+    # Sanitize special instructions against XSS
+    raw_instructions = serializer.validated_data.get('special_instructions', '')
+    clean_instructions = escape(raw_instructions[:300].strip()) if raw_instructions else ''
+
+    try:
+        order = OrderService.create_order(
+            table_number=serializer.validated_data['table_number'],
+            items_data=serializer.validated_data['items'],
+            customer_session_id=serializer.validated_data.get('customer_session_id'),
+            special_instructions=clean_instructions
+        )
+    except ValueError as e:
+        return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+    return Response(OrderSerializer(order).data, status=status.HTTP_201_CREATED)
+
+
+@api_view(['GET'])
+@authentication_classes([SessionAuthentication])
+@permission_classes([AllowAny])
+def get_order(request, order_number):
+    """Get order details by order number with IDOR ownership validation."""
+    clean_num = order_number.strip().upper()
+    if not ORDER_NUM_REGEX.match(clean_num):
+        return Response({'error': 'Invalid order number format.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        order = Order.objects.prefetch_related('items__menu_item', 'payments').select_related('table', 'customer_session').get(
+            order_number=clean_num
+        )
+    except Order.DoesNotExist:
+        return Response({'error': 'Order not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+    # IDOR Protection: verify that customer owns this order session or user is staff
+    if not verify_order_session_ownership(request, order):
+        return Response(
+            {'error': 'Access denied. You do not own this order session.'},
+            status=status.HTTP_403_FORBIDDEN
+        )
+
+    return Response(OrderSerializer(order).data)
+
+
+@api_view(['PATCH'])
+@authentication_classes([SessionAuthentication])
+@permission_classes([IsStaffOrCashierPermission])
+def update_order_status(request, order_id):
+    """Update kitchen order status (Staff only)."""
+    if not isinstance(order_id, int) and not (isinstance(order_id, str) and order_id.isdigit()):
+        return Response({'error': 'Invalid order ID.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    serializer = OrderStatusUpdateSerializer(data=request.data)
+    if not serializer.is_valid():
+        return Response({'error': 'Invalid status.', 'details': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        order = OrderService.update_order_status(
+            order_id=int(order_id),
+            new_status=serializer.validated_data['status'],
+            user=request.user
+        )
+    except ValueError as e:
+        return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+    return Response(OrderSerializer(order).data)
+
+
+@api_view(['GET'])
+@authentication_classes([SessionAuthentication])
+@permission_classes([IsStaffOrCashierPermission])
+def get_kitchen_orders(request):
+    """Get all active orders for the kitchen display (Staff only)."""
+    orders = Order.objects.filter(
+        order_status__in=[
+            Order.OrderStatus.ORDER_CREATED,
+            Order.OrderStatus.ACCEPTED,
+            Order.OrderStatus.PREPARING,
+            Order.OrderStatus.READY,
+            Order.OrderStatus.SERVED,
+        ]
+    ).prefetch_related('items__menu_item', 'payments').select_related('table', 'customer_session').order_by('created_at')
+
+    return Response(OrderSerializer(orders, many=True).data)
+
+
+@api_view(['GET'])
+@authentication_classes([SessionAuthentication])
+@permission_classes([AllowAny])
+def get_order_receipt(request, order_number):
+    """Get JSON receipt summary with IDOR session verification."""
+    clean_num = order_number.strip().upper()
+    if not ORDER_NUM_REGEX.match(clean_num):
+        return Response({'error': 'Invalid order number format.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        order = Order.objects.prefetch_related('items__menu_item', 'payments').select_related('table', 'customer_session').get(
+            order_number=clean_num
+        )
+    except Order.DoesNotExist:
+        return Response({'error': 'Order not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+    # IDOR check
+    if not verify_order_session_ownership(request, order):
+        return Response(
+            {'error': 'Access denied. You do not own this order session.'},
+            status=status.HTTP_403_FORBIDDEN
+        )
+
+    data = OrderSerializer(order).data
+
+    receipt = getattr(order, 'receipt', None)
+    if not receipt and order.payment_status == Order.PaymentStatus.PAID:
+        receipt = ReceiptService.generate_pdf_receipt(order)
+
+    share_url = WhatsAppService.get_whatsapp_share_url(order)
+
+    if receipt:
+        data['receipt'] = {
+            'receipt_number': receipt.receipt_number,
+            'pdf_url': f"/api/orders/{order.order_number}/receipt/pdf/",
+            'whatsapp_share_url': share_url,
+            'delivery_status': receipt.delivery_status,
+            'delivery_channel': receipt.delivery_channel,
+            'delivery_reference': receipt.delivery_reference,
+            'delivery_error': receipt.delivery_error_message,
+        }
+    else:
+        data['receipt'] = None
+
+    return Response(data)
+
+
+@api_view(['GET'])
+@authentication_classes([SessionAuthentication])
+@permission_classes([AllowAny])
+@rate_limit(limit=20, window=60, key_prefix='receipt_download')
+def download_order_pdf_receipt(request, order_number):
+    """
+    Download the official PDF receipt for an order.
+    Protected by IDOR session verification and canonical path traversal defense.
+    """
+    clean_num = order_number.strip().upper()
+    if not ORDER_NUM_REGEX.match(clean_num):
+        raise Http404("Invalid order number format")
+
+    try:
+        order = Order.objects.select_related('customer_session', 'table').get(order_number=clean_num)
+    except Order.DoesNotExist:
+        raise Http404("Order not found")
+
+    # IDOR check
+    if not verify_order_session_ownership(request, order):
+        return Response(
+            {'error': 'Access denied. You do not own this order session.'},
+            status=status.HTTP_403_FORBIDDEN
+        )
+
+    receipt = getattr(order, 'receipt', None)
+    if not receipt:
+        receipt = ReceiptService.generate_pdf_receipt(order)
+
+    # Canonical Path Traversal Defense
+    media_root = Path(settings.MEDIA_ROOT).resolve()
+    pdf_file_path = (media_root / receipt.pdf_path).resolve()
+
+    if not str(pdf_file_path).startswith(str(media_root)):
+        return Response({'error': 'Unauthorized file path.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    if not pdf_file_path.exists():
+        ReceiptService.generate_pdf_receipt(order)
+
+    return FileResponse(
+        open(pdf_file_path, 'rb'),
+        content_type='application/pdf',
+        as_attachment=False,
+        filename=f"Receipt_{order.order_number}.pdf"
+    )
+
+
+@csrf_exempt
+@api_view(['POST'])
+@authentication_classes([SessionAuthentication])
+@permission_classes([AllowAny])
+@rate_limit(limit=5, window=60, key_prefix='wa_receipt')
+def send_receipt_whatsapp(request, order_number):
+    """Trigger WhatsApp receipt dispatch with rate limiting and IDOR protection."""
+    clean_num = order_number.strip().upper()
+    if not ORDER_NUM_REGEX.match(clean_num):
+        return Response({'error': 'Invalid order number format.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        order = Order.objects.select_related('customer_session', 'table').prefetch_related('items').get(
+            order_number=clean_num
+        )
+    except Order.DoesNotExist:
+        return Response({'error': 'Order not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+    # IDOR check
+    if not verify_order_session_ownership(request, order):
+        return Response(
+            {'error': 'Access denied. You do not own this order session.'},
+            status=status.HTTP_403_FORBIDDEN
+        )
+
+    target_phone = request.data.get('phone') if isinstance(request.data, dict) else None
+    if target_phone:
+        # Sanitize target phone
+        target_phone = re.sub(r'[\s\-\(\)]', '', str(target_phone))
+        if not re.match(r'^\+?\d{10,15}$', target_phone):
+            return Response({'error': 'Invalid phone number format.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    wa_status, wa_msg, share_url = WhatsAppService.send_receipt(order, target_phone=target_phone)
+    return Response({
+        'order_number': order.order_number,
+        'target_phone': target_phone,
+        'whatsapp_status': wa_status,
+        'whatsapp_share_url': share_url,
+        'message': wa_msg
+    })
