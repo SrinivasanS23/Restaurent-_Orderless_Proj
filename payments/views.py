@@ -1,4 +1,5 @@
 """API views for physical payment desk counter with staff permission enforcement and audit logging."""
+import re
 import logging
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes, authentication_classes
@@ -31,9 +32,14 @@ def process_desk_payment(request):
     cashier = request.user
     ip = get_client_ip(request)
 
+    # Clean order number
+    raw_order_num = str(data['order_number']).strip().upper().lstrip('#')
+    if not raw_order_num.startswith('ORD-'):
+        raw_order_num = f"ORD-{raw_order_num}"
+
     try:
         result = PaymentService.process_desk_payment(
-            order_number=data['order_number'],
+            order_number=raw_order_num,
             payment_method=data['payment_method'],
             amount=data['amount'],
             cashier=cashier,
@@ -41,11 +47,11 @@ def process_desk_payment(request):
             reference=data.get('transaction_reference', '')
         )
         logger.info(
-            f"[PAYMENT_SETTLED] Order='{data['order_number']}' Method='{data['payment_method']}' Amount=₹{data['amount']} Cashier='{cashier.username}' IP='{ip}'"
+            f"[PAYMENT_SETTLED] Order='{raw_order_num}' Method='{data['payment_method']}' Amount=₹{data['amount']} Cashier='{cashier.username}' IP='{ip}'"
         )
     except ValueError as e:
         logger.warning(
-            f"[PAYMENT_REJECTED] Order='{data.get('order_number')}' Reason='{str(e)}' Cashier='{cashier.username}' IP='{ip}'"
+            f"[PAYMENT_REJECTED] Order='{raw_order_num}' Reason='{str(e)}' Cashier='{cashier.username}' IP='{ip}'"
         )
         return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -66,12 +72,25 @@ desk_payment_view = process_desk_payment
 @api_view(['GET'])
 @authentication_classes([SessionAuthentication])
 @permission_classes([IsStaffOrCashierPermission])
-def get_order_for_payment_desk(request, order_number):
+def get_order_for_payment_desk(request, order_number=None):
     """
-    Search order by full order number (ORD-XXXX) or 4-digit code (XXXX).
+    Search order by full order number (ORD-XXXX, #ORD-XXXX) or 4-digit code (XXXX).
+    Accepts both URL path param or query params (?order_number=, ?search=, ?q=).
     Strictly staff-only.
     """
-    clean_id = order_number.strip().upper()
+    raw_input = (
+        order_number or 
+        request.GET.get('order_number') or 
+        request.GET.get('search') or 
+        request.GET.get('q') or 
+        ''
+    ).strip().upper()
+
+    if not raw_input:
+        return Response({'error': 'Please provide an Order Number to search.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    # Clean leading # and spaces
+    clean_id = re.sub(r'^#+', '', raw_input).strip()
     if not clean_id.startswith('ORD-'):
         clean_id = f"ORD-{clean_id}"
 
@@ -80,7 +99,12 @@ def get_order_for_payment_desk(request, order_number):
             order_number=clean_id
         )
     except Order.DoesNotExist:
-        return Response({'error': f'Order {order_number} not found.'}, status=status.HTTP_404_NOT_FOUND)
+        # Also try searching without ORD- prefix in case order_number is stored differently
+        alt_order = Order.objects.filter(order_number__iexact=raw_input.lstrip('#')).first()
+        if alt_order:
+            order = alt_order
+        else:
+            return Response({'error': f'Order #{clean_id} not found in the system.'}, status=status.HTTP_404_NOT_FOUND)
 
     data = OrderSerializer(order).data
     data['is_payable'] = (order.order_status == Order.OrderStatus.SERVED and order.payment_status == Order.PaymentStatus.PENDING)

@@ -83,37 +83,53 @@ let selectedMethod = 'CASH';
 
 async function searchOrder(e) {
     if (e) e.preventDefault();
-    let orderNum = document.getElementById('orderSearchInput').value.trim().toUpperCase();
-    if (!orderNum) return;
+    const inputEl = document.getElementById('orderSearchInput');
+    let rawVal = inputEl.value.trim().toUpperCase();
+    if (!rawVal) return;
 
-    if (!orderNum.startsWith('ORD-') && orderNum.length === 4) {
-        orderNum = `ORD-${orderNum}`;
+    // Clean leading # and any invalid characters
+    let cleanCode = rawVal.replace(/^#+/, '').replace(/[^A-Z0-9\-]/g, '').trim();
+    if (!cleanCode) return;
+
+    if (!cleanCode.startsWith('ORD-')) {
+        cleanCode = `ORD-${cleanCode}`;
     }
+
+    // Update input box to show clean format
+    inputEl.value = cleanCode;
 
     const btn = document.getElementById('searchBtn');
     btn.disabled = true;
     btn.innerHTML = '<span class="spinner"></span> Searching...';
 
     try {
-        const res = await fetch(`/api/payments/desk/order/${orderNum}/`, {
+        const res = await fetch(`/api/payments/desk/order/${encodeURIComponent(cleanCode)}/`, {
             headers: { 
                 'Content-Type': 'application/json',
                 'X-CSRFToken': CSRF_TOKEN 
             }
         });
         
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || `Order #${orderNum} not found.`);
+        let data = {};
+        try {
+            data = await res.json();
+        } catch (parseErr) {
+            throw new Error(`Order #${cleanCode} not found in the system.`);
+        }
+
+        if (!res.ok) {
+            throw new Error(data.error || `Order #${cleanCode} not found.`);
+        }
 
         currentOrder = data;
         renderBill();
     } catch (err) {
         showToast('error', err.message);
         document.getElementById('billSection').innerHTML = `
-            <div class="bill-card text-center py-5 px-3 text-danger">
+            <div class="bill-card text-center py-5 px-3 text-danger animate-fade-in">
                 <i class="bi bi-exclamation-triangle" style="font-size:2.8rem; color:var(--error);"></i>
-                <p class="mt-2 fw-bold" style="font-size:1.1rem;">${err.message}</p>
-                <p class="text-muted small">Please verify the Order ID (e.g. ${orderNum}) and try again.</p>
+                <p class="mt-2 fw-bold" style="font-size:1.1rem; color:var(--error);">${err.message}</p>
+                <p class="text-muted small">Please verify the Order ID (e.g. ${cleanCode}) and try again.</p>
             </div>`;
     } finally {
         btn.disabled = false;
