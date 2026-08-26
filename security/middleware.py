@@ -72,3 +72,21 @@ class GlobalAbuseProtectionMiddleware:
             return res
 
         return self.get_response(request)
+
+
+class ExceptionLoggingMiddleware:
+    """Captures unhandled backend exceptions and logs them cleanly for Vercel Runtime Logs."""
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        return self.get_response(request)
+
+    def process_exception(self, request, exception):
+        logger.error(
+            f"[SERVER_ERROR_500] Path='{request.path}' Method='{request.method}' "
+            f"Exception='{type(exception).__name__}': {exception}",
+            exc_info=True
+        )
+        return None
