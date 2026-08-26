@@ -1,48 +1,52 @@
 {% extends "base.html" %}
 {% load static %}
-{% block title %}{{ restaurant_name }} — Contactless QR Dining{% endblock %}
-{% block meta_description %}{{ restaurant_name }} contactless table QR ordering system{% endblock %}
+{% block title %}{{ restaurant_name }} — Luxury Contactless QR Dining{% endblock %}
+{% block meta_description %}Welcome to {{ restaurant_name }}. Scan your physical table QR code for an ultra-fast contactless dining experience.{% endblock %}
 
 {% block body %}
-<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:2rem 1rem;">
-    <div class="menu-card text-center p-5" style="max-width:540px;width:100%;border-radius:var(--radius-2xl);box-shadow:var(--shadow-lg);">
-        <div style="font-size:4rem;margin-bottom:0.75rem;filter:drop-shadow(0 4px 12px rgba(0,0,0,0.12));">🍽️</div>
+<div style="min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 2.5rem 1rem;">
+    <div class="menu-card text-center p-4 p-md-5 animate-scale-in" style="max-width: 560px; width: 100%; border-radius: var(--radius-2xl); box-shadow: var(--shadow-xl); background: var(--glass-bg-solid); border: var(--glass-border); flex-direction: column; gap: 0;">
         
-        <h1 style="font-size:2.2rem;font-weight:900;color:var(--deepest);letter-spacing:-0.03em;margin-bottom:0.5rem;">
+        <div style="font-size: 3.8rem; margin-bottom: 0.5rem; filter: drop-shadow(0 4px 14px rgba(0,0,0,0.12));">🍽️</div>
+        
+        <h1 style="font-family: var(--font-heading); font-size: 2.2rem; font-weight: 900; color: var(--deepest); letter-spacing: -0.03em; margin-bottom: 0.4rem;">
             {{ restaurant_name }}
         </h1>
         
-        <p style="color:var(--text-secondary);font-size:1.05rem;font-weight:500;margin-bottom:2rem;line-height:1.5;">
-            Contactless Table QR Dining Experience
+        <p style="color: var(--text-muted); font-size: 1rem; font-weight: 600; margin-bottom: 2rem; line-height: 1.5;">
+            Fine Dining &amp; Contactless Table Ordering
         </p>
 
-        <div class="p-4 mb-4 rounded text-start" style="background:var(--cream);border:1.5px solid var(--border-light);border-radius:var(--radius-lg);">
+        <!-- 3 Sequential Steps Guide -->
+        <div class="p-3 p-md-4 mb-4 text-start" style="background: rgba(246, 238, 227, 0.7); border: 1.5px solid var(--border); border-radius: var(--radius-xl);">
             <div class="d-flex align-items-start gap-3 mb-3">
-                <span style="font-size:1.6rem;">📱</span>
+                <div style="width: 36px; height: 36px; min-width: 36px; border-radius: 50%; background: var(--dark-brown); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 0.9rem;">1</div>
                 <div>
-                    <strong style="color:var(--deepest);display:block;font-size:0.95rem;">1. Scan Your Table QR</strong>
-                    <span class="text-muted small">Every dining table (T01 – T10) has a dedicated QR code.</span>
+                    <strong style="color: var(--deepest); display: block; font-size: 0.95rem; font-weight: 800;">Scan Table QR Code</strong>
+                    <span class="text-muted" style="font-size: 0.84rem;">Each dining table (T01 – T10) features a dedicated QR code on the stand.</span>
                 </div>
             </div>
+            
             <div class="d-flex align-items-start gap-3 mb-3">
-                <span style="font-size:1.6rem;">🍲</span>
+                <div style="width: 36px; height: 36px; min-width: 36px; border-radius: 50%; background: var(--cognac); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 0.9rem;">2</div>
                 <div>
-                    <strong style="color:var(--deepest);display:block;font-size:0.95rem;">2. Order Food</strong>
-                    <span class="text-muted small">Enter your name, explore our menu, and send orders directly to our kitchen.</span>
+                    <strong style="color: var(--deepest); display: block; font-size: 0.95rem; font-weight: 800;">Browse Menu &amp; Order</strong>
+                    <span class="text-muted" style="font-size: 0.84rem;">Enter your name, explore chef specials, and send orders directly to the kitchen.</span>
                 </div>
             </div>
+            
             <div class="d-flex align-items-start gap-3">
-                <span style="font-size:1.6rem;">💳</span>
+                <div style="width: 36px; height: 36px; min-width: 36px; border-radius: 50%; background: var(--success); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 0.9rem;">3</div>
                 <div>
-                    <strong style="color:var(--deepest);display:block;font-size:0.95rem;">3. Pay at Payment Desk</strong>
-                    <span class="text-muted small">After enjoying your meal, settle your bill at the counter via Cash, UPI, or Card.</span>
+                    <strong style="color: var(--deepest); display: block; font-size: 0.95rem; font-weight: 800;">Settle at Payment Desk</strong>
+                    <span class="text-muted" style="font-size: 0.84rem;">After enjoying your meal, simply visit the counter to pay via Cash, UPI, or Card.</span>
                 </div>
             </div>
         </div>
 
-        <div class="border-top pt-3 text-center">
-            <a href="{% url 'login' %}" class="btn btn-outline-dark btn-sm px-3 py-2 fw-bold" style="border-radius:var(--radius-md);font-size:0.85rem;color:var(--dark-brown);border-color:var(--dark-brown);">
-                <i class="bi bi-shield-lock-fill"></i> Staff Login Portal
+        <div class="border-top pt-3 text-center w-100">
+            <a href="{% url 'login' %}" class="btn-premium-secondary" style="font-size: 0.85rem; padding: 0.6rem 1.2rem;">
+                <i class="bi bi-shield-lock-fill text-danger"></i> Staff Operations Login
             </a>
         </div>
     </div>

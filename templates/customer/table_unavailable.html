@@ -1,10 +1,18 @@
 {% extends "base.html" %}
 {% block title %}Table Unavailable — {{ restaurant_name }}{% endblock %}
-{% block body_class %}unavailable-page{% endblock %}
 {% block body %}
-<div class="unavailable-card">
-    <div class="icon">🚫</div>
-    <h2>Table Unavailable</h2>
-    <p>Table {{ table_number }} is currently not accepting orders. Please ask the restaurant staff for assistance.</p>
+<div style="min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 2rem 1rem;">
+    <div class="menu-card text-center p-4 p-md-5 animate-scale-in" style="max-width: 520px; width: 100%; border-radius: var(--radius-2xl); box-shadow: var(--shadow-xl); background: var(--glass-bg-solid); border: var(--glass-border); flex-direction: column; gap: 0;">
+        <div style="font-size: 3.5rem; margin-bottom: 0.5rem;">🍽️</div>
+        <h2 style="font-family: var(--font-heading); font-size: 1.8rem; font-weight: 900; color: var(--deepest); margin-bottom: 0.5rem;">
+            {{ error_title|default:"Table Unavailable" }}
+        </h2>
+        <p class="text-muted" style="font-size: 0.92rem; margin-bottom: 1.8rem; line-height: 1.5;">
+            {{ error_message|default:"This dining table is currently deactivated or undergoing maintenance. Please scan the QR code located on another active dining table." }}
+        </p>
+        <a href="/" class="btn-premium-primary">
+            <i class="bi bi-house-door-fill"></i> Return to Restaurant Home
+        </a>
+    </div>
 </div>
 {% endblock %}

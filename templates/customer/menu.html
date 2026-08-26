@@ -1,170 +1,58 @@
 {% extends "base.html" %}
 {% load static %}
-{% block title %}{{ restaurant_name }} — Table {{ table_display }}{% endblock %}
-{% block meta_description %}Order food from Table {{ table_display }} at {{ restaurant_name }}{% endblock %}
+{% block title %}Table {{ table_display }} Menu — {{ restaurant_name }}{% endblock %}
+{% block meta_description %}Browse our menu and order directly from Table {{ table_display }} at {{ restaurant_name }}.{% endblock %}
 {% block body_class %}customer-app{% endblock %}
 
 {% block body %}
-<style>
-/* Scoped Cart & Drawer Panel Styles */
-.floating-cart {
-    position: fixed !important;
-    bottom: 20px !important;
-    left: 50% !important;
-    transform: translateX(-50%) !important;
-    width: calc(100% - 32px) !important;
-    max-width: 500px !important;
-    background: #24140e !important;
-    border: 1.5px solid rgba(216, 187, 154, 0.4) !important;
-    border-radius: 20px !important;
-    padding: 0.9rem 1.4rem !important;
-    display: none;
-    align-items: center !important;
-    justify-content: space-between !important;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.45) !important;
-    z-index: 950 !important;
-    color: #ffffff !important;
-    cursor: pointer !important;
-    transition: all .25s ease !important;
-}
-.floating-cart.visible {
-    display: flex !important;
-}
-.floating-cart:hover {
-    transform: translateX(-50%) scale(1.02) !important;
-}
-.cart-overlay {
-    position: fixed !important;
-    inset: 0 !important;
-    background: rgba(20, 10, 5, 0.65) !important;
-    backdrop-filter: blur(6px) !important;
-    -webkit-backdrop-filter: blur(6px) !important;
-    z-index: 1040 !important;
-    display: none;
-}
-.cart-overlay.active {
-    display: block !important;
-}
-.cart-panel {
-    position: fixed !important;
-    bottom: 0 !important;
-    left: 50% !important;
-    transform: translateX(-50%) translateY(105%) !important;
-    width: 100% !important;
-    max-width: 540px !important;
-    max-height: 88vh !important;
-    background: #ffffff !important;
-    border-radius: 28px 28px 0 0 !important;
-    box-shadow: 0 -10px 40px rgba(0,0,0,0.35) !important;
-    z-index: 1060 !important;
-    display: flex !important;
-    flex-direction: column !important;
-    transition: transform 0.32s cubic-bezier(0.16, 1, 0.3, 1) !important;
-    border: 1px solid rgba(216, 187, 154, 0.5) !important;
-    border-bottom: none !important;
-}
-.cart-panel.active {
-    transform: translateX(-50%) translateY(0) !important;
-}
-.cart-body {
-    padding: 1rem 1.5rem !important;
-    overflow-y: auto !important;
-    flex: 1 !important;
-    max-height: 48vh !important;
-}
-.cart-item {
-    display: flex !important;
-    align-items: center !important;
-    gap: 0.85rem !important;
-    padding: 0.75rem 0 !important;
-    border-bottom: 1px solid rgba(216, 187, 154, 0.3) !important;
-}
-.cart-item-emoji {
-    font-size: 1.6rem !important;
-    min-width: 40px !important;
-    height: 40px !important;
-    background: #faf6f0 !important;
-    border-radius: 12px !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-}
-.cart-item-info { flex: 1 !important; min-width: 0 !important; }
-.cart-item-name { font-weight: 700 !important; font-size: 0.95rem !important; color: #24140e !important; }
-.cart-item-price { font-size: 0.82rem !important; color: #666 !important; margin-top: 2px !important; }
-.cart-item-remove {
-    background: transparent !important;
-    border: none !important;
-    color: #e74c3c !important;
-    font-size: 1.1rem !important;
-    cursor: pointer !important;
-    padding: 4px !important;
-}
-.cart-footer {
-    padding: 1rem 1.5rem 1.5rem 1.5rem !important;
-    border-top: 1px solid rgba(216, 187, 154, 0.3) !important;
-    background: #faf8f5 !important;
-}
-.place-order-btn {
-    width: 100% !important;
-    background: linear-gradient(135deg, #3d2923, #24140e) !important;
-    color: #ffffff !important;
-    border: none !important;
-    border-radius: 14px !important;
-    padding: 0.95rem !important;
-    font-size: 1rem !important;
-    font-weight: 800 !important;
-    cursor: pointer !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    gap: 0.5rem !important;
-    box-shadow: 0 4px 16px rgba(58, 30, 20, 0.35) !important;
-}
-</style>
-
 {% csrf_token %}
-<!-- Customer Check-In Modal (Entry point for dining session) -->
+
+<!-- Customer Check-In Modal (Dining Session Initialization) -->
 <div class="modal-backdrop-custom" id="checkinModal" style="display:none;">
-    <div class="checkin-card" style="position:relative;max-width:440px;width:92%;background:#ffffff !important;border-radius:24px;padding:2rem 1.8rem;box-shadow:0 25px 60px rgba(0,0,0,0.35);border:1px solid rgba(216,187,154,0.4);">
-        <!-- Close / Dismiss button -->
-        <button type="button" onclick="closeCheckinModal()" style="position:absolute;top:16px;right:16px;background:var(--cream);border:1px solid var(--border-light);border-radius:50%;width:34px;height:34px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--dark-brown);font-size:1rem;" title="Browse menu first">
+    <div class="checkin-card animate-scale-in">
+        <button type="button" onclick="closeCheckinModal()" class="cart-close" style="position:absolute; top:18px; right:18px;" title="Browse menu first">
             <i class="bi bi-x-lg"></i>
         </button>
 
         <div class="text-center mb-3">
-            <div style="font-size:2.8rem;margin-bottom:0.25rem;filter:drop-shadow(0 2px 8px rgba(0,0,0,0.1));">🍽️</div>
-            <h2 style="font-weight:900;font-size:1.35rem;color:var(--deepest);margin-bottom:0.35rem;letter-spacing:-0.02em;">Welcome to {{ restaurant_name }}</h2>
-            <div class="d-inline-flex align-items-center gap-1 badge" style="background:var(--cream);color:var(--dark-brown);border:1px solid var(--tan);font-size:0.85rem;padding:0.35rem 0.85rem;border-radius:var(--radius-full);font-weight:700;">
+            <div style="font-size:3rem; margin-bottom:0.25rem; filter:drop-shadow(0 2px 8px rgba(0,0,0,0.1));">🍽️</div>
+            <h2 style="font-family:var(--font-heading); font-weight:900; font-size:1.45rem; color:var(--deepest); margin-bottom:0.35rem; letter-spacing:-0.02em;">Welcome to {{ restaurant_name }}</h2>
+            <div class="table-badge">
                 <i class="bi bi-geo-alt-fill text-danger"></i> Table {{ table_display }}
             </div>
         </div>
-        <p class="text-muted text-center" style="font-size:0.88rem;margin-bottom:1.4rem;line-height:1.4;">
-            Enter your details to link your table order and receive your digital receipt.
+        
+        <p class="text-muted text-center" style="font-size:0.88rem; margin-bottom:1.4rem; line-height:1.4;">
+            Enter your name &amp; phone to start ordering and receive your digital GST tax invoice.
         </p>
         
         <form id="checkinForm" onsubmit="handleCheckin(event)">
             <div class="mb-3 text-start">
-                <label class="form-label" style="font-weight:700;font-size:0.85rem;color:var(--deepest);margin-bottom:0.3rem;">Full Name <span style="color:#e74c3c;">*</span></label>
+                <label class="form-label" style="font-weight:750; font-size:0.85rem; color:var(--deepest); margin-bottom:0.3rem;">
+                    Full Name <span style="color:#e11d48;">*</span>
+                </label>
                 <div class="input-group">
-                    <span class="input-group-text" style="background:#f8f9fa;border-color:var(--border);color:var(--text-muted);"><i class="bi bi-person-fill"></i></span>
-                    <input type="text" class="form-control" id="custName" placeholder="e.g. Arun Kumar" required minlength="2" style="border-color:var(--border);padding:0.65rem 0.85rem;font-size:0.92rem;" autocomplete="name">
+                    <span class="input-group-text" style="background:#f8f9fa; border-color:var(--border); color:var(--text-muted);"><i class="bi bi-person-fill"></i></span>
+                    <input type="text" class="form-control" id="custName" placeholder="e.g. Arun Kumar" required minlength="2" style="border-color:var(--border); padding:0.7rem 0.9rem; font-size:0.92rem;" autocomplete="name">
                 </div>
             </div>
+            
             <div class="mb-4 text-start">
-                <label class="form-label" style="font-weight:700;font-size:0.85rem;color:var(--deepest);margin-bottom:0.3rem;">Mobile Phone Number <span style="color:#e74c3c;">*</span></label>
+                <label class="form-label" style="font-weight:750; font-size:0.85rem; color:var(--deepest); margin-bottom:0.3rem;">
+                    Mobile Phone Number <span style="color:#e11d48;">*</span>
+                </label>
                 <div class="input-group">
-                    <span class="input-group-text" style="background:#f8f9fa;border-color:var(--border);font-weight:700;color:var(--dark-brown);">+91</span>
-                    <input type="tel" class="form-control" id="custPhone" placeholder="10-digit mobile number" required maxlength="15" style="border-color:var(--border);padding:0.65rem 0.85rem;font-size:0.92rem;" autocomplete="tel">
+                    <span class="input-group-text" style="background:#f8f9fa; border-color:var(--border); font-weight:800; color:var(--dark-brown);">+91</span>
+                    <input type="tel" class="form-control" id="custPhone" placeholder="10-digit mobile number" required maxlength="15" style="border-color:var(--border); padding:0.7rem 0.9rem; font-size:0.92rem;" autocomplete="tel">
                 </div>
-                <small class="text-muted" style="font-size:0.75rem;display:block;margin-top:0.35rem;">Used for payment desk verification &amp; digital bill.</small>
+                <small class="text-muted" style="font-size:0.75rem; display:block; margin-top:0.35rem;">Used for payment desk settlement &amp; WhatsApp invoice.</small>
             </div>
 
-            <button type="submit" class="place-order-btn w-100 mb-2" id="checkinBtn" style="padding:0.75rem 1rem;font-size:0.95rem;font-weight:800;border-radius:var(--radius-lg);box-shadow:0 4px 15px rgba(217,119,6,0.3);">
-                <i class="bi bi-check-circle-fill"></i> Start Order
+            <button type="submit" class="place-order-btn w-100 mb-2" id="checkinBtn">
+                <i class="bi bi-check-circle-fill"></i> Start Dining Session
             </button>
 
-            <button type="button" class="btn btn-link w-100 text-decoration-none text-muted" onclick="closeCheckinModal()" style="font-size:0.82rem;font-weight:600;padding:0.35rem;">
+            <button type="button" class="btn btn-link w-100 text-decoration-none text-muted" onclick="closeCheckinModal()" style="font-size:0.84rem; font-weight:700; padding:0.4rem;">
                 <i class="bi bi-eye"></i> Browse Menu First
             </button>
         </form>
@@ -177,425 +65,226 @@
         <div>
             <div class="restaurant-name">🍽️ {{ restaurant_name }}</div>
             <div class="d-flex align-items-center gap-2 mt-1">
-                <span class="table-badge"><i class="bi bi-geo-alt-fill"></i> Table {{ table_display }}</span>
+                <span class="table-badge"><i class="bi bi-geo-alt-fill text-danger"></i> Table {{ table_display }}</span>
                 <span class="table-badge" id="headerCustName" style="display:none;"></span>
             </div>
         </div>
         <button class="cart-btn" id="cartToggle" onclick="toggleCart()" aria-label="View Cart">
-            <i class="bi bi-bag"></i>
-            <span class="cart-count" id="cartCount"></span>
+            <i class="bi bi-bag-fill"></i>
+            <span class="cart-count" id="cartCount">0</span>
         </button>
     </div>
 </header>
 
-<!-- Active Order Banner (If an order is already cooking/served for this session) -->
-<div id="activeOrderBanner" class="p-3 text-center" style="display:none;background:var(--warning-bg);border-bottom:1px solid var(--warning);font-size:0.85rem;">
-    <span><i class="bi bi-fire"></i> You have an active order <strong id="activeOrderNum"></strong> (<span id="activeOrderStatus"></span>)</span>
-    <a href="#" id="activeOrderLink" class="btn btn-sm btn-dark ms-2 py-0 px-2 fw-bold" style="font-size:0.78rem;">Track Live Status</a>
+<!-- Active Order Banner (If customer placed an order already) -->
+<div id="activeOrderBanner" class="p-2 p-md-3 text-center animate-fade-in" style="display:none; background:var(--status-new-bg); border-bottom:1px solid rgba(217,119,6,0.3); font-size:0.86rem; color:#92400e;">
+    <div class="d-flex align-items-center justify-content-center gap-2 flex-wrap">
+        <span><i class="bi bi-fire"></i> Active Order <strong id="activeOrderNum"></strong> (<span id="activeOrderStatus" class="fw-bold"></span>)</span>
+        <a href="#" id="activeOrderLink" class="btn btn-sm btn-dark py-1 px-3 fw-bold" style="font-size:0.78rem; border-radius:var(--radius-full);">Track Live Status</a>
+    </div>
 </div>
 
 <!-- Search Section -->
 <div class="search-section">
     <div class="search-wrapper">
         <i class="bi bi-search"></i>
-        <input type="text" class="search-input" id="searchInput" placeholder="Search delicious dishes..." oninput="filterMenu()">
+        <input type="text" id="menuSearchInput" placeholder="Search dishes, starters, desserts..." oninput="handleSearch(this.value)">
     </div>
 </div>
 
 <!-- Category Tabs -->
-<div class="category-tabs" id="categoryTabs">
-    <button class="category-tab active" data-category="all" onclick="filterCategory('all', this)">🍽️ All</button>
-</div>
-
-<!-- Menu Grid -->
-<div class="menu-section" id="menuSection">
-    <div class="text-center py-5">
-        <div class="spinner"></div>
-        <p class="mt-2 text-muted">Loading fresh menu...</p>
+<div class="category-bar" id="categoryBar">
+    <div class="category-tab active" data-category="all" onclick="filterCategory('all', this)">
+        ✨ All Dishes
     </div>
 </div>
 
-<!-- Floating Cart Bar -->
-<button class="floating-cart" id="floatingCart" onclick="toggleCart()">
-    <span><i class="bi bi-bag-fill"></i> View Order Cart</span>
-    <span>
-        <span class="fc-items" id="fcItems">0 items</span>
-        &nbsp;·&nbsp;
-        <span id="fcTotal">₹0.00</span>
-    </span>
-</button>
+<!-- Menu Items Container -->
+<div class="menu-section" id="menuContainer">
+    <!-- Hydrated synchronously from INITIAL_CATEGORIES -->
+</div>
 
-<!-- Cart Overlay & Drawer -->
+<!-- Floating Bottom Cart Bar -->
+<div class="floating-cart" id="floatingCart" onclick="toggleCart()">
+    <div class="fc-left">
+        <div class="fc-badge" id="fcItems">0 items</div>
+        <div class="fc-total" id="fcTotal">₹0.00</div>
+    </div>
+    <div class="fc-right">
+        <span>View Cart</span>
+        <i class="bi bi-chevron-right"></i>
+    </div>
+</div>
+
+<!-- Sliding Cart Drawer Panel -->
 <div class="cart-overlay" id="cartOverlay" onclick="toggleCart()"></div>
 
 <div class="cart-panel" id="cartPanel">
     <div class="cart-handle"></div>
     <div class="cart-header">
-        <h2><i class="bi bi-bag-fill"></i> Your Table Order</h2>
+        <div class="cart-title"><i class="bi bi-bag-check"></i> Your Table Cart</div>
         <button class="cart-close" onclick="toggleCart()"><i class="bi bi-x-lg"></i></button>
     </div>
+    
     <div class="cart-body" id="cartBody">
         <div class="cart-empty">
             <i class="bi bi-bag-x"></i>
-            <p style="font-weight:600;margin-top:0.5rem;">Your cart is empty</p>
-            <small>Explore the menu above and add your favorite dishes</small>
+            <p style="font-weight:700; margin-top:0.6rem; color:var(--deepest);">Your cart is empty</p>
+            <small>Explore our chef specials above and add your favorite dishes.</small>
         </div>
     </div>
+    
     <div class="cart-footer" id="cartFooter" style="display:none;">
-        <textarea class="cart-instructions" id="specialInstructions" placeholder="Special cooking instructions (e.g. Less spicy, extra sauce)..." rows="2"></textarea>
-        
-        <!-- Bill Breakdown Box -->
-        <div class="bill-summary-box mb-3" style="background:var(--cream);padding:0.75rem;border-radius:var(--radius-md);font-size:0.85rem;border:1px solid var(--border-light);">
-            <div class="d-flex justify-content-between mb-1">
-                <span class="text-muted">Item Subtotal:</span>
-                <span id="cartSubtotal" style="font-weight:600;">₹0.00</span>
-            </div>
-            <div class="d-flex justify-content-between mb-1 text-muted" style="font-size:0.8rem;">
-                <span>GST (2.5% CGST + 2.5% SGST):</span>
-                <span id="cartGst">₹0.00</span>
-            </div>
-            <div class="d-flex justify-content-between pt-2 border-top" style="font-weight:800;font-size:1.05rem;color:var(--deepest);">
-                <span>Total Amount:</span>
-                <span id="cartTotal">₹0.00</span>
-            </div>
-            <div class="mt-2 text-center text-muted" style="font-size:0.75rem;">
-                <i class="bi bi-info-circle"></i> Pay at the payment desk after eating your meal
-            </div>
+        <div class="cart-instructions">
+            <input type="text" id="specialInstructions" placeholder="Special cooking instructions (e.g. less spicy, extra lemon)..." maxlength="250">
         </div>
-
+        
+        <div class="cart-summary-row">
+            <span>Item Subtotal</span>
+            <span id="cartSubtotal">₹0.00</span>
+        </div>
+        <div class="cart-summary-row">
+            <span>GST (5% CGST+SGST)</span>
+            <span id="cartGst">₹0.00</span>
+        </div>
+        <div class="cart-total-row">
+            <span>Grand Total</span>
+            <span id="cartTotal">₹0.00</span>
+        </div>
+        
         <button class="place-order-btn" id="placeOrderBtn" onclick="placeOrder()">
-            <i class="bi bi-fire"></i> Place Order to Kitchen
+            <i class="bi bi-fire"></i> Send Order to Kitchen
         </button>
     </div>
 </div>
 
+<!-- Toasts -->
 <div class="error-toast" id="errorToast"></div>
 <div class="success-toast" id="successToast"></div>
 
 <script>
 const TABLE_NUMBER = '{{ table_number }}';
-const TABLE_DISPLAY = '{{ table_display }}';
-
-let menuCategories = [];
-let allMenuItems = [];
-let cart = {}; // itemId -> { item, quantity, special_instructions }
-let customerSessionId = null;
-let customerName = null;
-
-// Initial server-rendered payload for 0ms instantaneous paint
 const INITIAL_CATEGORIES = {{ categories_json|default:"[]"|safe }};
 
-function initMenuFromData(data) {
-    if (!data || data.length === 0) return;
-    menuCategories = data;
+let customerSessionId = null;
+let customerName = null;
+let customerPhone = null;
+let allMenuItems = [];
+let allCategories = [];
+let cart = {};
+let currentCategoryFilter = 'all';
+
+document.addEventListener('DOMContentLoaded', () => {
+    // 1. Instant Synchronous Menu Paint (0ms)
+    initMenuFromData(INITIAL_CATEGORIES);
+
+    // 2. Load Cart
+    loadCartFromStorage();
+
+    // 3. Initialize Check-in & Session asynchronously in background
+    initCustomerSession();
+});
+
+function initMenuFromData(categories) {
+    if (!categories || !categories.length) {
+        document.getElementById('menuContainer').innerHTML = '<div class="text-center py-5 text-muted">No menu categories available currently.</div>';
+        return;
+    }
+
+    allCategories = categories;
     allMenuItems = [];
-    menuCategories.forEach(cat => {
+    categories.forEach(cat => {
         if (cat.items) {
             cat.items.forEach(item => {
-                item.category_id = cat.id;
-                item.category_name = cat.name;
-                allMenuItems.push(item);
+                allMenuItems.push({
+                    ...item,
+                    category_id: cat.id,
+                    category_name: cat.name
+                });
             });
         }
     });
+
     renderCategoryTabs();
-    renderMenu(menuCategories);
-}
-
-document.addEventListener('DOMContentLoaded', () => {
-    // 1. Purge any stale localStorage keys from older versions
-    localStorage.removeItem('orderless_customer_session');
-    localStorage.removeItem('orderless_customer_name');
-    localStorage.removeItem('orderless_customer_phone');
-
-    // 2. Render menu INSTANTLY without waiting for network
-    if (INITIAL_CATEGORIES && INITIAL_CATEGORIES.length > 0) {
-        initMenuFromData(INITIAL_CATEGORIES);
-    } else {
-        loadMenu();
-    }
-    loadCartFromStorage();
-
-    // 3. Validate session asynchronously in background
-    initTableSession();
-});
-
-async function initTableSession() {
-    const sessionToken = sessionStorage.getItem('orderless_session_token');
-
-    if (!sessionToken) {
-        // Fresh visitor on this table -> Show Check-in
-        clearClientSession();
-        showCheckinModal();
-        return;
-    }
-
-    try {
-        const res = await fetch(`/api/tables/${TABLE_NUMBER}/session-status/?session_id=${sessionToken}`);
-        if (!res.ok) throw new Error('Session lookup failed');
-        const data = await res.json();
-
-        if (data.is_active_session && data.status === 'ACTIVE') {
-            // Valid active dining session
-            customerSessionId = data.session_id;
-            customerName = data.customer_name;
-            updateHeaderCustomerBadge(customerName);
-
-            if (data.active_order_number) {
-                const banner = document.getElementById('activeOrderBanner');
-                document.getElementById('activeOrderNum').textContent = `#${data.active_order_number}`;
-                document.getElementById('activeOrderStatus').textContent = data.order_status;
-                document.getElementById('activeOrderLink').href = `/order/track/${data.active_order_number}/`;
-                banner.style.display = 'block';
-            }
-        } else {
-            // Session closed or invalid -> Reset and prompt fresh check-in
-            clearClientSession();
-            showCheckinModal();
-        }
-    } catch (err) {
-        console.warn('Session verification exception:', err);
-        clearClientSession();
-        showCheckinModal();
-    }
-}
-
-function clearClientSession() {
-    customerSessionId = null;
-    customerName = null;
-    cart = {};
-    sessionStorage.removeItem('orderless_session_token');
-    sessionStorage.removeItem('orderless_customer_name');
-    sessionStorage.removeItem(`orderless_cart_${TABLE_NUMBER}`);
-    localStorage.removeItem(`orderless_cart_${TABLE_NUMBER}`);
-
-    const nameInput = document.getElementById('custName');
-    const phoneInput = document.getElementById('custPhone');
-    if (nameInput) nameInput.value = '';
-    if (phoneInput) phoneInput.value = '';
-
-    const el = document.getElementById('headerCustName');
-    if (el) {
-        el.innerHTML = '';
-        el.style.display = 'none';
-    }
-
-    const banner = document.getElementById('activeOrderBanner');
-    if (banner) banner.style.display = 'none';
-}
-
-function updateHeaderCustomerBadge(name) {
-    const el = document.getElementById('headerCustName');
-    if (el && name) {
-        el.innerHTML = `<i class="bi bi-person-fill"></i> ${name}`;
-        el.style.display = 'inline-flex';
-    }
-}
-
-function showCheckinModal() {
-    document.getElementById('checkinModal').style.display = 'flex';
-}
-
-function closeCheckinModal() {
-    document.getElementById('checkinModal').style.display = 'none';
-}
-
-async function handleCheckin(e) {
-    if (e) e.preventDefault();
-    const nameInput = document.getElementById('custName');
-    const phoneInput = document.getElementById('custPhone');
-    
-    const name = (nameInput ? nameInput.value : '').trim();
-    const phone = (phoneInput ? phoneInput.value : '').trim().replace(/[\s\-]/g, '');
-
-    if (!name || name.length < 2) {
-        showToast('error', 'Please enter your full name (minimum 2 characters).');
-        if (nameInput) nameInput.focus();
-        return;
-    }
-    if (!phone || phone.length < 7) {
-        showToast('error', 'Please enter a valid mobile phone number.');
-        if (phoneInput) phoneInput.focus();
-        return;
-    }
-
-    const btn = document.getElementById('checkinBtn');
-    if (btn) {
-        btn.disabled = true;
-        btn.innerHTML = '<span class="spinner"></span> Creating session...';
-    }
-
-    try {
-        const res = await fetch('/api/table-sessions/', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                table_id: TABLE_NUMBER,
-                customer_name: name,
-                customer_phone: phone
-            })
-        });
-
-        let data = {};
-        try {
-            data = await res.json();
-        } catch (jsonErr) {
-            console.warn('Checkin JSON parse error:', jsonErr);
-        }
-
-        if (!res.ok) {
-            const msg = data.error || (data.details ? Object.values(data.details).flat().join(' ') : 'Failed to create session.');
-            throw new Error(msg);
-        }
-
-        customerSessionId = data.session_id;
-        customerName = data.customer_name;
-
-        // Store temporary tab session
-        sessionStorage.setItem('orderless_session_token', customerSessionId);
-        sessionStorage.setItem('orderless_customer_name', customerName);
-
-        closeCheckinModal();
-        updateHeaderCustomerBadge(customerName);
-        showToast('success', `Welcome ${customerName}! You can now place orders.`);
-    } catch (err) {
-        showToast('error', err.message || 'Check-in failed. Please try again.');
-    } finally {
-        if (btn) {
-            btn.disabled = false;
-            btn.innerHTML = '<i class="bi bi-arrow-right-circle"></i> Start Order';
-        }
-    }
-}
-
-async function loadMenu() {
-    try {
-        const res = await fetch('/api/menu/');
-        if (!res.ok) throw new Error('Failed to load menu');
-        const data = await res.json();
-        initMenuFromData(data);
-    } catch (err) {
-        if (allMenuItems.length === 0) {
-            document.getElementById('menuSection').innerHTML = `
-                <div class="text-center py-5 text-danger">
-                    <i class="bi bi-exclamation-triangle" style="font-size:2.5rem;"></i>
-                    <p class="mt-2 font-weight-bold">Unable to load menu.</p>
-                    <button onclick="loadMenu()" class="btn btn-outline-primary btn-sm mt-2">Retry</button>
-                </div>`;
-        }
-    }
+    renderMenuItems();
 }
 
 function renderCategoryTabs() {
-    const tabsContainer = document.getElementById('categoryTabs');
-    let tabsHtml = `<button class="category-tab active" data-category="all" onclick="filterCategory('all', this)">🍽️ All</button>`;
+    const bar = document.getElementById('categoryBar');
+    let html = `<div class="category-tab ${currentCategoryFilter === 'all' ? 'active' : ''}" data-category="all" onclick="filterCategory('all', this)">✨ All Dishes</div>`;
     
-    menuCategories.forEach(cat => {
-        tabsHtml += `<button class="category-tab" data-category="${cat.id}" onclick="filterCategory('${cat.id}', this)">${cat.icon || '🍽️'} ${cat.name}</button>`;
+    allCategories.forEach(cat => {
+        const icon = cat.icon || '🍽️';
+        html += `<div class="category-tab ${currentCategoryFilter == cat.id ? 'active' : ''}" data-category="${cat.id}" onclick="filterCategory('${cat.id}', this)">${icon} ${cat.name}</div>`;
     });
-    tabsContainer.innerHTML = tabsHtml;
+
+    bar.innerHTML = html;
 }
 
 function filterCategory(catId, btn) {
-    document.querySelectorAll('.category-tab').forEach(b => b.classList.remove('active'));
+    currentCategoryFilter = catId;
+    document.querySelectorAll('.category-tab').forEach(t => t.classList.remove('active'));
     if (btn) btn.classList.add('active');
-
-    const searchVal = document.getElementById('searchInput').value.toLowerCase().trim();
-
-    if (catId === 'all') {
-        renderFilteredMenu(allMenuItems, searchVal);
-    } else {
-        const filtered = allMenuItems.filter(i => String(i.category_id) === String(catId));
-        renderFilteredMenu(filtered, searchVal);
-    }
+    renderMenuItems();
 }
 
-function filterMenu() {
-    const activeTab = document.querySelector('.category-tab.active');
-    const catId = activeTab ? activeTab.getAttribute('data-category') : 'all';
-    const searchVal = document.getElementById('searchInput').value.toLowerCase().trim();
-
-    let list = allMenuItems;
-    if (catId !== 'all') {
-        list = list.filter(i => String(i.category_id) === String(catId));
-    }
-    renderFilteredMenu(list, searchVal);
+function handleSearch(val) {
+    renderMenuItems(val.toLowerCase().trim());
 }
 
-function renderFilteredMenu(items, searchVal) {
-    let filtered = items;
-    if (searchVal) {
-        filtered = filtered.filter(i => 
-            i.name.toLowerCase().includes(searchVal) || 
-            (i.description && i.description.toLowerCase().includes(searchVal))
+function renderMenuItems(searchTerm = '') {
+    const container = document.getElementById('menuContainer');
+    let itemsToRender = allMenuItems;
+
+    if (currentCategoryFilter !== 'all') {
+        itemsToRender = itemsToRender.filter(i => String(i.category_id) === String(currentCategoryFilter));
+    }
+
+    if (searchTerm) {
+        itemsToRender = itemsToRender.filter(i => 
+            i.name.toLowerCase().includes(searchTerm) || 
+            (i.description && i.description.toLowerCase().includes(searchTerm)) ||
+            (i.category_name && i.category_name.toLowerCase().includes(searchTerm))
         );
     }
 
-    const grouped = {};
-    filtered.forEach(item => {
-        const catName = item.category_name || 'Other';
-        if (!grouped[catName]) grouped[catName] = [];
-        grouped[catName].push(item);
-    });
-
-    const container = document.getElementById('menuSection');
-    if (Object.keys(grouped).length === 0) {
+    if (itemsToRender.length === 0) {
         container.innerHTML = `
             <div class="text-center py-5 text-muted">
-                <i class="bi bi-search" style="font-size:2rem;color:var(--tan);"></i>
-                <p class="mt-2">No matching dishes found</p>
+                <i class="bi bi-search" style="font-size:2.2rem;color:var(--sand);display:block;margin-bottom:0.5rem;"></i>
+                <p style="font-weight:700;color:var(--deepest);">No dishes found</p>
+                <small>Try a different keyword or explore all categories.</small>
             </div>`;
         return;
     }
 
-    let html = '';
-    for (const [catName, catItems] of Object.entries(grouped)) {
-        html += `
-        <div class="mb-4">
-            <h3 class="menu-category-title">${catName}</h3>
-            <div class="menu-grid">
-                ${catItems.map(item => renderMenuItemCard(item)).join('')}
-            </div>
-        </div>`;
+    // Group by category if viewing all and not searching
+    if (currentCategoryFilter === 'all' && !searchTerm) {
+        let html = '';
+        allCategories.forEach(cat => {
+            const catItems = itemsToRender.filter(i => i.category_id === cat.id);
+            if (catItems.length > 0) {
+                html += `<div class="category-section-title">${cat.icon || '🍽️'} ${cat.name}</div>`;
+                catItems.forEach(item => {
+                    html += buildMenuItemCard(item);
+                });
+            }
+        });
+        container.innerHTML = html;
+    } else {
+        container.innerHTML = itemsToRender.map(item => buildMenuItemCard(item)).join('');
     }
-    container.innerHTML = html;
 }
 
-function renderMenu(categories) {
-    const container = document.getElementById('menuSection');
-    let html = '';
-
-    categories.forEach(cat => {
-        if (!cat.items || cat.items.length === 0) return;
-        html += `
-        <div class="mb-4">
-            <h3 class="menu-category-title">${cat.icon || '🍽️'} ${cat.name}</h3>
-            <div class="menu-grid">
-                ${cat.items.map(item => renderMenuItemCard(item)).join('')}
-            </div>
-        </div>`;
-    });
-
-    container.innerHTML = html;
-}
-
-function renderMenuItemCard(item) {
+function buildMenuItemCard(item) {
     const inCart = cart[item.id];
     const qty = inCart ? inCart.quantity : 0;
-    const isAvail = item.available !== false;
 
-    let badgeHtml = item.is_vegetarian ? 
-        '<span class="veg-badge" title="Vegetarian"></span>' : 
-        '<span class="nonveg-badge" title="Non-Vegetarian"></span>';
-
-    let bestsellerHtml = item.is_bestseller ? '<span class="bestseller-tag">BESTSELLER</span>' : '';
+    const badgeHtml = item.is_veg ? '<span class="badge-veg" title="Vegetarian"></span>' : '<span class="badge-nonveg" title="Non-Vegetarian"></span>';
+    const bestsellerHtml = item.is_bestseller ? '<span class="badge-bestseller">⭐ BESTSELLER</span>' : '';
 
     let actionBtnHtml = '';
-    if (!isAvail) {
-        actionBtnHtml = `<span class="badge bg-secondary" style="font-size:0.75rem;">Unavailable</span>`;
-    } else if (qty > 0) {
+    if (qty > 0) {
         actionBtnHtml = `
         <div class="qty-control">
             <button class="qty-btn" onclick="updateItemQuantity(${item.id}, -1)">−</button>
@@ -607,7 +296,7 @@ function renderMenuItemCard(item) {
     }
 
     return `
-    <div class="menu-card ${!isAvail ? 'unavailable' : ''}" id="menuCard${item.id}">
+    <div class="menu-card animate-fade-in" id="itemCard${item.id}">
         <div class="menu-card-emoji">${item.emoji || '🍽️'}</div>
         <div class="menu-card-info">
             <div class="menu-card-name">
@@ -746,8 +435,8 @@ function updateCartUI() {
         cartBody.innerHTML = `
             <div class="cart-empty">
                 <i class="bi bi-bag-x"></i>
-                <p style="font-weight:600;margin-top:0.5rem;">Your cart is empty</p>
-                <small>Explore the menu above and add your favorite dishes</small>
+                <p style="font-weight:700;margin-top:0.6rem;color:var(--deepest);">Your cart is empty</p>
+                <small>Explore the menu above and add your favorite dishes.</small>
             </div>`;
         cartFooter.style.display = 'none';
     } else {
@@ -790,10 +479,125 @@ function toggleCart() {
     }
 }
 
+/* =========================================================================
+   CUSTOMER SESSION & CHECK-IN
+   ========================================================================= */
+async function initCustomerSession() {
+    // 1. Check local session storage
+    const savedToken = sessionStorage.getItem('orderless_session_token');
+    const savedName = sessionStorage.getItem('orderless_customer_name');
+    const savedPhone = sessionStorage.getItem('orderless_customer_phone');
+
+    if (savedToken && savedName) {
+        customerSessionId = savedToken;
+        customerName = savedName;
+        customerPhone = savedPhone;
+        updateHeaderWithCustomer(savedName);
+    }
+
+    // 2. Validate table status from backend
+    try {
+        const res = await fetch(`/api/tables/${TABLE_NUMBER}/session-status/`);
+        if (res.ok) {
+            const data = await res.json();
+            if (data.has_active_session) {
+                if (data.session_id === customerSessionId) {
+                    if (data.active_orders && data.active_orders.length > 0) {
+                        showActiveOrderBanner(data.active_orders[0]);
+                    }
+                }
+            } else {
+                // Fresh table, if no local session, show checkin modal
+                if (!customerSessionId) {
+                    showCheckinModal();
+                }
+            }
+        }
+    } catch (e) {
+        console.warn('Session status check error:', e);
+    }
+}
+
+function showCheckinModal() {
+    document.getElementById('checkinModal').style.display = 'flex';
+}
+
+function closeCheckinModal() {
+    document.getElementById('checkinModal').style.display = 'none';
+}
+
+function updateHeaderWithCustomer(name) {
+    const el = document.getElementById('headerCustName');
+    if (el && name) {
+        el.textContent = `👤 ${name}`;
+        el.style.display = 'inline-flex';
+    }
+}
+
+function showActiveOrderBanner(order) {
+    const banner = document.getElementById('activeOrderBanner');
+    document.getElementById('activeOrderNum').textContent = `#${order.order_number}`;
+    document.getElementById('activeOrderStatus').textContent = order.order_status_display || order.order_status;
+    document.getElementById('activeOrderLink').href = `/order/track/${order.order_number}/`;
+    banner.style.display = 'block';
+}
+
+async function handleCheckin(e) {
+    e.preventDefault();
+    const name = document.getElementById('custName').value.trim();
+    const phone = document.getElementById('custPhone').value.trim().replace(/[^0-9]/g, '');
+
+    if (!name || name.length < 2) {
+        showToast('error', 'Please enter your full name.');
+        return;
+    }
+    if (!phone || phone.length < 10) {
+        showToast('error', 'Please enter a valid 10-digit mobile number.');
+        return;
+    }
+
+    const btn = document.getElementById('checkinBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> Starting Session...';
+
+    try {
+        const res = await fetch('/api/tables/checkin/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                table_number: TABLE_NUMBER,
+                name: name,
+                phone: `+91${phone}`
+            })
+        });
+
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Failed to initialize session.');
+
+        customerSessionId = data.session_token || data.customer_session_id;
+        customerName = name;
+        customerPhone = `+91${phone}`;
+
+        sessionStorage.setItem('orderless_session_token', customerSessionId);
+        sessionStorage.setItem('orderless_customer_name', customerName);
+        sessionStorage.setItem('orderless_customer_phone', customerPhone);
+
+        updateHeaderWithCustomer(customerName);
+        closeCheckinModal();
+        showToast('success', `Welcome ${customerName}! You can now place orders.`);
+
+    } catch (err) {
+        showToast('error', err.message);
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-check-circle-fill"></i> Start Dining Session';
+    }
+}
+
 async function placeOrder() {
     const items = Object.values(cart);
     if (items.length === 0) {
-        showToast('error', 'Please add items to your cart before placing an order.');
+        showToast('error', 'Please add dishes to your cart first.');
         return;
     }
 
@@ -841,9 +645,9 @@ async function placeOrder() {
         updateCartUI();
         toggleCart();
 
-        showToast('success', `Order #${data.order_number} placed successfully!`);
+        showToast('success', `Order #${data.order_number} sent to kitchen!`);
         
-        // Redirect to live order tracking
+        // Sequential redirect directly to live order tracking
         setTimeout(() => {
             window.location.href = `/order/track/${data.order_number}/`;
         }, 800);
@@ -851,7 +655,7 @@ async function placeOrder() {
     } catch (err) {
         showToast('error', err.message);
         btn.disabled = false;
-        btn.innerHTML = '<i class="bi bi-fire"></i> Place Order to Kitchen';
+        btn.innerHTML = '<i class="bi bi-fire"></i> Send Order to Kitchen';
     }
 }
 

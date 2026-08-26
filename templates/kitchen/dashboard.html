@@ -1,91 +1,97 @@
 {% extends "base.html" %}
 {% load static %}
-{% block title %}Kitchen Display System — {{ restaurant_name }}{% endblock %}
-{% block meta_description %}Kitchen Display System for managing real-time orders at {{ restaurant_name }}{% endblock %}
-{% block body_class %}kds-page{% endblock %}
+{% block title %}Kitchen Display System (KDS) — {{ restaurant_name }}{% endblock %}
+{% block meta_description %}Real-time live kitchen order display and preparation tracker for {{ restaurant_name }}{% endblock %}
+{% block body_class %}kds-app{% endblock %}
 
 {% block body %}
-<!-- Audio Unlock Top Banner -->
-<div id="audioUnlockBanner" class="p-2 text-center text-white" style="background:linear-gradient(90deg,var(--dark-brown),var(--brown));font-size:0.88rem;cursor:pointer;" onclick="KitchenAlertManager.unlockAudio()">
-    <span class="badge" style="background:var(--cream);color:var(--dark-brown);font-weight:800;margin-right:0.5rem;">KITCHEN AUDIO</span>
-    <span><i class="bi bi-volume-up-fill"></i> <strong>Click to activate live kitchen audio alerts</strong></span>
-    <button class="btn btn-light btn-sm ms-3 py-0 px-3 fw-bold" style="font-size:0.82rem;color:var(--dark-brown);border-radius:var(--radius-full);">
-        🔊 ENABLE KITCHEN ALERTS
+<!-- Audio Unlock Banner (Browsers require user gesture for WebAudio) -->
+<div id="audioUnlockBanner" onclick="KitchenAlertManager.unlockAudio()" class="p-2 text-center" style="background:#b45309; color:#fff; cursor:pointer; font-size:0.86rem; border-bottom:1px solid #d97706;">
+    <span><i class="bi bi-volume-up-fill"></i> <strong>Click anywhere to activate live kitchen audio alarms</strong></span>
+    <button class="btn btn-light btn-sm ms-3 py-0 px-3 fw-bold" style="font-size:0.8rem; color:var(--dark-brown); border-radius:var(--radius-full);">
+        🔊 ENABLE ALERTS
     </button>
 </div>
 
 <!-- Top Bar -->
 <div class="kds-topbar">
     <div class="d-flex align-items-center gap-3">
-        <h1><i class="bi bi-fire"></i> Kitchen Display System</h1>
-        <div id="alarmBadge" class="kds-alarm-badge" style="display:none;background:#c0392b;color:#fff;padding:0.25rem 0.75rem;border-radius:var(--radius-full);font-size:0.78rem;font-weight:800;animation:glassPulse 1.2s infinite alternate;">
-            🔔 <span id="alarmBadgeText">NEW ORDERS ALARM</span>
+        <h1><i class="bi bi-fire text-warning"></i> Kitchen Display System</h1>
+        <div id="alarmBadge" class="kds-alarm-badge" style="display:none; background:#dc2626; color:#fff; padding:0.25rem 0.75rem; border-radius:var(--radius-full); font-size:0.78rem; font-weight:850; animation:alarmPulse 1.2s infinite;">
+            🔔 <span id="alarmBadgeText">NEW ORDERS</span>
         </div>
     </div>
-    <div class="kds-status">
-        <div class="kds-stats">
-            <span class="kds-stat">New: <strong id="countNew">0</strong></span>
-            <span class="kds-stat">Cooking: <strong id="countPreparing">0</strong></span>
-            <span class="kds-stat">Ready: <strong id="countReady">0</strong></span>
-            <span class="kds-stat">Served: <strong id="countServed">0</strong></span>
+    
+    <div class="kds-status-bar">
+        <div class="kds-stats-summary">
+            <span>New: <strong id="countNew" class="text-warning">0</strong></span>
+            <span>·</span>
+            <span>Cooking: <strong id="countPreparing" style="color:#fb923c;">0</strong></span>
+            <span>·</span>
+            <span>Ready: <strong id="countReady" style="color:#c084fc;">0</strong></span>
+            <span>·</span>
+            <span>Served: <strong id="countServed" style="color:#38bdf8;">0</strong></span>
         </div>
         
-        <!-- Live WS / Sync Indicator -->
-        <span><span class="kds-status-dot" id="wsStatusDot"></span> <span id="wsStatusText" style="font-size:0.78rem;">Connecting...</span></span>
+        <!-- Live Connection Indicator -->
+        <span class="d-inline-flex align-items-center gap-2" style="font-size:0.8rem;">
+            <span class="kds-status-dot" id="wsStatusDot"></span> 
+            <span id="wsStatusText">Live Sync</span>
+        </span>
         
-        <!-- Volume Slider -->
-        <div class="volume-control" title="Alert Volume" style="display:inline-flex;align-items:center;gap:4px;">
-            <i class="bi bi-volume-down" style="font-size:0.9rem;opacity:0.8;"></i>
-            <input type="range" class="volume-slider" id="volumeSlider" min="0" max="1" step="0.05" value="0.7" onchange="KitchenAlertManager.setVolume(this.value)" style="width:70px;cursor:pointer;">
-            <i class="bi bi-volume-up" style="font-size:0.9rem;opacity:0.8;"></i>
+        <!-- Volume Control -->
+        <div class="d-inline-flex align-items-center gap-1" title="Alert Volume">
+            <i class="bi bi-volume-down" style="font-size:0.9rem; opacity:0.8;"></i>
+            <input type="range" id="volumeSlider" min="0" max="1" step="0.05" value="0.7" onchange="KitchenAlertManager.setVolume(this.value)" style="width:65px; cursor:pointer; accent-color:var(--tan);">
+            <i class="bi bi-volume-up" style="font-size:0.9rem; opacity:0.8;"></i>
         </div>
 
-        <!-- Sound Controls -->
+        <!-- Sound Toggle -->
         <button class="sound-toggle active" id="soundToggle" onclick="KitchenAlertManager.toggleSound()">
             <i class="bi bi-bell-fill"></i> Sound ON
         </button>
-        <button class="sound-toggle" id="testSoundBtn" onclick="KitchenAlertManager.testSound()" title="Test 2-beep alert chime">
+        <button class="sound-toggle" onclick="KitchenAlertManager.testSound()" title="Test 2-beep chime">
             <i class="bi bi-volume-up"></i> Test
         </button>
-        <a href="{% url 'logout' %}" class="sound-toggle" style="text-decoration:none;">
+        <a href="{% url 'logout' %}" class="sound-toggle">
             <i class="bi bi-box-arrow-right"></i> Logout
         </a>
     </div>
 </div>
 
-<!-- 4 Status Columns -->
+<!-- 4 Sequential Kanban Columns -->
 <div class="kds-columns">
-    <!-- New Orders -->
+    <!-- 1. New Orders -->
     <div class="kds-column col-new">
         <div class="kds-column-header">
-            <span class="kds-column-title">📋 New Orders</span>
+            <span class="kds-column-title">📋 1. New Orders</span>
             <span class="kds-column-count" id="colCountNew">0</span>
         </div>
         <div class="kds-column-body" id="colNew"></div>
     </div>
 
-    <!-- Preparing -->
+    <!-- 2. Cooking & Preparing -->
     <div class="kds-column col-preparing">
         <div class="kds-column-header">
-            <span class="kds-column-title">🔥 Cooking &amp; Preparing</span>
+            <span class="kds-column-title">🔥 2. Cooking &amp; Preparing</span>
             <span class="kds-column-count" id="colCountPreparing">0</span>
         </div>
         <div class="kds-column-body" id="colPreparing"></div>
     </div>
 
-    <!-- Ready -->
+    <!-- 3. Ready to Serve -->
     <div class="kds-column col-ready">
         <div class="kds-column-header">
-            <span class="kds-column-title">✨ Ready to Serve</span>
+            <span class="kds-column-title">✨ 3. Ready to Serve</span>
             <span class="kds-column-count" id="colCountReady">0</span>
         </div>
         <div class="kds-column-body" id="colReady"></div>
     </div>
 
-    <!-- Served -->
+    <!-- 4. Served & Dining -->
     <div class="kds-column col-served">
         <div class="kds-column-header">
-            <span class="kds-column-title">🍽️ Served (At Table)</span>
+            <span class="kds-column-title">🍽️ 4. Served (Dining)</span>
             <span class="kds-column-count" id="colCountServed">0</span>
         </div>
         <div class="kds-column-body" id="colServed"></div>
@@ -100,7 +106,6 @@ const CSRF_TOKEN = '{{ csrf_token }}';
 let orders = {};
 let ws = null;
 let reconnectAttempts = 0;
-let pollFallbackInterval = null;
 
 // Centralized Kitchen Alert Controller
 const KitchenAlertManager = {
@@ -114,7 +119,6 @@ const KitchenAlertManager = {
         this.updateSoundButtonUI();
         document.getElementById('volumeSlider').value = this.volume;
 
-        // Global interaction listeners to unlock AudioContext
         const unlock = () => this.unlockAudio();
         document.addEventListener('click', unlock, { once: true, passive: true });
         document.addEventListener('keydown', unlock, { once: true, passive: true });
@@ -156,7 +160,7 @@ const KitchenAlertManager = {
             const now = ctx.currentTime;
             const masterGain = this.volume;
 
-            // Beep 1: Frequency 880Hz (A5)
+            // Beep 1 (880Hz)
             const osc1 = ctx.createOscillator();
             const gain1 = ctx.createGain();
             osc1.type = 'sine';
@@ -168,7 +172,7 @@ const KitchenAlertManager = {
             osc1.start(now);
             osc1.stop(now + 0.16);
 
-            // Beep 2: Frequency 1174.66Hz (D6)
+            // Beep 2 (1174Hz)
             const osc2 = ctx.createOscillator();
             const gain2 = ctx.createGain();
             osc2.type = 'sine';
@@ -191,7 +195,7 @@ const KitchenAlertManager = {
 
         if (unaccepted.length > 0 && this.soundEnabled) {
             if (badge) badge.style.display = 'inline-block';
-            if (badgeText) badgeText.textContent = `${unaccepted.length} UNACCEPTED ORDER${unaccepted.length > 1 ? 'S' : ''}`;
+            if (badgeText) badgeText.textContent = `${unaccepted.length} NEW ORDER${unaccepted.length > 1 ? 'S' : ''}`;
 
             if (!this.alarmInterval) {
                 this.play2BeepChime();
@@ -199,15 +203,14 @@ const KitchenAlertManager = {
                     const stillUnaccepted = Object.values(orders).filter(o => o.order_status === 'ORDER_CREATED');
                     if (stillUnaccepted.length > 0 && this.soundEnabled) {
                         this.play2BeepChime();
-                        if (badgeText) badgeText.textContent = `${stillUnaccepted.length} UNACCEPTED ORDER${stillUnaccepted.length > 1 ? 'S' : ''}`;
-                        flashTitle(`🔔 (${stillUnaccepted.length}) NEW ORDER ALARM!`);
                     } else {
                         this.stopAlarm();
                     }
-                }, 2000);
+                }, 3500);
             }
         } else {
             this.stopAlarm();
+            if (badge) badge.style.display = 'none';
         }
     },
 
@@ -216,141 +219,113 @@ const KitchenAlertManager = {
             clearInterval(this.alarmInterval);
             this.alarmInterval = null;
         }
-        const badge = document.getElementById('alarmBadge');
-        if (badge) badge.style.display = 'none';
     },
 
     toggleSound() {
         this.soundEnabled = !this.soundEnabled;
         localStorage.setItem('orderless_kds_sound', this.soundEnabled);
         this.updateSoundButtonUI();
-
-        if (this.soundEnabled) {
-            this.unlockAudio();
-            this.checkAndTriggerContinuousAlarm();
-            showToast('success', '🔔 Sound alerts activated');
-        } else {
+        if (!this.soundEnabled) {
             this.stopAlarm();
-            showToast('info', '🔇 Sound alerts muted');
+        } else {
+            this.checkAndTriggerContinuousAlarm();
+        }
+    },
+
+    updateSoundButtonUI() {
+        const btn = document.getElementById('soundToggle');
+        if (this.soundEnabled) {
+            btn.classList.add('active');
+            btn.innerHTML = '<i class="bi bi-bell-fill"></i> Sound ON';
+        } else {
+            btn.classList.remove('active');
+            btn.innerHTML = '<i class="bi bi-bell-slash-fill"></i> Sound OFF';
         }
     },
 
     setVolume(val) {
         this.volume = parseFloat(val);
         localStorage.setItem('orderless_kds_volume', this.volume);
-        this.play2BeepChime();
     },
 
     testSound() {
         this.unlockAudio();
         this.play2BeepChime();
-        showToast('success', '🔔 Test alert chime played');
-    },
-
-    updateSoundButtonUI() {
-        const btn = document.getElementById('soundToggle');
-        if (!btn) return;
-        if (this.soundEnabled) {
-            btn.classList.add('active');
-            btn.innerHTML = '<i class="bi bi-bell-fill"></i> Sound ON';
-        } else {
-            btn.classList.remove('active');
-            btn.innerHTML = '<i class="bi bi-bell-slash"></i> Sound OFF';
-        }
+        showToast('success', 'Playing alert chime test');
     }
 };
 
 document.addEventListener('DOMContentLoaded', () => {
     KitchenAlertManager.init();
-    loadOrders();
-    connectWebSocket();
+    loadKdsOrders();
+    connectKdsWebSocket();
+    // 10s fallback sync
+    setInterval(loadKdsOrders, 10000);
 });
 
-async function loadOrders() {
+async function loadKdsOrders() {
     try {
-        const res = await fetch('/api/orders/kitchen/', {
-            headers: { 'X-CSRFToken': CSRF_TOKEN }
-        });
-        if (!res.ok) throw new Error('Failed to load orders');
-        const data = await res.json();
+        const res = await fetch('/api/orders/kitchen/');
+        if (!res.ok) return;
+        const list = await res.json();
+        
         orders = {};
-        data.forEach(o => orders[o.order_number] = o);
+        list.forEach(o => {
+            orders[o.order_number] = o;
+        });
+
         renderAllColumns();
         KitchenAlertManager.checkAndTriggerContinuousAlarm();
-    } catch (err) {
-        // Suppress repetitive logs
+    } catch (e) {
+        console.warn('KDS fetch error:', e);
     }
 }
 
-function startPollingFallback() {
-    if (!pollFallbackInterval) {
-        pollFallbackInterval = setInterval(loadOrders, 3500);
-    }
-}
-
-function stopPollingFallback() {
-    if (pollFallbackInterval) {
-        clearInterval(pollFallbackInterval);
-        pollFallbackInterval = null;
-    }
-}
-
-function connectWebSocket() {
+function connectKdsWebSocket() {
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     ws = new WebSocket(`${protocol}//${window.location.host}/ws/kitchen/`);
 
+    const dot = document.getElementById('wsStatusDot');
+    const txt = document.getElementById('wsStatusText');
+
     ws.onopen = () => {
         reconnectAttempts = 0;
-        document.getElementById('wsStatusDot').classList.add('online');
-        document.getElementById('wsStatusText').textContent = 'Online (Live WS)';
-        stopPollingFallback();
-        loadOrders();
+        dot.classList.remove('disconnected');
+        txt.textContent = 'Live Sync';
     };
 
     ws.onmessage = (event) => {
         try {
             const data = JSON.parse(event.data);
-            if (data.type === 'kitchen_new_order' || data.type === 'new_order') {
-                const o = data.order;
-                orders[o.order_number] = o;
+            if (data.type === 'new_order' || data.type === 'order_created') {
+                orders[data.order.order_number] = data.order;
                 renderAllColumns();
+                KitchenAlertManager.play2BeepChime();
                 KitchenAlertManager.checkAndTriggerContinuousAlarm();
-                flashTitle(`🔔 NEW ORDER: ${o.order_number}`);
-                showToast('success', `New order: ${o.order_number} (Table ${o.table_display || o.table_number})`);
-            } else if (data.type === 'kitchen_order_update' || data.type === 'order_update') {
-                const o = data.order;
-                if (o.order_status === 'CANCELLED' || o.order_status === 'COMPLETED') {
-                    delete orders[o.order_number];
-                } else {
-                    orders[o.order_number] = o;
+                showToast('success', `New Order #${data.order.order_number} received!`);
+            } else if (data.type === 'order_status_update' || data.type === 'order_update') {
+                if (orders[data.order.order_number]) {
+                    orders[data.order.order_number] = data.order;
+                } else if (data.order.order_status !== 'COMPLETED' && data.order.order_status !== 'CANCELLED') {
+                    orders[data.order.order_number] = data.order;
                 }
                 renderAllColumns();
                 KitchenAlertManager.checkAndTriggerContinuousAlarm();
             }
         } catch (e) {
-            console.warn('WS parse error:', e);
+            console.warn('KDS WS message error:', e);
         }
     };
 
     ws.onclose = () => {
-        document.getElementById('wsStatusDot').classList.remove('online');
-        document.getElementById('wsStatusText').textContent = 'Live Sync (Active)';
-        startPollingFallback();
+        dot.classList.add('disconnected');
+        txt.textContent = 'Reconnecting...';
         reconnectAttempts++;
-        const delay = Math.min(1000 * Math.pow(2, reconnectAttempts), 20000);
-        setTimeout(connectWebSocket, delay);
+        const delay = Math.min(1000 * Math.pow(2, reconnectAttempts), 15000);
+        setTimeout(connectKdsWebSocket, delay);
     };
 
-    ws.onerror = () => {
-        startPollingFallback();
-        if (ws) ws.close();
-    };
-}
-
-function flashTitle(msg) {
-    const original = document.title;
-    document.title = msg;
-    setTimeout(() => { document.title = original; }, 3000);
+    ws.onerror = () => ws.close();
 }
 
 function renderAllColumns() {
@@ -362,18 +337,22 @@ function renderAllColumns() {
     };
 
     Object.values(orders).forEach(order => {
-        const status = order.order_status;
-        if (status === 'ORDER_CREATED' || status === 'ACCEPTED') {
+        const st = order.order_status;
+        if (st === 'ORDER_CREATED') {
             cols['ORDER_CREATED'].push(order);
-        } else if (cols[status]) {
-            cols[status].push(order);
+        } else if (st === 'ACCEPTED' || st === 'PREPARING') {
+            cols['PREPARING'].push(order);
+        } else if (st === 'READY') {
+            cols['READY'].push(order);
+        } else if (st === 'SERVED') {
+            cols['SERVED'].push(order);
         }
     });
 
-    renderColumn('colNew', cols['ORDER_CREATED'], 'new');
-    renderColumn('colPreparing', cols['PREPARING'], 'preparing');
-    renderColumn('colReady', cols['READY'], 'ready');
-    renderColumn('colServed', cols['SERVED'], 'served');
+    renderColumn('colNew', cols['ORDER_CREATED']);
+    renderColumn('colPreparing', cols['PREPARING']);
+    renderColumn('colReady', cols['READY']);
+    renderColumn('colServed', cols['SERVED']);
 
     // Counts
     document.getElementById('colCountNew').textContent = cols['ORDER_CREATED'].length;
@@ -387,10 +366,10 @@ function renderAllColumns() {
     document.getElementById('countServed').textContent = cols['SERVED'].length;
 }
 
-function renderColumn(containerId, orderList, type) {
+function renderColumn(containerId, orderList) {
     const container = document.getElementById(containerId);
     if (orderList.length === 0) {
-        container.innerHTML = `<div class="kds-empty text-center py-4 text-muted"><i class="bi bi-inbox" style="font-size:1.8rem;display:block;margin-bottom:4px;"></i> No orders</div>`;
+        container.innerHTML = `<div class="text-center py-4 text-muted" style="font-size:0.85rem;"><i class="bi bi-inbox" style="font-size:1.8rem;display:block;margin-bottom:4px;opacity:0.4;"></i> No active orders</div>`;
         return;
     }
 
@@ -398,15 +377,16 @@ function renderColumn(containerId, orderList, type) {
         const timeAgo = getTimeAgo(order.created_at);
         let actionBtn = '';
 
+        // Sequential button transition
         switch (order.order_status) {
             case 'ORDER_CREATED':
                 actionBtn = `
                 <div class="d-flex gap-2">
                     <button class="kds-action-btn btn-accept flex-fill" onclick="updateStatus(${order.id}, 'ACCEPTED', this)">
-                        <i class="bi bi-check-lg"></i> Accept
+                        <i class="bi bi-check-lg"></i> Accept Order
                     </button>
-                    <button class="kds-action-btn btn-cancel flex-fill" onclick="cancelOrder(${order.id}, '${order.order_number}', this)">
-                        <i class="bi bi-x-circle"></i> Cancel
+                    <button class="kds-action-btn btn-cancel" style="padding:0.5rem 0.75rem;" onclick="cancelOrder(${order.id}, '${order.order_number}', this)" title="Cancel order">
+                        <i class="bi bi-x-lg"></i>
                     </button>
                 </div>`;
                 break;
@@ -416,7 +396,7 @@ function renderColumn(containerId, orderList, type) {
                     <button class="kds-action-btn btn-prepare flex-fill" onclick="updateStatus(${order.id}, 'PREPARING', this)">
                         <i class="bi bi-fire"></i> Start Cooking
                     </button>
-                    <button class="kds-action-btn btn-cancel" style="padding:0.4rem 0.6rem;" onclick="cancelOrder(${order.id}, '${order.order_number}', this)" title="Cancel order">
+                    <button class="kds-action-btn btn-cancel" style="padding:0.5rem 0.75rem;" onclick="cancelOrder(${order.id}, '${order.order_number}', this)" title="Cancel order">
                         <i class="bi bi-x-lg"></i>
                     </button>
                 </div>`;
@@ -424,20 +404,20 @@ function renderColumn(containerId, orderList, type) {
             case 'PREPARING':
                 actionBtn = `
                 <button class="kds-action-btn btn-ready" onclick="updateStatus(${order.id}, 'READY', this)">
-                    <i class="bi bi-check-circle"></i> Mark Ready
+                    <i class="bi bi-check-circle-fill"></i> Mark Ready to Serve
                 </button>`;
                 break;
             case 'READY':
                 actionBtn = `
                 <button class="kds-action-btn btn-served" onclick="updateStatus(${order.id}, 'SERVED', this)">
-                    <i class="bi bi-check-all"></i> Mark Served
+                    <i class="bi bi-check-all"></i> Mark Served at Table
                 </button>`;
                 break;
             case 'SERVED':
                 if (order.payment_status === 'PAID') {
-                    actionBtn = '<div style="text-align:center;color:var(--success);font-size:0.8rem;font-weight:700;margin-top:0.4rem;">✓ Paid &amp; Completed</div>';
+                    actionBtn = '<div style="text-align:center; color:#22c55e; font-size:0.84rem; font-weight:800; padding:0.4rem;">✓ Paid &amp; Completed</div>';
                 } else {
-                    actionBtn = '<div style="text-align:center;color:var(--dark-brown);font-size:0.8rem;font-weight:700;margin-top:0.4rem;">🍽️ Eating · Awaiting Desk Payment</div>';
+                    actionBtn = '<div style="text-align:center; color:#fbbf24; font-size:0.84rem; font-weight:800; padding:0.4rem;">🍽️ Dining · Awaiting Desk Payment</div>';
                 }
                 break;
         }
@@ -448,15 +428,16 @@ function renderColumn(containerId, orderList, type) {
         <div class="kds-order-card ${isUnaccepted ? 'new-pulse' : ''}" id="kdsCard${order.id}">
             <div class="kds-card-header">
                 <div>
-                    <span class="kds-order-id">${order.order_number}</span>
-                    <div style="font-size:0.75rem;color:var(--text-secondary);">👤 ${order.customer_name || 'Guest'}</div>
+                    <span class="kds-order-id">#${order.order_number}</span>
+                    <div style="font-size:0.8rem; color:#d6c7b9; margin-top:2px;">👤 ${order.customer_name || 'Guest'}</div>
                 </div>
                 <div class="text-end">
                     <span class="kds-table-num">TABLE ${order.table_display || order.table_number}</span>
                 </div>
             </div>
-            <div class="kds-order-time"><i class="bi bi-clock"></i> ${timeAgo}</div>
-            <div class="my-2 py-1 border-top border-bottom border-light">
+            <div class="kds-order-time"><i class="bi bi-clock"></i> Placed ${timeAgo}</div>
+            
+            <div class="my-2 py-2" style="border-top:1px solid rgba(255,255,255,0.1); border-bottom:1px solid rgba(255,255,255,0.1);">
                 ${order.items.map(item => `
                     <div class="kds-item">
                         <span class="kds-item-name">${item.emoji || '🍽️'} ${item.item_name_snapshot || item.name}</span>
@@ -464,8 +445,12 @@ function renderColumn(containerId, orderList, type) {
                     </div>
                 `).join('')}
             </div>
-            ${order.special_instructions ? `<div class="kds-instructions"><i class="bi bi-chat-left-text"></i> ${order.special_instructions}</div>` : ''}
-            ${actionBtn}
+            
+            ${order.special_instructions ? `<div class="kds-instructions"><i class="bi bi-chat-left-text-fill"></i> Note: ${order.special_instructions}</div>` : ''}
+            
+            <div class="mt-2">
+                ${actionBtn}
+            </div>
         </div>`;
     }).join('');
 }
@@ -473,7 +458,7 @@ function renderColumn(containerId, orderList, type) {
 async function updateStatus(orderId, newStatus, btn) {
     if (btn) {
         btn.disabled = true;
-        btn.innerHTML = '<span class="spinner"></span>';
+        btn.innerHTML = '<span class="spinner"></span> Updating...';
     }
 
     try {
@@ -532,7 +517,7 @@ async function cancelOrder(orderId, orderNumber, btn) {
         showToast('error', err.message);
         if (btn) {
             btn.disabled = false;
-            btn.innerHTML = '<i class="bi bi-x-circle"></i> Cancel';
+            btn.innerHTML = '<i class="bi bi-x-lg"></i>';
         }
     }
 }
@@ -551,7 +536,5 @@ function showToast(type, msg) {
     toast.classList.add('show');
     setTimeout(() => toast.classList.remove('show'), 3000);
 }
-
-setInterval(() => renderAllColumns(), 30000);
 </script>
 {% endblock %}

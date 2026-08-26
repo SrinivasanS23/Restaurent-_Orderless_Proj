@@ -1,17 +1,17 @@
 {% extends "base.html" %}
-{% load static %}
-{% block title %}404 — Page Not Found | {{ restaurant_name }}{% endblock %}
-
+{% block title %}Page Not Found (404) — OrderLess{% endblock %}
 {% block body %}
-<div class="d-flex align-items-center justify-content-center" style="min-height:80vh;padding:1.5rem;">
-    <div class="menu-card text-center p-5" style="max-width:480px;width:100%;">
-        <div style="font-size:3.5rem;margin-bottom:1rem;">🔍</div>
-        <h1 style="font-size:1.8rem;font-weight:900;color:var(--deepest);margin-bottom:0.5rem;">Page Not Found</h1>
-        <p style="color:var(--text-secondary);font-size:0.95rem;margin-bottom:1.5rem;">
-            The table QR or link you are looking for does not exist or has moved.
+<div style="min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 2rem 1rem;">
+    <div class="menu-card text-center p-4 p-md-5 animate-scale-in" style="max-width: 500px; width: 100%; border-radius: var(--radius-2xl); box-shadow: var(--shadow-xl); background: var(--glass-bg-solid); border: var(--glass-border); flex-direction: column; gap: 0;">
+        <div style="font-size: 3.5rem; margin-bottom: 0.5rem;">🔍</div>
+        <h1 style="font-family: var(--font-heading); font-size: 2rem; font-weight: 900; color: var(--deepest); margin-bottom: 0.4rem;">
+            404 — Page Not Found
+        </h1>
+        <p class="text-muted" style="font-size: 0.92rem; margin-bottom: 1.8rem; line-height: 1.5;">
+            The requested page or dining table does not exist. Please check your QR code or navigate back.
         </p>
-        <a href="/" class="btn btn-dark w-100 py-2 fw-bold" style="background:var(--dark-brown);border-radius:var(--radius-md);">
-            <i class="bi bi-house-door-fill"></i> Return to Homepage
+        <a href="/" class="btn-premium-primary">
+            <i class="bi bi-house-door-fill"></i> Return Home
         </a>
     </div>
 </div>

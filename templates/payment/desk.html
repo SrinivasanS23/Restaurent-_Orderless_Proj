@@ -1,26 +1,26 @@
 {% extends "base.html" %}
 {% load static %}
-{% block title %}Payment Desk POS — {{ restaurant_name }}{% endblock %}
-{% block meta_description %}Payment counter terminal for collecting dine-in payments at {{ restaurant_name }}{% endblock %}
+{% block title %}Payment POS Desk — {{ restaurant_name }}{% endblock %}
+{% block meta_description %}Payment counter terminal for billing and settlement at {{ restaurant_name }}{% endblock %}
 {% block body_class %}pos-page{% endblock %}
 
 {% block body %}
 <!-- POS Topbar -->
 <div class="pos-topbar">
     <div class="d-flex align-items-center gap-3">
-        <h1><i class="bi bi-calculator"></i> Payment Desk POS</h1>
-        <span class="badge" style="background:var(--cream);color:var(--dark-brown);font-weight:700;font-size:0.8rem;padding:0.3rem 0.6rem;border-radius:var(--radius-full);">
-            <i class="bi bi-shield-check"></i> Cashier Terminal
+        <h1><i class="bi bi-calculator-fill text-warning"></i> Payment Desk POS</h1>
+        <span class="badge" style="background:var(--cream); color:var(--dark-brown); font-weight:800; font-size:0.8rem; padding:0.3rem 0.75rem; border-radius:var(--radius-full);">
+            <i class="bi bi-shield-check text-success"></i> Cashier Terminal
         </span>
     </div>
     <div class="d-flex align-items-center gap-2">
-        <a href="/dashboard/" class="sound-toggle" style="text-decoration:none;">
+        <a href="/dashboard/" class="sound-toggle">
             <i class="bi bi-speedometer2"></i> Admin Dashboard
         </a>
-        <a href="/kitchen/" class="sound-toggle" style="text-decoration:none;">
+        <a href="/kitchen/" class="sound-toggle">
             <i class="bi bi-fire"></i> KDS
         </a>
-        <a href="{% url 'logout' %}" class="sound-toggle" style="text-decoration:none;">
+        <a href="{% url 'logout' %}" class="sound-toggle">
             <i class="bi bi-box-arrow-right"></i> Logout
         </a>
     </div>
@@ -29,7 +29,7 @@
 <div class="pos-content">
     <!-- Order Search Form -->
     <div class="pos-search">
-        <input type="text" id="orderSearchInput" placeholder="Enter Order ID (e.g. ORD-A5X2 or A5X2)..." onkeydown="if(event.key==='Enter') searchOrder(event)">
+        <input type="text" id="orderSearchInput" placeholder="Enter Order ID (e.g. ORD-A5X2 or A5X2)..." onkeydown="if(event.key==='Enter') searchOrder(event)" autofocus>
         <button id="searchBtn" onclick="searchOrder(event)">
             <i class="bi bi-search"></i> Search Bill
         </button>
@@ -37,35 +37,37 @@
 
     <!-- Bill Display Section -->
     <div id="billSection">
-        <div class="bill-card text-center py-5" style="border-style:dashed;">
-            <div style="font-size:3rem;margin-bottom:0.5rem;color:var(--tan);">🧾</div>
-            <h3 style="font-weight:700;color:var(--dark-brown);font-size:1.15rem;">Ready to Process Payment</h3>
-            <p class="text-muted" style="font-size:0.85rem;">Enter the customer's Order Number above to retrieve the bill breakdown.</p>
+        <div class="bill-card text-center py-5 px-3" style="border-style:dashed;">
+            <div style="font-size:3.5rem; margin-bottom:0.5rem; color:var(--sand);">🧾</div>
+            <h3 style="font-family:var(--font-heading); font-weight:850; color:var(--dark-brown); font-size:1.25rem;">Ready to Process Settlement</h3>
+            <p class="text-muted" style="font-size:0.88rem;">Enter the customer's 4-digit Order ID above to retrieve the live tax bill.</p>
         </div>
     </div>
 </div>
 
 <!-- Confirm Payment Modal -->
-<div class="confirm-modal-overlay" id="confirmModal">
-    <div class="confirm-modal">
-        <div style="font-size:2.5rem;margin-bottom:0.5rem;color:var(--brown);">💳</div>
-        <h3 style="font-weight:800;font-size:1.25rem;color:var(--deepest);">Confirm Bill Settlement</h3>
-        <p class="text-muted" style="font-size:0.85rem;margin-bottom:1rem;">Order <strong id="confirmOrderNum"></strong></p>
+<div class="modal-backdrop-custom" id="confirmModal" style="display:none;">
+    <div class="checkin-card animate-scale-in" style="max-width:440px;">
+        <div class="text-center mb-3">
+            <div style="font-size:3rem; margin-bottom:0.25rem; color:var(--brown);">💳</div>
+            <h3 style="font-family:var(--font-heading); font-weight:900; font-size:1.35rem; color:var(--deepest);">Confirm Bill Settlement</h3>
+            <p class="text-muted" style="font-size:0.85rem;">Order <strong id="confirmOrderNum" class="text-dark"></strong></p>
+        </div>
 
-        <div class="p-3 my-3 rounded" style="background:var(--cream);border:1px solid var(--border-light);text-align:left;font-size:0.85rem;">
+        <div class="p-3 my-3 rounded" style="background:var(--cream); border:1.5px solid var(--border); text-align:left; font-size:0.88rem;">
             <div class="d-flex justify-content-between mb-1">
                 <span class="text-muted">Total Payable:</span>
-                <strong id="confirmAmount" style="font-size:1.1rem;color:var(--deepest);">₹0.00</strong>
+                <strong id="confirmAmount" style="font-size:1.15rem; color:var(--deepest); font-family:var(--font-heading);">₹0.00</strong>
             </div>
-            <div id="confirmMethodDetails" class="text-muted" style="font-size:0.8rem;margin-top:0.35rem;">
+            <div id="confirmMethodDetails" class="text-muted" style="font-size:0.82rem; margin-top:0.35rem;">
                 Payment Method: CASH
             </div>
         </div>
 
         <div class="d-flex gap-2">
-            <button class="btn btn-outline-secondary flex-fill fw-bold" onclick="closeConfirmModal()">Cancel</button>
-            <button class="btn btn-success flex-fill fw-bold" id="confirmPayBtn" onclick="confirmPayment()" style="background:var(--success);border:none;">
-                <i class="bi bi-check-circle"></i> Confirm &amp; Mark Paid
+            <button class="btn-premium-secondary flex-fill" onclick="closeConfirmModal()">Cancel</button>
+            <button class="btn-premium-success flex-fill" id="confirmPayBtn" onclick="confirmPayment()">
+                <i class="bi bi-check-circle-fill"></i> Mark as Paid
             </button>
         </div>
     </div>
@@ -108,9 +110,9 @@ async function searchOrder(e) {
     } catch (err) {
         showToast('error', err.message);
         document.getElementById('billSection').innerHTML = `
-            <div class="bill-card text-center py-5 text-danger">
-                <i class="bi bi-exclamation-triangle" style="font-size:2.5rem;color:var(--error);"></i>
-                <p class="mt-2 fw-bold">${err.message}</p>
+            <div class="bill-card text-center py-5 px-3 text-danger">
+                <i class="bi bi-exclamation-triangle" style="font-size:2.8rem; color:var(--error);"></i>
+                <p class="mt-2 fw-bold" style="font-size:1.1rem;">${err.message}</p>
                 <p class="text-muted small">Please verify the Order ID (e.g. ${orderNum}) and try again.</p>
             </div>`;
     } finally {
@@ -131,33 +133,29 @@ function renderBill() {
 
     let paymentActionBlock = '';
 
-    // Customer phone prefill
-    let rawPhone = o.customer_phone_masked || '';
-    let cleanPhoneInput = '';
-
     if (o.is_paid || o.payment_status === 'PAID') {
         paymentActionBlock = `
-            <div class="mt-4 p-3 rounded" style="background:var(--success-bg);border:1px solid var(--success);color:var(--success);">
+            <div class="mt-4 p-3 rounded" style="background:var(--success-bg); border:1px solid var(--success); color:var(--success);">
                 <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
                     <div>
-                        <h4 style="font-size:1.05rem;font-weight:800;margin:0;"><i class="bi bi-check-circle-fill"></i> Order Fully Paid &amp; Completed</h4>
-                        <div style="font-size:0.82rem;margin-top:0.25rem;color:var(--text);">Total Settled: <strong>₹${parseFloat(o.total_amount).toFixed(2)}</strong> ${o.payment_method ? `via ${o.payment_method}` : ''}</div>
+                        <h4 style="font-family:var(--font-heading); font-size:1.15rem; font-weight:850; margin:0;"><i class="bi bi-check-circle-fill"></i> Order Fully Paid &amp; Completed</h4>
+                        <div style="font-size:0.85rem; margin-top:0.25rem; color:var(--text);">Settled: <strong>₹${parseFloat(o.total_amount).toFixed(2)}</strong> ${o.payment_method ? `via ${o.payment_method}` : ''}</div>
                     </div>
-                    <a href="/api/orders/${o.order_number}/receipt/pdf/" target="_blank" class="btn btn-success fw-bold btn-sm" style="background:var(--success);border:none;">
-                        <i class="bi bi-file-earmark-pdf"></i> View / Print PDF Invoice
+                    <a href="/api/orders/${o.order_number}/receipt/pdf/" target="_blank" class="btn-premium-success" style="padding:0.6rem 1.1rem; font-size:0.85rem;">
+                        <i class="bi bi-file-earmark-pdf"></i> View / Print Official PDF Invoice
                     </a>
                 </div>
             </div>`;
     } else if (!o.is_served && o.order_status !== 'SERVED') {
         paymentActionBlock = `
-            <div class="mt-4 p-3 rounded" style="background:var(--warning-bg);border:1px solid var(--warning);color:var(--dark-brown);">
-                <h4 style="font-size:0.95rem;font-weight:700;margin:0;"><i class="bi bi-clock-history"></i> Kitchen Status: ${o.order_status_display || o.order_status}</h4>
-                <p class="mb-0 mt-1" style="font-size:0.82rem;">Payment is enabled once the food has been served to the customer.</p>
+            <div class="mt-4 p-3 rounded" style="background:var(--status-new-bg); border:1px solid rgba(217,119,6,0.4); color:var(--dark-brown);">
+                <h4 style="font-family:var(--font-heading); font-size:1rem; font-weight:800; margin:0;"><i class="bi bi-clock-history"></i> Kitchen Status: ${o.order_status_display || o.order_status}</h4>
+                <p class="mb-0 mt-1" style="font-size:0.85rem;">Payment is usually collected once dishes are served to the table.</p>
             </div>`;
     } else {
         paymentActionBlock = `
             <div class="mt-4 pt-3 border-top">
-                <h3 style="font-size:1.05rem;font-weight:800;margin-bottom:0.75rem;color:var(--dark-brown);"><i class="bi bi-wallet2"></i> Settle Bill at Counter</h3>
+                <h3 style="font-family:var(--font-heading); font-size:1.15rem; font-weight:850; margin-bottom:0.75rem; color:var(--dark-brown);"><i class="bi bi-wallet2"></i> Settle Bill at Counter</h3>
                 
                 <!-- Payment Method Selection -->
                 <div class="payment-method-selector mb-3">
@@ -173,106 +171,120 @@ function renderBill() {
                 </div>
 
                 <!-- Cash Calculator Section -->
-                <div id="cashCalcSection" class="p-3 mb-3 rounded" style="background:var(--cream);border:1px solid var(--border);display:block;">
-                    <label style="font-size:0.82rem;font-weight:700;color:var(--dark-brown);">Cash Received from Customer (₹):</label>
-                    <div class="input-group my-1">
-                        <span class="input-group-text" style="background:#fff;border-color:var(--border);">₹</span>
+                <div id="cashCalcSection" class="p-3 mb-3 rounded" style="background:var(--cream); border:1px solid var(--border); display:block;">
+                    <label style="font-size:0.84rem; font-weight:750; color:var(--dark-brown);">Cash Received from Customer (₹):</label>
+                    <div class="input-group my-2">
+                        <span class="input-group-text" style="background:#fff; border-color:var(--border); font-weight:700;">₹</span>
                         <input type="number" class="form-control" id="cashReceivedInput" placeholder="${parseFloat(o.total_amount).toFixed(2)}"
-                               oninput="calculateCashChange()" min="${o.total_amount}" step="any" style="border-color:var(--border);font-weight:700;">
+                               oninput="calculateCashChange()" min="${o.total_amount}" step="any" style="border-color:var(--border); font-weight:800; font-size:1.1rem;">
                     </div>
-                    <div class="d-flex justify-content-between mt-2" style="font-size:0.88rem;">
-                        <span class="text-muted">Change to return:</span>
-                        <strong id="cashChangeDisplay" style="color:var(--success);font-size:1rem;">₹0.00</strong>
+                    
+                    <div class="quick-cash-btns">
+                        <span style="font-size:0.75rem; color:var(--text-muted); align-self:center; font-weight:600;">Quick Tender:</span>
+                        <button type="button" class="quick-cash-btn" onclick="setCashAmount(${Math.ceil(o.total_amount)})">Exact ₹${Math.ceil(o.total_amount)}</button>
+                        <button type="button" class="quick-cash-btn" onclick="setCashAmount(500)">₹500</button>
+                        <button type="button" class="quick-cash-btn" onclick="setCashAmount(1000)">₹1000</button>
+                        <button type="button" class="quick-cash-btn" onclick="setCashAmount(2000)">₹2000</button>
+                    </div>
+
+                    <div class="d-flex justify-content-between mt-3 pt-2 border-top" style="font-size:0.9rem;">
+                        <span class="text-muted font-weight-bold">Change to Return to Customer:</span>
+                        <strong id="cashChangeDisplay" style="color:var(--success); font-size:1.15rem; font-family:var(--font-heading);">₹0.00</strong>
                     </div>
                 </div>
 
                 <!-- Transaction reference input for UPI / Card -->
                 <div id="txnRefSection" class="mb-3" style="display:none;">
-                    <label style="font-size:0.82rem;font-weight:700;color:var(--dark-brown);">Transaction Reference (Optional):</label>
-                    <input type="text" class="form-control mt-1" id="txnRefInput" placeholder="e.g. UPI Ref ID / Card Txn ID" style="border-color:var(--border);">
+                    <label style="font-size:0.84rem; font-weight:750; color:var(--dark-brown);">Transaction Reference (Optional):</label>
+                    <input type="text" class="form-control mt-1" id="txnRefInput" placeholder="e.g. UPI Ref No / POS Terminal Txn ID" style="border-color:var(--border); padding:0.65rem 0.85rem;">
                 </div>
 
-                <button class="mark-paid-btn" id="markPaidBtn" onclick="openConfirmModal()">
-                    <i class="bi bi-check-circle"></i> Collect &amp; Mark as Paid — ₹${parseFloat(o.total_amount).toFixed(2)}
+                <button class="place-order-btn w-100" id="markPaidBtn" onclick="openConfirmModal()" style="background:linear-gradient(135deg, #16a34a, #15803d); box-shadow:var(--shadow-glow-emerald);">
+                    <i class="bi bi-check-circle-fill"></i> Collect &amp; Mark as Paid — ₹${parseFloat(o.total_amount).toFixed(2)}
                 </button>
             </div>`;
     }
 
     section.innerHTML = `
-    <div class="bill-card">
+    <div class="bill-card animate-fade-in">
         <div class="bill-header">
             <div class="bill-order-info">
-                <h2>${o.order_number}</h2>
+                <h2>#${o.order_number}</h2>
                 <div class="bill-table-info">
-                    <span><i class="bi bi-geo-alt-fill"></i> Table ${o.table_display || o.table_number}</span>
+                    <span><i class="bi bi-geo-alt-fill text-danger"></i> Table ${o.table_display || o.table_number}</span>
                     <span>·</span>
                     <span><i class="bi bi-person-fill"></i> ${o.customer_name || 'Guest'} (${o.customer_phone_masked || 'N/A'})</span>
                     <span>·</span>
                     <span><i class="bi bi-clock"></i> ${new Date(o.created_at).toLocaleTimeString()}</span>
                 </div>
             </div>
-            <div class="bill-status-badges">
+            <div class="d-flex gap-2 align-items-center">
                 <span class="status-badge ${statusClass}">${o.order_status_display || o.order_status}</span>
                 <span class="status-badge ${paymentClass}">${o.payment_status_display || o.payment_status}</span>
             </div>
         </div>
 
-        <div class="bill-items">
-            <table>
+        <div class="p-3 p-md-4">
+            <table class="dashboard-table">
                 <thead>
-                    <tr><th>Item</th><th>Qty</th><th>Unit Rate</th><th>Subtotal</th></tr>
+                    <tr>
+                        <th>Dish / Item</th>
+                        <th>Qty</th>
+                        <th>Price</th>
+                        <th>Subtotal</th>
+                    </tr>
                 </thead>
                 <tbody>
                     ${o.items.map(item => `
                         <tr>
-                            <td>${item.emoji || '🍽️'} ${item.item_name_snapshot || item.name}</td>
-                            <td>×${item.quantity}</td>
+                            <td><strong>${item.emoji || '🍽️'} ${item.item_name_snapshot || item.name}</strong></td>
+                            <td class="fw-bold">×${item.quantity}</td>
                             <td>₹${parseFloat(item.unit_price).toFixed(2)}</td>
-                            <td>₹${parseFloat(item.subtotal).toFixed(2)}</td>
+                            <td class="fw-bold">₹${parseFloat(item.subtotal).toFixed(2)}</td>
                         </tr>
                     `).join('')}
-                    <tr class="text-muted" style="font-size:0.82rem;">
+                    <tr class="text-muted" style="font-size:0.85rem;">
                         <td colspan="3" class="pt-3">Item Subtotal</td>
                         <td class="pt-3">₹${parseFloat(o.subtotal || o.total_amount).toFixed(2)}</td>
                     </tr>
-                    <tr class="text-muted" style="font-size:0.82rem;">
+                    <tr class="text-muted" style="font-size:0.85rem;">
                         <td colspan="3">CGST (2.5%)</td>
                         <td>₹${parseFloat(o.cgst_amount || 0).toFixed(2)}</td>
                     </tr>
-                    <tr class="text-muted" style="font-size:0.82rem;">
+                    <tr class="text-muted" style="font-size:0.85rem;">
                         <td colspan="3">SGST (2.5%)</td>
                         <td>₹${parseFloat(o.sgst_amount || 0).toFixed(2)}</td>
                     </tr>
-                    <tr class="bill-total-row">
-                        <td colspan="3">GRAND TOTAL</td>
-                        <td>₹${parseFloat(o.total_amount).toFixed(2)}</td>
+                    <tr style="font-family:var(--font-heading); font-size:1.3rem; font-weight:900; color:var(--deepest); border-top:2px solid var(--border);">
+                        <td colspan="3" class="pt-2">GRAND TOTAL</td>
+                        <td class="pt-2">₹${parseFloat(o.total_amount).toFixed(2)}</td>
                     </tr>
                 </tbody>
             </table>
         </div>
 
         <!-- WhatsApp Digital Invoice Dispatch -->
-        <div class="p-3 m-3 rounded" style="background:var(--cream);border:1px solid var(--tan);">
+        <div class="p-3 m-3 rounded" style="background:var(--cream); border:1px solid var(--border);">
             <div class="d-flex align-items-center gap-2 mb-2">
-                <i class="bi bi-whatsapp" style="font-size:1.2rem;color:var(--success);"></i>
-                <strong style="color:var(--dark-brown);font-size:0.88rem;">Send Digital PDF Invoice to Customer WhatsApp</strong>
+                <i class="bi bi-whatsapp" style="font-size:1.3rem; color:#16a34a;"></i>
+                <strong style="color:var(--dark-brown); font-size:0.9rem;">Send Official Tax Invoice to Customer WhatsApp</strong>
             </div>
             <div class="row g-2 align-items-center">
                 <div class="col-md-7">
                     <div class="input-group input-group-sm">
-                        <span class="input-group-text" style="background:#fff;border-color:var(--border);">+91</span>
-                        <input type="tel" class="form-control" id="posRecipientPhone" placeholder="Enter 10-digit phone" value="${cleanPhoneInput}" maxlength="10" style="border-color:var(--border);">
+                        <span class="input-group-text" style="background:#fff; border-color:var(--border); font-weight:700;">+91</span>
+                        <input type="tel" class="form-control" id="posRecipientPhone" placeholder="Enter 10-digit mobile" value="${o.customer_phone_masked ? o.customer_phone_masked.replace(/[^0-9]/g,'').slice(-10) : ''}" maxlength="10" style="border-color:var(--border);">
                     </div>
                 </div>
                 <div class="col-md-5">
-                    <button class="btn btn-sm w-100 fw-bold" id="posWaSendBtn" onclick="sendReceiptOnWhatsAppFromPOS()" style="background:var(--success);color:#fff;border:none;">
+                    <button class="btn-premium-success w-100 py-1" id="posWaSendBtn" onclick="sendReceiptOnWhatsAppFromPOS()">
                         <i class="bi bi-send-fill"></i> Send PDF Link
                     </button>
                 </div>
             </div>
         </div>
 
-        <div class="px-3 pb-3">
+        <div class="px-3 px-md-4 pb-4">
             ${paymentActionBlock}
         </div>
     </div>`;
@@ -295,6 +307,14 @@ function selectMethod(method) {
     }
 }
 
+function setCashAmount(amt) {
+    const input = document.getElementById('cashReceivedInput');
+    if (input) {
+        input.value = amt;
+        calculateCashChange();
+    }
+}
+
 function calculateCashChange() {
     const input = document.getElementById('cashReceivedInput');
     const received = parseFloat(input.value) || 0;
@@ -305,7 +325,7 @@ function calculateCashChange() {
 
 function openConfirmModal() {
     if (!currentOrder) return;
-    document.getElementById('confirmOrderNum').textContent = currentOrder.order_number;
+    document.getElementById('confirmOrderNum').textContent = `#${currentOrder.order_number}`;
     document.getElementById('confirmAmount').textContent = `₹${parseFloat(currentOrder.total_amount).toFixed(2)}`;
     
     let detailText = `Method: <strong>${selectedMethod}</strong>`;
@@ -315,11 +335,11 @@ function openConfirmModal() {
         detailText += ` · Received: ₹${parseFloat(received).toFixed(2)} · Change: ₹${change.toFixed(2)}`;
     }
     document.getElementById('confirmMethodDetails').innerHTML = detailText;
-    document.getElementById('confirmModal').classList.add('active');
+    document.getElementById('confirmModal').style.display = 'flex';
 }
 
 function closeConfirmModal() {
-    document.getElementById('confirmModal').classList.remove('active');
+    document.getElementById('confirmModal').style.display = 'none';
 }
 
 async function confirmPayment() {
@@ -351,7 +371,7 @@ async function confirmPayment() {
         if (!res.ok) throw new Error(data.error || 'Payment processing failed');
 
         closeConfirmModal();
-        showToast('success', 'Payment successful! Order completed.');
+        showToast('success', 'Payment successful! Order completed and table released.');
 
         currentOrder.payment_status = 'PAID';
         currentOrder.order_status = 'COMPLETED';
@@ -363,7 +383,7 @@ async function confirmPayment() {
         showToast('error', err.message);
     } finally {
         btn.disabled = false;
-        btn.innerHTML = '<i class="bi bi-check-circle"></i> Confirm &amp; Mark Paid';
+        btn.innerHTML = '<i class="bi bi-check-circle-fill"></i> Mark as Paid';
     }
 }
 
@@ -380,7 +400,7 @@ async function sendReceiptOnWhatsAppFromPOS() {
 
     const btn = document.getElementById('posWaSendBtn');
     btn.disabled = true;
-    btn.innerHTML = '<span class="spinner"></span> Sending...';
+    btn.innerHTML = '<span class="spinner"></span>';
 
     try {
         const res = await fetch(`/api/orders/${currentOrder.order_number}/receipt/send/`, {

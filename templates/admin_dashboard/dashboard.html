@@ -1,29 +1,29 @@
 {% extends "base.html" %}
 {% load static %}
 {% block title %}Admin Operations Dashboard — {{ restaurant_name }}{% endblock %}
-{% block meta_description %}Admin Dashboard for {{ restaurant_name }}{% endblock %}
+{% block meta_description %}Executive Admin Dashboard for {{ restaurant_name }}{% endblock %}
 {% block body_class %}dashboard-page{% endblock %}
 
 {% block body %}
 <!-- Topbar -->
 <div class="dashboard-topbar">
     <div class="d-flex align-items-center gap-3">
-        <h1><i class="bi bi-speedometer2"></i> Admin Operations Dashboard</h1>
-        <span class="badge" style="background:var(--cream);color:var(--dark-brown);font-weight:700;font-size:0.8rem;padding:0.3rem 0.65rem;border-radius:var(--radius-full);">
-            {{ restaurant_name }} Management
+        <h1><i class="bi bi-speedometer2 text-warning"></i> Admin Operations Dashboard</h1>
+        <span class="badge" style="background:var(--cream); color:var(--dark-brown); font-weight:800; font-size:0.8rem; padding:0.3rem 0.75rem; border-radius:var(--radius-full);">
+            {{ restaurant_name }} Executive Console
         </span>
     </div>
-    <div class="d-flex align-items-center gap-2">
-        <a href="/kitchen/" class="sound-toggle" style="text-decoration:none;">
+    <div class="d-flex align-items-center gap-2 flex-wrap">
+        <a href="/kitchen/" class="sound-toggle">
             <i class="bi bi-fire"></i> KDS
         </a>
-        <a href="/payment/" class="sound-toggle" style="text-decoration:none;">
+        <a href="/payment/" class="sound-toggle">
             <i class="bi bi-calculator"></i> Payment POS
         </a>
-        <a href="/admin/" class="sound-toggle" style="text-decoration:none;" target="_blank">
+        <a href="/admin/" class="sound-toggle" target="_blank">
             <i class="bi bi-gear"></i> Django Admin
         </a>
-        <a href="{% url 'logout' %}" class="sound-toggle" style="text-decoration:none;">
+        <a href="{% url 'logout' %}" class="sound-toggle">
             <i class="bi bi-box-arrow-right"></i> Logout
         </a>
     </div>
@@ -75,7 +75,7 @@
     </div>
 
     <!-- Navigation Tabs & CSV Download Button -->
-    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3">
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
         <div class="dashboard-tabs mb-0">
             <div class="dashboard-tab active" id="tabBtnOrders" onclick="switchTab('orders')">
                 <i class="bi bi-receipt"></i> Orders Management
@@ -84,14 +84,13 @@
                 <i class="bi bi-people-fill"></i> Customer Directory &amp; History
             </div>
             <div class="dashboard-tab" id="tabBtnMenu" onclick="switchTab('menu')">
-                <i class="bi bi-pencil-square"></i> Add &amp; Edit Items
+                <i class="bi bi-pencil-square"></i> Add &amp; Edit Menu Dishes
             </div>
         </div>
 
-        <!-- Download datas as .csv file Button -->
-        <button class="btn btn-outline-dark d-flex align-items-center gap-2" id="downloadCsvBtn" onclick="downloadCurrentDataCsv()" style="font-weight:700;font-size:0.85rem;border-radius:var(--radius-md);background:var(--cream);border:1.5px solid var(--dark-brown);color:var(--dark-brown);padding:0.5rem 1rem;transition:all .2s;">
-            <i class="bi bi-file-earmark-spreadsheet-fill" style="font-size:1.1rem;color:var(--success);"></i>
-            <span>Download datas as .csv file</span>
+        <button class="btn-premium-secondary" id="downloadCsvBtn" onclick="downloadCurrentDataCsv()">
+            <i class="bi bi-file-earmark-spreadsheet-fill text-success" style="font-size:1.1rem;"></i>
+            <span>Export Data as .CSV</span>
         </button>
     </div>
 
@@ -99,92 +98,88 @@
     <div id="ordersView">
         <div class="dashboard-section">
             <div class="dashboard-section-header">
-                <h2><i class="bi bi-list-check"></i> Orders Log</h2>
-                <div class="d-flex align-items-center gap-2">
-                    <button class="btn btn-sm btn-outline-dark" onclick="loadOrders()" style="font-weight:600;">
-                        <i class="bi bi-arrow-clockwise"></i> Refresh
-                    </button>
-                </div>
+                <h2><i class="bi bi-list-check"></i> Orders Operations Log</h2>
+                <button class="btn-premium-secondary py-1 px-3" onclick="loadOrders()" style="font-size:0.82rem;">
+                    <i class="bi bi-arrow-clockwise"></i> Refresh
+                </button>
             </div>
 
             <!-- Filters Bar -->
             <div class="dashboard-filters">
-                <input type="text" id="orderSearch" placeholder="Search Order ID, Customer, Table..." style="min-width:200px;" oninput="debounceOrderSearch()">
+                <input type="text" id="orderSearch" placeholder="Search Order #, Customer, Table..." style="min-width:220px;" oninput="debounceOrderSearch()">
                 
-                <!-- Sort by Date Filter -->
-                <div class="d-flex align-items-center gap-1 p-1 px-2 rounded" style="background:#fff;border:1.5px solid var(--border);font-size:0.85rem;">
+                <!-- Date Filter -->
+                <div class="d-flex align-items-center gap-1 p-1 px-2 rounded" style="background:#fff; border:1.5px solid var(--border); font-size:0.85rem;">
                     <i class="bi bi-calendar3 text-muted"></i>
-                    <label for="filterDate" class="text-muted small mb-0 me-1" style="font-weight:600;">Sort by Date:</label>
-                    <input type="date" id="filterDate" onchange="loadOrders()" style="border:none;background:transparent;outline:none;font-size:0.85rem;color:var(--text);cursor:pointer;">
-                    <button type="button" class="btn btn-sm btn-link text-muted p-0 ms-1" onclick="clearDateFilter()" title="Clear date filter" id="clearDateBtn" style="display:none;">
+                    <label for="filterDate" class="text-muted small mb-0 me-1" style="font-weight:700;">Date:</label>
+                    <input type="date" id="filterDate" onchange="loadOrders()" style="border:none; background:transparent; outline:none; font-size:0.85rem; color:var(--text); cursor:pointer;">
+                    <button type="button" class="btn btn-sm btn-link text-muted p-0 ms-1" onclick="clearDateFilter()" title="Clear date" id="clearDateBtn" style="display:none;">
                         <i class="bi bi-x-circle-fill"></i>
                     </button>
                 </div>
 
-                <select id="filterOrderStatus" onchange="loadOrders()">
+                <!-- Status Filter -->
+                <select id="filterStatus" onchange="loadOrders()" style="font-weight:700;">
                     <option value="">All Order Statuses</option>
-                    <option value="ORDER_CREATED">Order Created</option>
-                    <option value="ACCEPTED">Accepted</option>
-                    <option value="PREPARING">Preparing</option>
-                    <option value="READY">Ready</option>
-                    <option value="SERVED">Served</option>
-                    <option value="COMPLETED">Completed</option>
+                    <option value="ORDER_CREATED">1. Order Placed</option>
+                    <option value="ACCEPTED">2. Kitchen Accepted</option>
+                    <option value="PREPARING">3. Cooking &amp; Preparing</option>
+                    <option value="READY">4. Ready to Serve</option>
+                    <option value="SERVED">5. Served at Table</option>
+                    <option value="COMPLETED">6. Completed &amp; Paid</option>
+                    <option value="CANCELLED">Cancelled</option>
                 </select>
 
-                <select id="filterPaymentStatus" onchange="loadOrders()">
+                <!-- Payment Status Filter -->
+                <select id="filterPayment" onchange="loadOrders()" style="font-weight:700;">
                     <option value="">All Payment Statuses</option>
-                    <option value="PENDING">Pending Payment</option>
                     <option value="PAID">Paid</option>
+                    <option value="PENDING">Pending / Unpaid</option>
                 </select>
 
-                <select id="filterPaymentMethod" onchange="loadOrders()">
-                    <option value="">All Payment Methods</option>
-                    <option value="CASH">CASH</option>
-                    <option value="UPI">UPI</option>
-                    <option value="CARD">CARD</option>
-                </select>
+                <button class="btn-premium-secondary py-1 px-3" onclick="resetOrderFilters()" style="font-size:0.82rem;">
+                    Reset Filters
+                </button>
             </div>
 
-            <!-- Table -->
+            <!-- Orders Table -->
             <div style="overflow-x:auto;">
                 <table class="dashboard-table">
                     <thead>
                         <tr>
-                            <th>Order #</th>
+                            <th>Order ID</th>
                             <th>Table</th>
                             <th>Customer</th>
-                            <th>Items Summary</th>
-                            <th>Amount</th>
+                            <th>Items</th>
+                            <th>Total (incl. GST)</th>
                             <th>Order Status</th>
-                            <th>Payment Status</th>
-                            <th>Method</th>
-                            <th>Time</th>
+                            <th>Payment</th>
+                            <th>Placed Time</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody id="ordersTableBody">
-                        <tr><td colspan="10" class="text-center py-4 text-muted">Loading orders...</td></tr>
+                        <tr><td colspan="9" class="text-center py-4 text-muted"><div class="spinner dark"></div> Loading orders...</td></tr>
                     </tbody>
                 </table>
             </div>
 
-            <!-- Pagination -->
-            <div class="pagination" id="ordersPagination"></div>
+            <div class="d-flex justify-content-between align-items-center p-3 border-top" id="ordersPagination"></div>
         </div>
     </div>
 
-    <!-- 2. CUSTOMERS VIEW -->
+    <!-- 2. CUSTOMER DIRECTORY & HISTORY VIEW -->
     <div id="customersView" style="display:none;">
         <div class="dashboard-section">
             <div class="dashboard-section-header">
-                <h2><i class="bi bi-people"></i> Customer Directory &amp; History</h2>
-                <button class="btn btn-sm btn-outline-dark" onclick="loadCustomers()" style="font-weight:600;">
+                <h2><i class="bi bi-people-fill"></i> Customer Directory &amp; Lifetime History</h2>
+                <button class="btn-premium-secondary py-1 px-3" onclick="loadCustomers()" style="font-size:0.82rem;">
                     <i class="bi bi-arrow-clockwise"></i> Refresh
                 </button>
             </div>
 
             <div class="dashboard-filters">
-                <input type="text" id="customerSearch" placeholder="Search customer name or phone number..." style="min-width:280px;" oninput="debounceCustomerSearch()">
+                <input type="text" id="custSearch" placeholder="Search Customer Name or Phone Number..." style="min-width:280px;" oninput="debounceCustSearch()">
             </div>
 
             <div style="overflow-x:auto;">
@@ -192,68 +187,55 @@
                     <thead>
                         <tr>
                             <th>Customer Name</th>
-                            <th>Phone (Masked)</th>
-                            <th>Full Phone</th>
-                            <th>Total Orders</th>
-                            <th>Total Spent</th>
+                            <th>Mobile Phone</th>
+                            <th>Lifetime Orders</th>
+                            <th>Total Spend</th>
+                            <th>First Visit</th>
                             <th>Last Visit</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody id="customersTableBody">
-                        <tr><td colspan="7" class="text-center py-4 text-muted">Loading customer records...</td></tr>
+                        <tr><td colspan="7" class="text-center py-4 text-muted"><div class="spinner dark"></div> Loading customer directory...</td></tr>
                     </tbody>
                 </table>
             </div>
 
-            <div class="pagination" id="customersPagination"></div>
+            <div class="d-flex justify-content-between align-items-center p-3 border-top" id="customersPagination"></div>
         </div>
     </div>
 
-    <!-- 3. ADD & EDIT ITEMS VIEW (MENU MANAGEMENT) -->
+    <!-- 3. ADD & EDIT MENU DISHES VIEW -->
     <div id="menuView" style="display:none;">
         <div class="dashboard-section">
             <div class="dashboard-section-header">
-                <h2><i class="bi bi-card-checklist"></i> Menu Items Catalog (Add &amp; Edit Items)</h2>
-                <div class="d-flex align-items-center gap-2">
-                    <button class="btn btn-sm btn-dark d-flex align-items-center gap-1" onclick="openAddMenuItemModal()" style="font-weight:700;background:var(--dark-brown);border-color:var(--dark-brown);">
-                        <i class="bi bi-plus-circle-fill"></i> + Add New Item
-                    </button>
-                    <button class="btn btn-sm btn-outline-dark" onclick="loadMenuItems()" style="font-weight:600;">
-                        <i class="bi bi-arrow-clockwise"></i> Refresh
-                    </button>
-                </div>
+                <h2><i class="bi bi-card-list"></i> Menu Management &amp; Dishes</h2>
+                <button class="btn-premium-primary py-1 px-3" onclick="openAddMenuItemModal()" style="font-size:0.85rem;">
+                    <i class="bi bi-plus-circle-fill"></i> Add New Dish
+                </button>
             </div>
 
-            <!-- Menu Filters -->
             <div class="dashboard-filters">
-                <input type="text" id="menuItemSearch" placeholder="Search dish name or description..." style="min-width:220px;" oninput="filterMenuItemsUI()">
-                <select id="menuItemCategoryFilter" onchange="filterMenuItemsUI()">
+                <select id="menuFilterCategory" onchange="filterMenuItemsByCategory(this.value)" style="font-weight:700;">
                     <option value="">All Categories</option>
                 </select>
-                <select id="menuItemAvailFilter" onchange="filterMenuItemsUI()">
-                    <option value="">All Availability</option>
-                    <option value="available">Available Only</option>
-                    <option value="unavailable">Unavailable Only</option>
-                </select>
             </div>
 
-            <!-- Menu Items Table -->
             <div style="overflow-x:auto;">
                 <table class="dashboard-table">
                     <thead>
                         <tr>
-                            <th>Dish</th>
+                            <th>Dish / Item</th>
                             <th>Category</th>
                             <th>Price</th>
                             <th>Type</th>
                             <th>Bestseller</th>
-                            <th>Available on Menu</th>
+                            <th>Availability</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody id="menuItemsTableBody">
-                        <tr><td colspan="7" class="text-center py-4 text-muted">Loading menu items...</td></tr>
+                        <tr><td colspan="7" class="text-center py-4 text-muted"><div class="spinner dark"></div> Loading menu dishes...</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -263,10 +245,10 @@
 
 <!-- ORDER DETAIL MODAL -->
 <div class="modal-backdrop-custom" id="orderModal" style="display:none;">
-    <div class="checkin-card" style="max-width:550px;width:95%;">
+    <div class="checkin-card animate-scale-in" style="max-width:560px; width:95%;">
         <div class="d-flex justify-content-between align-items-center mb-3">
-            <h3 style="font-weight:800;font-size:1.2rem;color:var(--dark-brown);margin:0;" id="modalOrderTitle">Order Details</h3>
-            <button class="cart-close" onclick="closeOrderModal()" style="position:static;"><i class="bi bi-x-lg"></i></button>
+            <h3 style="font-family:var(--font-heading); font-weight:850; font-size:1.25rem; color:var(--dark-brown); margin:0;" id="modalOrderTitle">Order Details</h3>
+            <button class="cart-close" onclick="closeOrderModal()"><i class="bi bi-x-lg"></i></button>
         </div>
         <div id="modalOrderBody"></div>
     </div>
@@ -274,10 +256,10 @@
 
 <!-- CUSTOMER PROFILE MODAL -->
 <div class="modal-backdrop-custom" id="customerModal" style="display:none;">
-    <div class="checkin-card" style="max-width:550px;width:95%;">
+    <div class="checkin-card animate-scale-in" style="max-width:580px; width:95%;">
         <div class="d-flex justify-content-between align-items-center mb-3">
-            <h3 style="font-weight:800;font-size:1.2rem;color:var(--dark-brown);margin:0;" id="modalCustTitle">Customer Profile</h3>
-            <button class="cart-close" onclick="closeCustomerModal()" style="position:static;"><i class="bi bi-x-lg"></i></button>
+            <h3 style="font-family:var(--font-heading); font-weight:850; font-size:1.25rem; color:var(--dark-brown); margin:0;" id="modalCustTitle">Customer Profile</h3>
+            <button class="cart-close" onclick="closeCustomerModal()"><i class="bi bi-x-lg"></i></button>
         </div>
         <div id="modalCustBody"></div>
     </div>
@@ -285,62 +267,62 @@
 
 <!-- ADD & EDIT MENU ITEM MODAL -->
 <div class="modal-backdrop-custom" id="menuItemModal" style="display:none;">
-    <div class="checkin-card" style="max-width:520px;width:95%;">
+    <div class="checkin-card animate-scale-in" style="max-width:520px; width:95%;">
         <div class="d-flex justify-content-between align-items-center mb-3">
-            <h3 style="font-weight:800;font-size:1.2rem;color:var(--dark-brown);margin:0;" id="modalMenuItemTitle">Add New Menu Item</h3>
-            <button class="cart-close" onclick="closeMenuItemModal()" style="position:static;"><i class="bi bi-x-lg"></i></button>
+            <h3 style="font-family:var(--font-heading); font-weight:850; font-size:1.25rem; color:var(--dark-brown); margin:0;" id="modalMenuItemTitle">Add New Dish</h3>
+            <button class="cart-close" onclick="closeMenuItemModal()"><i class="bi bi-x-lg"></i></button>
         </div>
         
         <form id="menuItemForm" onsubmit="handleSaveMenuItem(event)">
             <input type="hidden" id="editItemId" value="">
             
             <div class="mb-3">
-                <label class="form-label" style="font-weight:600;font-size:0.85rem;color:var(--dark-brown);">Item / Dish Name *</label>
+                <label class="form-label" style="font-weight:750; font-size:0.85rem; color:var(--dark-brown);">Dish Name *</label>
                 <input type="text" class="form-control" id="formItemName" placeholder="e.g. Butter Chicken or Paneer Tikka" required minlength="2" style="border-color:var(--border);">
             </div>
 
             <div class="row g-2 mb-3">
                 <div class="col-7">
-                    <label class="form-label" style="font-weight:600;font-size:0.85rem;color:var(--dark-brown);">Category *</label>
-                    <select class="form-select" id="formItemCategory" required style="border-color:var(--border);font-size:0.9rem;">
+                    <label class="form-label" style="font-weight:750; font-size:0.85rem; color:var(--dark-brown);">Category *</label>
+                    <select class="form-select" id="formItemCategory" required style="border-color:var(--border); font-size:0.9rem;">
                         <option value="">Select Category</option>
                     </select>
                 </div>
                 <div class="col-5">
-                    <label class="form-label" style="font-weight:600;font-size:0.85rem;color:var(--dark-brown);">Price (₹) *</label>
-                    <input type="number" step="0.01" min="1" class="form-control" id="formItemPrice" placeholder="0.00" required style="border-color:var(--border);">
+                    <label class="form-label" style="font-weight:750; font-size:0.85rem; color:var(--dark-brown);">Price (₹) *</label>
+                    <input type="number" step="0.01" min="1" class="form-control" id="formItemPrice" placeholder="0.00" required style="border-color:var(--border); font-weight:700;">
                 </div>
             </div>
 
             <div class="mb-3">
-                <label class="form-label" style="font-weight:600;font-size:0.85rem;color:var(--dark-brown);">Emoji Icon</label>
+                <label class="form-label" style="font-weight:750; font-size:0.85rem; color:var(--dark-brown);">Emoji Icon</label>
                 <input type="text" class="form-control" id="formItemEmoji" placeholder="e.g. 🍗, 🍕, 🥗, ☕" maxlength="10" style="border-color:var(--border);">
             </div>
 
             <div class="mb-3">
-                <label class="form-label" style="font-weight:600;font-size:0.85rem;color:var(--dark-brown);">Description</label>
-                <textarea class="form-control" id="formItemDescription" rows="2" placeholder="Brief description of dish, spices, ingredients..." style="border-color:var(--border);font-size:0.85rem;"></textarea>
+                <label class="form-label" style="font-weight:750; font-size:0.85rem; color:var(--dark-brown);">Description</label>
+                <textarea class="form-control" id="formItemDescription" rows="2" placeholder="Brief description of dish, spices, ingredients..." style="border-color:var(--border); font-size:0.85rem;"></textarea>
             </div>
 
-            <div class="d-flex flex-wrap gap-3 p-3 rounded mb-4" style="background:var(--cream);border:1px solid var(--border-light);">
+            <div class="d-flex flex-wrap gap-3 p-3 rounded mb-4" style="background:var(--cream); border:1px solid var(--border-light);">
                 <div class="form-check">
                     <input class="form-check-input" type="checkbox" id="formItemIsVeg">
-                    <label class="form-check-label" for="formItemIsVeg" style="font-size:0.85rem;font-weight:600;">Vegetarian 🌿</label>
+                    <label class="form-check-label" for="formItemIsVeg" style="font-size:0.85rem; font-weight:700;">Vegetarian 🌿</label>
                 </div>
                 <div class="form-check">
                     <input class="form-check-input" type="checkbox" id="formItemIsBestseller">
-                    <label class="form-check-label" for="formItemIsBestseller" style="font-size:0.85rem;font-weight:600;">Bestseller ⭐</label>
+                    <label class="form-check-label" for="formItemIsBestseller" style="font-size:0.85rem; font-weight:700;">Bestseller ⭐</label>
                 </div>
                 <div class="form-check">
                     <input class="form-check-input" type="checkbox" id="formItemAvailable" checked>
-                    <label class="form-check-label" for="formItemAvailable" style="font-size:0.85rem;font-weight:600;color:var(--success);">In Stock / Available ✅</label>
+                    <label class="form-check-label" for="formItemAvailable" style="font-size:0.85rem; font-weight:700; color:var(--success);">In Stock / Available ✅</label>
                 </div>
             </div>
 
             <div class="d-flex gap-2">
-                <button type="button" class="btn btn-outline-dark w-50" onclick="closeMenuItemModal()">Cancel</button>
-                <button type="submit" class="btn btn-dark w-50" id="saveMenuItemBtn" style="background:var(--dark-brown);font-weight:700;">
-                    <i class="bi bi-check-circle-fill"></i> Save Item
+                <button type="button" class="btn-premium-secondary flex-fill" onclick="closeMenuItemModal()">Cancel</button>
+                <button type="submit" class="btn-premium-primary flex-fill" id="saveMenuItemBtn">
+                    <i class="bi bi-check-circle-fill"></i> Save Dish
                 </button>
             </div>
         </form>
@@ -387,7 +369,7 @@ function switchTab(tab) {
 }
 
 // -------------------------------------------------------------
-// STATS OVERVIEW (TODAY, MONTHLY, YEARLY)
+// STATS OVERVIEW
 // -------------------------------------------------------------
 async function loadStats() {
     try {
@@ -398,262 +380,238 @@ async function loadStats() {
         document.getElementById('statTodaySales').textContent = `₹${parseFloat(d.today_sales).toFixed(2)}`;
         document.getElementById('statMonthSales').textContent = `₹${parseFloat(d.month_sales || 0).toFixed(2)}`;
         document.getElementById('statYearSales').textContent = `₹${parseFloat(d.year_sales || 0).toFixed(2)}`;
-        document.getElementById('statTodayOrders').textContent = d.today_order_count;
+        document.getElementById('statTodayOrders').textContent = d.today_orders;
         document.getElementById('statPaidOrders').textContent = d.paid_orders;
         document.getElementById('statPendingPayments').textContent = d.pending_payments;
         document.getElementById('statActiveTables').textContent = d.active_tables;
         document.getElementById('statTotalOrders').textContent = d.total_orders;
     } catch (e) {
-        console.warn('Error loading stats:', e);
+        console.warn('Stats fetch error:', e);
     }
 }
 
 // -------------------------------------------------------------
-// CSV DATA EXPORT
+// ORDERS LOG TAB
 // -------------------------------------------------------------
-function downloadCurrentDataCsv() {
-    if (activeTab === 'customers') {
-        const search = document.getElementById('customerSearch').value.trim();
-        const url = `/dashboard/api/export/customers/csv/?search=${encodeURIComponent(search)}`;
-        window.open(url, '_blank');
-        showToast('success', 'Downloading Customers CSV...');
-    } else {
-        const search = document.getElementById('orderSearch').value.trim();
-        const orderStatus = document.getElementById('filterOrderStatus').value;
-        const paymentStatus = document.getElementById('filterPaymentStatus').value;
-        const paymentMethod = document.getElementById('filterPaymentMethod').value;
-        const dateVal = document.getElementById('filterDate').value;
+let ordersCurrentPage = 1;
 
-        let query = `?search=${encodeURIComponent(search)}&order_status=${encodeURIComponent(orderStatus)}&payment_status=${encodeURIComponent(paymentStatus)}&payment_method=${encodeURIComponent(paymentMethod)}&date=${encodeURIComponent(dateVal)}`;
-        const url = `/dashboard/api/export/orders/csv/${query}`;
-        window.open(url, '_blank');
-        showToast('success', 'Downloading Orders CSV with active filters...');
-    }
-}
-
-// -------------------------------------------------------------
-// ORDERS LOG & "SORT BY DATE"
-// -------------------------------------------------------------
 function debounceOrderSearch() {
     clearTimeout(searchTimeout);
-    searchTimeout = setTimeout(() => loadOrders(1), 300);
+    searchTimeout = setTimeout(() => {
+        ordersCurrentPage = 1;
+        loadOrders();
+    }, 350);
 }
 
 function clearDateFilter() {
     document.getElementById('filterDate').value = '';
     document.getElementById('clearDateBtn').style.display = 'none';
-    loadOrders(1);
+    loadOrders();
+}
+
+function resetOrderFilters() {
+    document.getElementById('orderSearch').value = '';
+    document.getElementById('filterDate').value = '';
+    document.getElementById('filterStatus').value = '';
+    document.getElementById('filterPayment').value = '';
+    document.getElementById('clearDateBtn').style.display = 'none';
+    ordersCurrentPage = 1;
+    loadOrders();
 }
 
 async function loadOrders(page = 1) {
+    ordersCurrentPage = page;
     const search = document.getElementById('orderSearch').value.trim();
-    const orderStatus = document.getElementById('filterOrderStatus').value;
-    const paymentStatus = document.getElementById('filterPaymentStatus').value;
-    const paymentMethod = document.getElementById('filterPaymentMethod').value;
     const dateVal = document.getElementById('filterDate').value;
+    const status = document.getElementById('filterStatus').value;
+    const payment = document.getElementById('filterPayment').value;
 
-    const clearBtn = document.getElementById('clearDateBtn');
     if (dateVal) {
-        clearBtn.style.display = 'inline-block';
+        document.getElementById('clearDateBtn').style.display = 'inline-block';
     } else {
-        clearBtn.style.display = 'none';
+        document.getElementById('clearDateBtn').style.display = 'none';
     }
 
-    let url = `/dashboard/api/orders/?page=${page}&search=${encodeURIComponent(search)}&order_status=${encodeURIComponent(orderStatus)}&payment_status=${encodeURIComponent(paymentStatus)}&payment_method=${encodeURIComponent(paymentMethod)}&date=${encodeURIComponent(dateVal)}`;
+    const params = new URLSearchParams({
+        page: page,
+        search: search,
+        date: dateVal,
+        status: status,
+        payment: payment
+    });
+
+    const tbody = document.getElementById('ordersTableBody');
 
     try {
-        const res = await fetch(url);
+        const res = await fetch(`/dashboard/api/orders/?${params.toString()}`);
         if (!res.ok) throw new Error('Failed to load orders');
         const data = await res.json();
-        renderOrdersTable(data);
+
+        if (!data.results || data.results.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="9" class="text-center py-5 text-muted"><i class="bi bi-inbox" style="font-size:2rem;display:block;opacity:0.4;"></i>No orders match your filter criteria</td></tr>';
+            document.getElementById('ordersPagination').innerHTML = '';
+            return;
+        }
+
+        tbody.innerHTML = data.results.map(o => {
+            let statusBadge = '';
+            switch (o.order_status) {
+                case 'ORDER_CREATED': statusBadge = '<span class="status-badge badge-created">1. Placed</span>'; break;
+                case 'ACCEPTED': statusBadge = '<span class="status-badge badge-cooking">2. Accepted</span>'; break;
+                case 'PREPARING': statusBadge = '<span class="status-badge badge-cooking">3. Cooking</span>'; break;
+                case 'READY': statusBadge = '<span class="status-badge badge-ready">4. Ready</span>'; break;
+                case 'SERVED': statusBadge = '<span class="status-badge badge-served">5. Served</span>'; break;
+                case 'COMPLETED': statusBadge = '<span class="status-badge badge-completed">6. Completed</span>'; break;
+                default: statusBadge = `<span class="status-badge">${o.order_status}</span>`;
+            }
+
+            const payBadge = (o.payment_status === 'PAID' || o.is_paid) ? 
+                '<span class="status-badge badge-paid">PAID</span>' : 
+                '<span class="status-badge badge-unpaid">UNPAID</span>';
+
+            return `
+            <tr>
+                <td><strong>#${o.order_number}</strong></td>
+                <td><span class="table-badge"><i class="bi bi-geo-alt-fill text-danger"></i> T${o.table_display || o.table_number}</span></td>
+                <td>
+                    <div style="font-weight:700;">${escapeHtml(o.customer_name || 'Guest')}</div>
+                    <div class="text-muted small">${o.customer_phone_masked || ''}</div>
+                </td>
+                <td>${o.items_count} item${o.items_count > 1 ? 's' : ''}</td>
+                <td style="font-weight:800; color:var(--dark-brown);">₹${parseFloat(o.total_amount).toFixed(2)}</td>
+                <td>${statusBadge}</td>
+                <td>${payBadge}</td>
+                <td style="font-size:0.8rem; color:var(--text-muted);">${o.created_at_display}</td>
+                <td>
+                    <button class="btn-premium-secondary py-1 px-2" onclick="viewOrderDetail('${o.order_number}')" style="font-size:0.78rem;">
+                        <i class="bi bi-eye"></i> Details
+                    </button>
+                </td>
+            </tr>`;
+        }).join('');
+
+        renderPagination('ordersPagination', data.page, data.total_pages, loadOrders);
+
     } catch (e) {
-        document.getElementById('ordersTableBody').innerHTML = `<tr><td colspan="10" class="text-center py-4 text-danger">Error: ${e.message}</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="9" class="text-center py-4 text-danger">${e.message}</td></tr>`;
     }
 }
 
-function renderOrdersTable(data) {
-    const tbody = document.getElementById('ordersTableBody');
-    if (!data.orders || data.orders.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="10" class="text-center py-4 text-muted">No orders found matching filters.</td></tr>`;
-        document.getElementById('ordersPagination').innerHTML = '';
-        return;
-    }
+// -------------------------------------------------------------
+// CSV EXPORT
+// -------------------------------------------------------------
+function downloadCurrentDataCsv() {
+    const search = document.getElementById('orderSearch').value.trim();
+    const dateVal = document.getElementById('filterDate').value;
+    const status = document.getElementById('filterStatus').value;
+    const payment = document.getElementById('filterPayment').value;
 
-    tbody.innerHTML = data.orders.map(o => {
-        const itemsStr = o.items ? o.items.map(i => `${i.name} ×${i.quantity}`).join(', ') : '-';
-        const isPaid = o.payment_status === 'PAID';
-        const payBadge = isPaid ?
-            '<span class="badge" style="background:var(--success-bg);color:var(--success);border:1px solid var(--success);">PAID</span>' :
-            '<span class="badge" style="background:var(--warning-bg);color:var(--warning);border:1px solid var(--warning);">PENDING</span>';
+    const params = new URLSearchParams({
+        search: search,
+        date: dateVal,
+        status: status,
+        payment: payment
+    });
 
-        let statusBadge = `<span class="badge bg-secondary">${o.order_status_display || o.order_status}</span>`;
-        if (o.order_status === 'COMPLETED') statusBadge = '<span class="badge" style="background:var(--success-bg);color:var(--success);border:1px solid var(--success);">Completed</span>';
-        else if (o.order_status === 'SERVED') statusBadge = '<span class="badge" style="background:#e0f2fe;color:#0369a1;border:1px solid #7dd3fc;">Served</span>';
-        else if (o.order_status === 'PREPARING') statusBadge = '<span class="badge" style="background:#ffedd5;color:#c2410c;border:1px solid #fdba74;">Preparing</span>';
-        else if (o.order_status === 'ACCEPTED') statusBadge = '<span class="badge" style="background:#fef3c7;color:#b45309;border:1px solid #fcd34d;">Accepted</span>';
-        else if (o.order_status === 'READY') statusBadge = '<span class="badge" style="background:#f3e8ff;color:#7e22ce;border:1px solid #d8b4fe;">Ready</span>';
-
-        const timeStr = o.created_at ? new Date(o.created_at).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : '-';
-        const dateStr = o.created_at ? new Date(o.created_at).toLocaleDateString([], {month:'short', day:'numeric'}) : '';
-
-        return `
-        <tr>
-            <td><strong style="color:var(--dark-brown);">${o.order_number}</strong></td>
-            <td><span class="badge" style="background:var(--cream);color:var(--dark-brown);border:1px solid var(--tan);">Table ${o.table_display || o.table_number}</span></td>
-            <td>${escapeHtml(o.customer_name || 'Guest')}</td>
-            <td style="max-width:220px;font-size:0.8rem;" class="text-truncate" title="${escapeHtml(itemsStr)}">${escapeHtml(itemsStr)}</td>
-            <td style="font-weight:700;color:var(--deepest);">₹${parseFloat(o.total_amount).toFixed(2)}</td>
-            <td>${statusBadge}</td>
-            <td>${payBadge}</td>
-            <td><span class="badge" style="background:#f3f4f6;color:#374151;">${o.payment_method || '-'}</span></td>
-            <td style="font-size:0.75rem;" class="text-muted">${dateStr} ${timeStr}</td>
-            <td>
-                <button class="btn btn-sm btn-outline-dark" onclick="viewOrderDetail('${o.order_number}')" style="font-size:0.75rem;padding:2px 8px;">
-                    <i class="bi bi-eye"></i> Details
-                </button>
-            </td>
-        </tr>
-        `;
-    }).join('');
-
-    const totalPages = Math.ceil(data.total / data.per_page);
-    renderPagination('ordersPagination', data.page, totalPages, loadOrders);
+    showToast('success', 'Preparing CSV export...');
+    window.location.href = `/dashboard/api/orders/export-csv/?${params.toString()}`;
 }
 
 // -------------------------------------------------------------
-// CUSTOMER DIRECTORY & HISTORY
+// CUSTOMER DIRECTORY TAB
 // -------------------------------------------------------------
-function debounceCustomerSearch() {
+let custCurrentPage = 1;
+
+function debounceCustSearch() {
     clearTimeout(searchTimeout);
-    searchTimeout = setTimeout(() => loadCustomers(1), 300);
+    searchTimeout = setTimeout(() => {
+        custCurrentPage = 1;
+        loadCustomers();
+    }, 350);
 }
 
 async function loadCustomers(page = 1) {
-    const search = document.getElementById('customerSearch').value.trim();
-    let url = `/dashboard/api/customers/?page=${page}&search=${encodeURIComponent(search)}`;
-
-    try {
-        const res = await fetch(url);
-        if (!res.ok) throw new Error('Failed to load customers');
-        const data = await res.json();
-        renderCustomersTable(data);
-    } catch (e) {
-        document.getElementById('customersTableBody').innerHTML = `<tr><td colspan="7" class="text-center py-4 text-danger">Error: ${e.message}</td></tr>`;
-    }
-}
-
-function renderCustomersTable(data) {
+    custCurrentPage = page;
+    const search = document.getElementById('custSearch').value.trim();
     const tbody = document.getElementById('customersTableBody');
-    if (!data.customers || data.customers.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="7" class="text-center py-4 text-muted">No customer records found.</td></tr>`;
-        document.getElementById('customersPagination').innerHTML = '';
-        return;
-    }
 
-    tbody.innerHTML = data.customers.map(c => `
-        <tr>
-            <td><strong>${escapeHtml(c.name)}</strong></td>
-            <td><code>${c.phone_masked}</code></td>
-            <td><code>${c.phone_full}</code></td>
-            <td><span class="badge bg-secondary">${c.order_count} order${c.order_count !== 1 ? 's' : ''}</span></td>
-            <td style="font-weight:700;color:var(--deepest);">₹${parseFloat(c.total_spent).toFixed(2)}</td>
-            <td style="font-size:0.78rem;" class="text-muted">${new Date(c.last_visit).toLocaleDateString([], {month:'short', day:'numeric', year:'numeric'})}</td>
-            <td>
-                <button class="btn btn-sm btn-outline-dark" onclick="viewCustomerDetail(${c.id})" style="font-size:0.75rem;padding:2px 8px;">
-                    <i class="bi bi-clock-history"></i> History
-                </button>
-            </td>
-        </tr>
-    `).join('');
-
-    const totalPages = Math.ceil(data.total / data.per_page);
-    renderPagination('customersPagination', data.page, totalPages, loadCustomers);
-}
-
-// -------------------------------------------------------------
-// ADD & EDIT MENU ITEMS (MENU MANAGEMENT)
-// -------------------------------------------------------------
-async function loadCategoriesForForm() {
     try {
-        const res = await fetch('/dashboard/api/menu/categories/');
-        if (!res.ok) return;
-        allMenuCategoriesData = await res.json();
-        
-        // Populate select in modal
-        const formCatSelect = document.getElementById('formItemCategory');
-        formCatSelect.innerHTML = '<option value="">Select Category</option>' + 
-            allMenuCategoriesData.map(c => `<option value="${c.id}">${c.icon || '🍽️'} ${c.name}</option>`).join('');
+        const res = await fetch(`/dashboard/api/customers/?page=${page}&search=${encodeURIComponent(search)}`);
+        if (!res.ok) throw new Error('Failed to load customer list');
+        const data = await res.json();
 
-        // Populate filter dropdown
-        const filterCatSelect = document.getElementById('menuItemCategoryFilter');
-        filterCatSelect.innerHTML = '<option value="">All Categories</option>' + 
-            allMenuCategoriesData.map(c => `<option value="${c.id}">${c.icon || '🍽️'} ${c.name}</option>`).join('');
+        if (!data.results || data.results.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="7" class="text-center py-5 text-muted">No customers found</td></tr>';
+            document.getElementById('customersPagination').innerHTML = '';
+            return;
+        }
+
+        tbody.innerHTML = data.results.map(c => `
+            <tr>
+                <td><strong>👤 ${escapeHtml(c.name)}</strong></td>
+                <td><code>${c.phone_masked}</code></td>
+                <td style="font-weight:750;">${c.total_orders}</td>
+                <td style="font-weight:850; color:var(--deepest);">₹${parseFloat(c.total_spent).toFixed(2)}</td>
+                <td style="font-size:0.82rem; color:var(--text-muted);">${c.first_visit}</td>
+                <td style="font-size:0.82rem; color:var(--text-muted);">${c.last_visit}</td>
+                <td>
+                    <button class="btn-premium-secondary py-1 px-2" onclick="viewCustomerDetail('${c.id}')" style="font-size:0.78rem;">
+                        <i class="bi bi-clock-history"></i> Past Orders
+                    </button>
+                </td>
+            </tr>
+        `).join('');
+
+        renderPagination('customersPagination', data.page, data.total_pages, loadCustomers);
+
     } catch (e) {
-        console.warn('Error loading categories:', e);
+        tbody.innerHTML = `<tr><td colspan="7" class="text-center py-4 text-danger">${e.message}</td></tr>`;
     }
 }
 
+// -------------------------------------------------------------
+// MENU MANAGEMENT TAB
+// -------------------------------------------------------------
 async function loadMenuItems() {
+    const tbody = document.getElementById('menuItemsTableBody');
     try {
-        const res = await fetch('/dashboard/api/menu/items/');
+        const res = await fetch('/dashboard/api/menu-items/');
         if (!res.ok) throw new Error('Failed to load menu items');
         allMenuItemsData = await res.json();
-        filterMenuItemsUI();
+        renderMenuItemsTable(allMenuItemsData);
     } catch (e) {
-        document.getElementById('menuItemsTableBody').innerHTML = `<tr><td colspan="7" class="text-center py-4 text-danger">Error: ${e.message}</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="7" class="text-center py-4 text-danger">${e.message}</td></tr>`;
     }
 }
 
-function filterMenuItemsUI() {
-    const search = document.getElementById('menuItemSearch').value.toLowerCase().trim();
-    const catId = document.getElementById('menuItemCategoryFilter').value;
-    const avail = document.getElementById('menuItemAvailFilter').value;
-
-    let filtered = allMenuItemsData;
-
-    if (search) {
-        filtered = filtered.filter(i => 
-            i.name.toLowerCase().includes(search) || 
-            (i.description && i.description.toLowerCase().includes(search))
-        );
+function filterMenuItemsByCategory(catId) {
+    if (!catId) {
+        renderMenuItemsTable(allMenuItemsData);
+    } else {
+        const filtered = allMenuItemsData.filter(i => String(i.category_id) === String(catId));
+        renderMenuItemsTable(filtered);
     }
-
-    if (catId) {
-        filtered = filtered.filter(i => String(i.category) === String(catId));
-    }
-
-    if (avail === 'available') {
-        filtered = filtered.filter(i => i.available === true);
-    } else if (avail === 'unavailable') {
-        filtered = filtered.filter(i => i.available === false);
-    }
-
-    renderMenuItemsTable(filtered);
 }
 
 function renderMenuItemsTable(items) {
     const tbody = document.getElementById('menuItemsTableBody');
     if (!items || items.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="7" class="text-center py-4 text-muted">No menu items found.</td></tr>`;
+        tbody.innerHTML = '<tr><td colspan="7" class="text-center py-5 text-muted">No menu items found</td></tr>';
         return;
     }
 
     tbody.innerHTML = items.map(item => {
-        const vegBadge = item.is_vegetarian ? 
-            '<span class="badge" style="background:#dcfce7;color:#15803d;border:1px solid #86efac;">🌿 Veg</span>' : 
-            '<span class="badge" style="background:#fee2e2;color:#b91c1c;border:1px solid #fca5a5;">🍗 Non-Veg</span>';
-        
-        const bestBadge = item.is_bestseller ? 
-            '<span class="badge" style="background:#fef3c7;color:#b45309;border:1px solid #fcd34d;">⭐ Bestseller</span>' : 
-            '<span class="text-muted small">-</span>';
+        const vegBadge = item.is_veg ? 
+            '<span class="badge" style="background:#dcfce7; color:#166534; font-size:0.75rem;">VEG 🌿</span>' : 
+            '<span class="badge" style="background:#fee2e2; color:#991b1b; font-size:0.75rem;">NON-VEG 🍗</span>';
 
-        const availSwitch = `
-            <div class="form-check form-switch d-inline-block">
-                <input class="form-check-input" type="checkbox" role="switch" id="availSwitch${item.id}" ${item.available ? 'checked' : ''} onchange="toggleItemAvailability(${item.id}, this.checked)">
-                <label class="form-check-label small" for="availSwitch${item.id}" style="color:${item.available ? 'var(--success)' : 'var(--error)'};font-weight:600;">
-                    ${item.available ? 'Available' : 'Unavailable'}
-                </label>
-            </div>`;
+        const bestBadge = item.is_bestseller ? 
+            '<span class="badge" style="background:#fef3c7; color:#92400e; font-size:0.75rem;">⭐ BESTSELLER</span>' : 
+            '<span class="text-muted small">—</span>';
+
+        const availBadge = item.available ? 
+            '<span class="badge bg-success" style="font-size:0.75rem;">IN STOCK</span>' : 
+            '<span class="badge bg-secondary" style="font-size:0.75rem;">OUT OF STOCK</span>';
 
         return `
         <tr>
@@ -661,23 +619,23 @@ function renderMenuItemsTable(items) {
                 <div class="d-flex align-items-center gap-2">
                     <span style="font-size:1.4rem;">${item.emoji || '🍽️'}</span>
                     <div>
-                        <div style="font-weight:700;color:var(--dark-brown);">${escapeHtml(item.name)}</div>
-                        ${item.description ? `<div style="font-size:0.75rem;color:var(--text-secondary);max-width:200px;" class="text-truncate">${escapeHtml(item.description)}</div>` : ''}
+                        <strong>${escapeHtml(item.name)}</strong>
+                        ${item.description ? `<div class="text-muted small">${escapeHtml(item.description.substring(0, 45))}...</div>` : ''}
                     </div>
                 </div>
             </td>
-            <td><span class="badge" style="background:var(--cream);color:var(--dark-brown);border:1px solid var(--tan);">${escapeHtml(item.category_name || '-')}</span></td>
-            <td style="font-weight:800;color:var(--deepest);font-size:0.95rem;">₹${parseFloat(item.price).toFixed(2)}</td>
+            <td><span class="badge" style="background:var(--cream); color:var(--dark-brown);">${escapeHtml(item.category_name)}</span></td>
+            <td style="font-weight:800; color:var(--dark-brown);">₹${parseFloat(item.price).toFixed(2)}</td>
             <td>${vegBadge}</td>
             <td>${bestBadge}</td>
-            <td>${availSwitch}</td>
+            <td>${availBadge}</td>
             <td>
-                <div class="d-flex align-items-center gap-1">
-                    <button class="btn btn-sm btn-outline-dark py-1 px-2" onclick="openEditMenuItemModal(${item.id})" title="Edit Item" style="font-size:0.78rem;">
-                        <i class="bi bi-pencil"></i> Edit
+                <div class="d-flex gap-1">
+                    <button class="btn-premium-secondary py-1 px-2" onclick="openEditMenuItemModal(${item.id})" style="font-size:0.75rem;" title="Edit dish">
+                        <i class="bi bi-pencil"></i>
                     </button>
-                    <button class="btn btn-sm btn-outline-danger py-1 px-2" onclick="deleteMenuItem(${item.id}, '${escapeHtml(item.name)}')" title="Delete Item" style="font-size:0.78rem;">
-                        <i class="bi bi-trash"></i> Delete
+                    <button class="btn btn-sm ${item.available ? 'btn-outline-danger' : 'btn-outline-success'} py-1 px-2" onclick="toggleItemAvailability(${item.id}, ${!item.available})" style="font-size:0.75rem; border-radius:var(--radius-md);" title="Toggle availability">
+                        <i class="bi bi-power"></i>
                     </button>
                 </div>
             </td>
@@ -685,16 +643,30 @@ function renderMenuItemsTable(items) {
     }).join('');
 }
 
+async function loadCategoriesForForm() {
+    try {
+        const res = await fetch('/api/menu/');
+        if (!res.ok) return;
+        allMenuCategoriesData = await res.json();
+
+        // Populate dropdowns
+        const formSelect = document.getElementById('formItemCategory');
+        const filterSelect = document.getElementById('menuFilterCategory');
+
+        formSelect.innerHTML = '<option value="">Select Category</option>' + 
+            allMenuCategoriesData.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+
+        filterSelect.innerHTML = '<option value="">All Categories</option>' + 
+            allMenuCategoriesData.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+    } catch (e) {
+        console.warn('Category load error:', e);
+    }
+}
+
 function openAddMenuItemModal() {
-    document.getElementById('modalMenuItemTitle').textContent = 'Add New Menu Item';
+    document.getElementById('modalMenuItemTitle').textContent = 'Add New Dish';
     document.getElementById('editItemId').value = '';
-    document.getElementById('formItemName').value = '';
-    document.getElementById('formItemCategory').value = '';
-    document.getElementById('formItemPrice').value = '';
-    document.getElementById('formItemEmoji').value = '🍽️';
-    document.getElementById('formItemDescription').value = '';
-    document.getElementById('formItemIsVeg').checked = false;
-    document.getElementById('formItemIsBestseller').checked = false;
+    document.getElementById('menuItemForm').reset();
     document.getElementById('formItemAvailable').checked = true;
     document.getElementById('menuItemModal').style.display = 'flex';
 }
@@ -703,16 +675,17 @@ function openEditMenuItemModal(itemId) {
     const item = allMenuItemsData.find(i => i.id === itemId);
     if (!item) return;
 
-    document.getElementById('modalMenuItemTitle').textContent = `Edit: ${item.name}`;
+    document.getElementById('modalMenuItemTitle').textContent = `Edit Dish: ${item.name}`;
     document.getElementById('editItemId').value = item.id;
     document.getElementById('formItemName').value = item.name;
-    document.getElementById('formItemCategory').value = item.category;
-    document.getElementById('formItemPrice').value = parseFloat(item.price).toFixed(2);
-    document.getElementById('formItemEmoji').value = item.emoji || '🍽️';
+    document.getElementById('formItemCategory').value = item.category_id;
+    document.getElementById('formItemPrice').value = parseFloat(item.price);
+    document.getElementById('formItemEmoji').value = item.emoji || '';
     document.getElementById('formItemDescription').value = item.description || '';
-    document.getElementById('formItemIsVeg').checked = boolValue(item.is_vegetarian);
+    document.getElementById('formItemIsVeg').checked = boolValue(item.is_veg);
     document.getElementById('formItemIsBestseller').checked = boolValue(item.is_bestseller);
     document.getElementById('formItemAvailable').checked = boolValue(item.available);
+
     document.getElementById('menuItemModal').style.display = 'flex';
 }
 
@@ -721,24 +694,19 @@ function closeMenuItemModal() {
 }
 
 async function handleSaveMenuItem(e) {
-    if (e) e.preventDefault();
+    e.preventDefault();
     const itemId = document.getElementById('editItemId').value;
-    const name = document.getElementById('formItemName').value.trim();
-    const category = document.getElementById('formItemCategory').value;
-    const price = document.getElementById('formItemPrice').value;
-    const emoji = document.getElementById('formItemEmoji').value.trim() || '🍽️';
-    const description = document.getElementById('formItemDescription').value.trim();
-    const is_vegetarian = document.getElementById('formItemIsVeg').checked;
-    const is_bestseller = document.getElementById('formItemIsBestseller').checked;
-    const available = document.getElementById('formItemAvailable').checked;
-
-    if (!name || !category || !price) {
-        showToast('error', 'Please fill all required fields.');
-        return;
-    }
+    const isEdit = Boolean(itemId);
 
     const payload = {
-        name, category, price, emoji, description, is_vegetarian, is_bestseller, available
+        name: document.getElementById('formItemName').value.trim(),
+        category_id: parseInt(document.getElementById('formItemCategory').value),
+        price: parseFloat(document.getElementById('formItemPrice').value),
+        emoji: document.getElementById('formItemEmoji').value.trim(),
+        description: document.getElementById('formItemDescription').value.trim(),
+        is_veg: document.getElementById('formItemIsVeg').checked,
+        is_bestseller: document.getElementById('formItemIsBestseller').checked,
+        available: document.getElementById('formItemAvailable').checked
     };
 
     const btn = document.getElementById('saveMenuItemBtn');
@@ -746,9 +714,8 @@ async function handleSaveMenuItem(e) {
     btn.innerHTML = '<span class="spinner"></span> Saving...';
 
     try {
-        const isEdit = !!itemId;
-        const url = isEdit ? `/dashboard/api/menu/items/${itemId}/` : '/dashboard/api/menu/items/';
-        const method = isEdit ? 'PATCH' : 'POST';
+        const url = isEdit ? `/dashboard/api/menu-items/${itemId}/` : '/dashboard/api/menu-items/';
+        const method = isEdit ? 'PUT' : 'POST';
 
         const res = await fetch(url, {
             method: method,
@@ -763,69 +730,41 @@ async function handleSaveMenuItem(e) {
         if (!res.ok) throw new Error(data.error || 'Failed to save menu item');
 
         closeMenuItemModal();
-        showToast('success', data.message || 'Menu item saved successfully!');
-        await loadMenuItems();
+        showToast('success', `Dish "${payload.name}" saved successfully!`);
+        loadMenuItems();
+
     } catch (err) {
         showToast('error', err.message);
     } finally {
         btn.disabled = false;
-        btn.innerHTML = '<i class="bi bi-check-circle-fill"></i> Save Item';
+        btn.innerHTML = '<i class="bi bi-check-circle-fill"></i> Save Dish';
     }
 }
 
-async function toggleItemAvailability(itemId, isAvailable) {
+async function toggleItemAvailability(itemId, newStatus) {
     try {
-        const res = await fetch(`/dashboard/api/menu/items/${itemId}/`, {
+        const res = await fetch(`/dashboard/api/menu-items/${itemId}/`, {
             method: 'PATCH',
             headers: {
                 'Content-Type': 'application/json',
                 'X-CSRFToken': CSRF_TOKEN
             },
-            body: JSON.stringify({ available: isAvailable })
+            body: JSON.stringify({ available: newStatus })
         });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || 'Failed to update availability');
-        
-        // Update local state
-        const item = allMenuItemsData.find(i => i.id === itemId);
-        if (item) item.available = isAvailable;
-        
-        showToast('success', `Item status set to ${isAvailable ? 'Available' : 'Unavailable'}`);
-        filterMenuItemsUI();
-    } catch (e) {
-        showToast('error', e.message);
+        if (!res.ok) throw new Error('Unable to change availability');
+        showToast('success', 'Dish availability updated');
         loadMenuItems();
-    }
-}
-
-async function deleteMenuItem(itemId, itemName) {
-    if (!confirm(`Are you sure you want to remove "${itemName}" from the restaurant menu?`)) {
-        return;
-    }
-
-    try {
-        const res = await fetch(`/dashboard/api/menu/items/${itemId}/`, {
-            method: 'DELETE',
-            headers: {
-                'X-CSRFToken': CSRF_TOKEN
-            }
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || 'Failed to delete item');
-        
-        showToast('success', data.message || `Item "${itemName}" removed.`);
-        await loadMenuItems();
     } catch (e) {
         showToast('error', e.message);
     }
 }
 
 // -------------------------------------------------------------
-// ORDER DETAIL & CUSTOMER DETAIL MODALS
+// DETAIL MODALS
 // -------------------------------------------------------------
 async function viewOrderDetail(orderNumber) {
     document.getElementById('modalOrderTitle').textContent = `Order #${orderNumber}`;
-    document.getElementById('modalOrderBody').innerHTML = '<div class="text-center py-4"><div class="spinner"></div></div>';
+    document.getElementById('modalOrderBody').innerHTML = '<div class="text-center py-4"><div class="spinner dark"></div></div>';
     document.getElementById('orderModal').style.display = 'flex';
 
     try {
@@ -836,15 +775,14 @@ async function viewOrderDetail(orderNumber) {
         let paymentDetailHtml = '';
         if (o.payments_detail && o.payments_detail.length > 0) {
             paymentDetailHtml = `
-            <div class="mt-3 p-3 rounded" style="background:var(--cream);border:1px solid var(--border);">
-                <h5 style="font-size:0.88rem;font-weight:700;color:var(--dark-brown);margin-bottom:0.4rem;">Payment Settlement</h5>
+            <div class="mt-3 p-3 rounded" style="background:var(--cream); border:1px solid var(--border);">
+                <h5 style="font-size:0.88rem; font-weight:800; color:var(--dark-brown); margin-bottom:0.4rem;">Payment Settlement</h5>
                 ${o.payments_detail.map(p => `
-                    <div style="font-size:0.8rem;">
-                        <div>Method: <strong>${p.payment_method}</strong> · Amount: <strong>₹${parseFloat(p.amount).toFixed(2)}</strong></div>
-                        ${p.transaction_reference ? `<div>Reference: <code>${p.transaction_reference}</code></div>` : ''}
+                    <div style="font-size:0.82rem;">
+                        <div>Method: <strong>${p.payment_method}</strong> · Settled Amount: <strong>₹${parseFloat(p.amount).toFixed(2)}</strong></div>
+                        ${p.transaction_reference ? `<div>Ref: <code>${p.transaction_reference}</code></div>` : ''}
                         ${p.cashier ? `<div>Cashier: ${p.cashier}</div>` : ''}
-                        ${p.paid_at ? `<div>Settled At: ${new Date(p.paid_at).toLocaleString()}</div>` : ''}
-                        ${p.cash_received ? `<div>Cash: Received ₹${parseFloat(p.cash_received).toFixed(2)} · Change ₹${parseFloat(p.cash_change).toFixed(2)}</div>` : ''}
+                        ${p.paid_at ? `<div>Time: ${new Date(p.paid_at).toLocaleString()}</div>` : ''}
                     </div>
                 `).join('')}
             </div>`;
@@ -864,20 +802,20 @@ async function viewOrderDetail(orderNumber) {
             </div>
 
             <div class="mb-3">
-                <h5 style="font-size:0.88rem;font-weight:700;color:var(--dark-brown);border-bottom:1px solid var(--border-light);padding-bottom:4px;">Ordered Items (Price Snapshots)</h5>
+                <h5 style="font-size:0.88rem; font-weight:800; color:var(--dark-brown); border-bottom:1px solid var(--border-light); padding-bottom:4px;">Dishes Ordered</h5>
                 ${o.items.map(i => `
-                    <div class="d-flex justify-content-between py-1 border-bottom" style="font-size:0.82rem;">
+                    <div class="d-flex justify-content-between py-1 border-bottom" style="font-size:0.85rem;">
                         <div>${i.emoji || '🍽️'} ${escapeHtml(i.item_name_snapshot || i.name)} × ${i.quantity}</div>
-                        <div>₹${parseFloat(i.subtotal).toFixed(2)}</div>
+                        <div style="font-weight:700;">₹${parseFloat(i.subtotal).toFixed(2)}</div>
                     </div>
                 `).join('')}
             </div>
 
-            <div class="p-2 rounded mb-3" style="background:#faf8f5;font-size:0.82rem;">
-                <div class="d-flex justify-content-between"><span>Subtotal:</span><span>₹${parseFloat(o.subtotal).toFixed(2)}</span></div>
+            <div class="p-3 rounded mb-3" style="background:#fbf9f6; font-size:0.85rem; border:1px solid var(--border-light);">
+                <div class="d-flex justify-content-between text-muted"><span>Item Subtotal:</span><span>₹${parseFloat(o.subtotal).toFixed(2)}</span></div>
                 <div class="d-flex justify-content-between text-muted"><span>CGST (2.5%):</span><span>₹${parseFloat(o.cgst_amount).toFixed(2)}</span></div>
                 <div class="d-flex justify-content-between text-muted"><span>SGST (2.5%):</span><span>₹${parseFloat(o.sgst_amount).toFixed(2)}</span></div>
-                <div class="d-flex justify-content-between fw-bold pt-1 border-top" style="font-size:0.95rem;color:var(--deepest);">
+                <div class="d-flex justify-content-between fw-bold pt-2 border-top mt-1" style="font-family:var(--font-heading); font-size:1.15rem; color:var(--deepest);">
                     <span>Total Amount:</span><span>₹${parseFloat(o.total_amount).toFixed(2)}</span>
                 </div>
             </div>
@@ -885,8 +823,8 @@ async function viewOrderDetail(orderNumber) {
             ${paymentDetailHtml}
 
             <div class="mt-3 text-end">
-                <a href="/api/orders/${o.order_number}/receipt/pdf/" target="_blank" class="btn btn-success btn-sm fw-bold">
-                    <i class="bi bi-file-earmark-pdf"></i> Download PDF Invoice
+                <a href="/api/orders/${o.order_number}/receipt/pdf/" target="_blank" class="btn-premium-success" style="padding:0.6rem 1.2rem; font-size:0.85rem;">
+                    <i class="bi bi-file-earmark-pdf"></i> Download Official Tax Invoice
                 </a>
             </div>
         `;
@@ -900,8 +838,8 @@ function closeOrderModal() {
 }
 
 async function viewCustomerDetail(sessionId) {
-    document.getElementById('modalCustTitle').textContent = 'Customer History';
-    document.getElementById('modalCustBody').innerHTML = '<div class="text-center py-4"><div class="spinner"></div></div>';
+    document.getElementById('modalCustTitle').textContent = 'Customer Record';
+    document.getElementById('modalCustBody').innerHTML = '<div class="text-center py-4"><div class="spinner dark"></div></div>';
     document.getElementById('customerModal').style.display = 'flex';
 
     try {
@@ -914,29 +852,30 @@ async function viewCustomerDetail(sessionId) {
         let historyHtml = '';
         if (c.order_history && c.order_history.length > 0) {
             historyHtml = c.order_history.map(h => `
-                <div class="p-3 mb-2 rounded border" style="background:#faf8f5;font-size:0.82rem;">
+                <div class="p-3 mb-2 rounded border" style="background:#faf8f5; font-size:0.85rem;">
                     <div class="d-flex justify-content-between fw-bold">
                         <span>Order #${h.order_number} · Table ${h.table}</span>
-                        <span style="color:var(--deepest);">₹${parseFloat(h.total).toFixed(2)}</span>
+                        <span style="color:var(--deepest); font-weight:850;">₹${parseFloat(h.total).toFixed(2)}</span>
                     </div>
-                    <div class="text-muted small mt-1">${h.date} at ${h.time} · Paid via ${h.payment_method} (${h.payment_status})</div>
+                    <div class="text-muted small mt-1">${h.date} at ${h.time} · ${h.payment_method} (${h.payment_status})</div>
                     <div class="mt-1 text-dark">${escapeHtml(h.items_summary)}</div>
                 </div>
             `).join('');
         } else {
-            historyHtml = '<p class="text-muted">No orders found for this customer.</p>';
+            historyHtml = '<p class="text-muted">No orders found for this customer record.</p>';
         }
 
         document.getElementById('modalCustBody').innerHTML = `
-            <div class="customer-profile p-0 mb-3">
-                <div class="customer-avatar">${c.name.charAt(0).toUpperCase()}</div>
-                <div class="customer-info">
-                    <h3>${escapeHtml(c.name)}</h3>
-                    <div class="customer-stat">📞 Phone: <strong>${c.phone_full}</strong></div>
-                    <div class="customer-stat">📦 Total Orders: <strong>${c.total_orders}</strong> · Total Spent: <strong>₹${parseFloat(c.total_spent).toFixed(2)}</strong></div>
+            <div class="d-flex align-items-center gap-3 p-3 rounded mb-3" style="background:var(--cream); border:1px solid var(--border);">
+                <div style="width:48px; height:48px; border-radius:50%; background:var(--dark-brown); color:#fff; display:flex; align-items:center; justify-content:center; font-size:1.4rem; font-weight:800;">
+                    ${c.name.charAt(0).toUpperCase()}
+                </div>
+                <div>
+                    <h4 style="font-family:var(--font-heading); font-weight:850; margin:0; font-size:1.15rem; color:var(--deepest);">${escapeHtml(c.name)}</h4>
+                    <div style="font-size:0.82rem; color:var(--text-muted);">📞 ${c.phone_full} · 📦 ${c.total_orders} Orders (₹${parseFloat(c.total_spent).toFixed(2)})</div>
                 </div>
             </div>
-            <h5 style="font-size:0.9rem;font-weight:700;color:var(--dark-brown);margin-bottom:0.5rem;">Past Orders History</h5>
+            <h5 style="font-size:0.9rem; font-weight:800; color:var(--dark-brown); margin-bottom:0.5rem;">Chronological Order History</h5>
             <div>${historyHtml}</div>
         `;
     } catch (e) {
@@ -956,11 +895,11 @@ function renderPagination(containerId, current, totalPages, callback) {
     }
 
     let html = `
-        <button ${current === 1 ? 'disabled' : ''} onclick="${callback.name}(${current - 1})">
+        <button class="btn-premium-secondary py-1 px-3" ${current === 1 ? 'disabled' : ''} onclick="${callback.name}(${current - 1})" style="font-size:0.8rem;">
             <i class="bi bi-chevron-left"></i> Prev
         </button>
-        <span class="text-muted mx-2" style="font-size:0.82rem;">Page ${current} of ${totalPages}</span>
-        <button ${current >= totalPages ? 'disabled' : ''} onclick="${callback.name}(${current + 1})">
+        <span class="text-muted mx-2" style="font-size:0.84rem; font-weight:700;">Page ${current} of ${totalPages}</span>
+        <button class="btn-premium-secondary py-1 px-3" ${current >= totalPages ? 'disabled' : ''} onclick="${callback.name}(${current + 1})" style="font-size:0.8rem;">
             Next <i class="bi bi-chevron-right"></i>
         </button>
     `;
