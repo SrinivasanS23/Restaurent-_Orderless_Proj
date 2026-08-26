@@ -99,11 +99,10 @@ TEMPLATES = [
 WSGI_APPLICATION = 'config.wsgi.application'
 ASGI_APPLICATION = 'config.asgi.application'
 
-# Database — PostgreSQL via DATABASE_URL (Neon cloud) with local MySQL fallback
+# Database — Neon PostgreSQL (Production & Local)
 DATABASE_URL = os.getenv('DATABASE_URL')
 
 if DATABASE_URL:
-    # Production: Neon PostgreSQL (parsed by dj-database-url)
     DATABASES = {
         'default': dj_database_url.parse(
             DATABASE_URL,
@@ -113,19 +112,15 @@ if DATABASE_URL:
         )
     }
 else:
-    # Local development: MySQL via PyMySQL (unchanged)
+    # Fallback for build phase (collectstatic) and local environment when DATABASE_URL is not set
     DATABASES = {
         'default': {
-            'ENGINE': 'django.db.backends.mysql',
-            'NAME': os.getenv('DB_NAME', 'orderless_db'),
-            'USER': os.getenv('DB_USER', 'orderless_user'),
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': os.getenv('DB_NAME', 'neondb'),
+            'USER': os.getenv('DB_USER', 'neondb_owner'),
             'PASSWORD': os.getenv('DB_PASSWORD', ''),
-            'HOST': os.getenv('DB_HOST', '127.0.0.1'),
-            'PORT': os.getenv('DB_PORT', '3306'),
-            'OPTIONS': {
-                'charset': 'utf8mb4',
-                'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
-            },
+            'HOST': os.getenv('DB_HOST', 'localhost'),
+            'PORT': os.getenv('DB_PORT', '5432'),
         }
     }
 
