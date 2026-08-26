@@ -12,16 +12,9 @@ logger = logging.getLogger('security')
 
 
 def customer_home_view(request):
-    """Homepage landing hub displaying dining tables and staff portals."""
-    try:
-        tables = list(RestaurantTable.objects.filter(active=True).order_by('table_number'))
-    except Exception as e:
-        logger.error(f"[HOME_VIEW_DB_ERROR] Error fetching tables: {e}", exc_info=True)
-        tables = [{'table_number': f'T{i:02d}', 'display_number': f'{i:02d}'} for i in range(1, 11)]
-
+    """Homepage brand landing page — directs customers to scan table QR code."""
     return render(request, 'home.html', {
         'restaurant_name': settings.RESTAURANT_NAME,
-        'tables': tables,
     })
 
 
