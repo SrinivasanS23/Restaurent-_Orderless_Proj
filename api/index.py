@@ -1,6 +1,7 @@
 """Vercel serverless entrypoint for Django WSGI application."""
 import os
 import sys
+import urllib.parse
 from pathlib import Path
 
 # Add project root directory to Python search path
@@ -11,8 +12,40 @@ if str(PROJECT_ROOT) not in sys.path:
 # Set Django settings module
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
 
-# Initialize WSGI application (PostgreSQL via DATABASE_URL on Vercel)
+# Initialize WSGI application
 from django.core.wsgi import get_wsgi_application
 
-app = get_wsgi_application()
+_django_app = get_wsgi_application()
+
+
+def app(environ, start_response):
+    """
+    WSGI middleware for Vercel Serverless.
+    Restores the true original request path when Vercel rewrites requests to /api/index.py.
+    """
+    path_info = environ.get('PATH_INFO', '')
+
+    # If Vercel rewrote the request to the handler script itself
+    if path_info in ('/api/index.py', '/api/index', '/api/index.py/', '/api/'):
+        # Check standard headers where Vercel/proxies preserve the original request URI
+        raw_target = (
+            environ.get('HTTP_X_FORWARDED_PATH')
+            or environ.get('HTTP_X_VERCEL_PATH')
+            or environ.get('HTTP_X_VERCEL_FORWARDED_PATH')
+            or environ.get('REQUEST_URI')
+            or environ.get('RAW_URI')
+            or environ.get('HTTP_X_ORIGINAL_URI')
+            or '/'
+        )
+        if '?' in raw_target:
+            raw_path, query = raw_target.split('?', 1)
+            environ['QUERY_STRING'] = query
+        else:
+            raw_path = raw_target
+
+        environ['PATH_INFO'] = urllib.parse.unquote(raw_path) if raw_path else '/'
+
+    return _django_app(environ, start_response)
+
+
 handler = app
