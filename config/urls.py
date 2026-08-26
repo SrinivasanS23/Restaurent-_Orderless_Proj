@@ -4,10 +4,11 @@ from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 from security.views import SecureLoginView, SecureLogoutView, health_check_view, health_db_view
-from customer.views import customer_home_view
+from customer.views import customer_home_view, customer_qr_view
 
 urlpatterns = [
     path('', customer_home_view, name='home'),
+    path('q/<str:token>/', customer_qr_view, name='customer-qr'),
     path('health/', health_check_view, name='health-check'),
     path('health/db/', health_db_view, name='health-db'),
     path('admin/', admin.site.urls),

@@ -103,12 +103,12 @@ def health_db_view(request):
     from django.db import connection
     from django.conf import settings
     from django.http import JsonResponse
-    import os
 
     engine = settings.DATABASES['default'].get('ENGINE', 'unknown')
     db_status = {
         'connected': False,
         'engine': engine,
+        'driver': 'PyMySQL / MySQL 8',
     }
 
     status_code = 200
@@ -119,14 +119,12 @@ def health_db_view(request):
             row = cursor.fetchone()
             if row and row[0] == 1:
                 db_status['connected'] = True
-                db_status['message'] = "Database connection successful."
+                db_status['message'] = "MySQL 8 database connection verified."
     except Exception as e:
         status_code = 503
         db_status['connected'] = False
         db_status['error_type'] = type(e).__name__
         db_status['error_message'] = str(e)
-        if not os.getenv('DATABASE_URL'):
-            db_status['diagnostic_hint'] = "DATABASE_URL is not set. Set DATABASE_URL in Vercel Environment Variables with your Neon PostgreSQL connection string."
 
     return JsonResponse({
         'status': 'healthy' if db_status['connected'] else 'database_unavailable',

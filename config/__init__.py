@@ -1,5 +1,9 @@
-"""OrderLess configuration package with Python 3.14 compatibility."""
+"""OrderLess configuration package with PyMySQL and Python 3.14 compatibility."""
+import pymysql
 from django.template import context as django_context
+
+# Install PyMySQL as MySQLdb for django.db.backends.mysql
+pymysql.install_as_MySQLdb()
 
 # Python 3.14 copy compatibility for Context & RequestContext in Django test runner
 def _compat_context_copy(self):

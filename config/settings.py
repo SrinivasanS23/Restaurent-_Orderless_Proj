@@ -3,7 +3,6 @@ Django settings for OrderLess restaurant ordering system.
 Configured for production-grade security, Vercel Serverless compatibility, PostgreSQL/Neon, and WhiteNoise.
 """
 import os
-import dj_database_url
 from pathlib import Path
 from dotenv import load_dotenv
 
@@ -99,30 +98,46 @@ TEMPLATES = [
 WSGI_APPLICATION = 'config.wsgi.application'
 ASGI_APPLICATION = 'config.asgi.application'
 
-# Database — Neon PostgreSQL (Production & Local)
-DATABASE_URL = os.getenv('DATABASE_URL')
+# Database — MySQL 8 via PyMySQL Driver & DATABASE_URL support
+import urllib.parse
 
-if DATABASE_URL:
-    DATABASES = {
-        'default': dj_database_url.parse(
-            DATABASE_URL,
-            conn_max_age=600,
-            conn_health_checks=True,
-            ssl_require=True,
-        )
+db_options = {
+    'charset': 'utf8mb4',
+    'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
+}
+
+# Enable SSL if configured for cloud/remote MySQL 8 instances
+if os.getenv('DB_SSL', 'False').lower() in ('true', '1', 'yes'):
+    ssl_ca = os.getenv('DB_SSL_CA')
+    if ssl_ca and os.path.exists(ssl_ca):
+        db_options['ssl'] = {'ca': ssl_ca}
+    else:
+        db_options['ssl'] = {'ssl_mode': 'REQUIRED'}
+
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': os.getenv('DB_NAME', 'orderless_db'),
+        'USER': os.getenv('DB_USER', 'orderless_user'),
+        'PASSWORD': os.getenv('DB_PASSWORD', ''),
+        'HOST': os.getenv('DB_HOST', '127.0.0.1'),
+        'PORT': os.getenv('DB_PORT', '3306'),
+        'OPTIONS': db_options,
     }
-else:
-    # Fallback for build phase (collectstatic) and local environment when DATABASE_URL is not set
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.postgresql',
-            'NAME': os.getenv('DB_NAME', 'neondb'),
-            'USER': os.getenv('DB_USER', 'neondb_owner'),
-            'PASSWORD': os.getenv('DB_PASSWORD', ''),
-            'HOST': os.getenv('DB_HOST', 'localhost'),
-            'PORT': os.getenv('DB_PORT', '5432'),
-        }
-    }
+}
+
+# Auto-parse DATABASE_URL if provided (e.g. mysql://user:pass@host:port/dbname)
+database_url = os.getenv('DATABASE_URL')
+if database_url and database_url.startswith(('mysql://', 'mysql2://')):
+    try:
+        parsed_url = urllib.parse.urlparse(database_url)
+        DATABASES['default']['NAME'] = parsed_url.path.lstrip('/')
+        DATABASES['default']['USER'] = urllib.parse.unquote(parsed_url.username or '')
+        DATABASES['default']['PASSWORD'] = urllib.parse.unquote(parsed_url.password or '')
+        DATABASES['default']['HOST'] = parsed_url.hostname or '127.0.0.1'
+        DATABASES['default']['PORT'] = str(parsed_url.port or 3306)
+    except Exception as err:
+        pass
 
 # Cache Configuration (Used for Rate Limiting & Abuse Prevention)
 CACHES = {

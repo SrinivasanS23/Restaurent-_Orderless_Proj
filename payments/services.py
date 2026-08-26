@@ -68,8 +68,7 @@ class PaymentService:
 
         # Deactivate customer session so table is fresh for next customer
         if order.customer_session:
-            order.customer_session.active = False
-            order.customer_session.save()
+            order.customer_session.close()
 
         # Generate receipt
         receipt = ReceiptService.generate_pdf_receipt(order)

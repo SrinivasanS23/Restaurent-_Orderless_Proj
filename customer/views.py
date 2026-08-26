@@ -64,3 +64,32 @@ def customer_order_tracking_view(request, order_number):
         'order_number': order_number.upper(),
         'restaurant_name': settings.RESTAURANT_NAME,
     })
+
+
+def customer_qr_view(request, token):
+    """
+    Public customer QR entrypoint (/q/<TOKEN>).
+    Validates the cryptographically random QR token, resolves the physical table,
+    and initializes the customer dining session.
+    """
+    token_str = str(token).strip()
+    try:
+        token_uuid = uuid.UUID(token_str)
+        table = RestaurantTable.objects.filter(qr_token=token_uuid, active=True).first()
+    except (ValueError, AttributeError):
+        table = None
+
+    if not table:
+        return render(request, 'customer/table_unavailable.html', {
+            'error_title': 'Invalid or Expired QR Code',
+            'error_message': 'This QR token is not recognized. Please scan the QR code located on your dining table.',
+            'restaurant_name': settings.RESTAURANT_NAME,
+        }, status=404)
+
+    return render(request, 'customer/menu.html', {
+        'table': table,
+        'table_number': table.table_number,
+        'table_display': table.display_number,
+        'qr_token': str(table.qr_token),
+        'restaurant_name': settings.RESTAURANT_NAME,
+    })

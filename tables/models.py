@@ -32,13 +32,19 @@ class CustomerSession(models.Model):
 
     class SessionStatus(models.TextChoices):
         ACTIVE = 'ACTIVE', 'Active'
+        ORDERING = 'ORDERING', 'Ordering'
+        ORDER_PLACED = 'ORDER_PLACED', 'Order Placed'
+        FOOD_SERVED = 'FOOD_SERVED', 'Food Served'
+        PAYMENT_PENDING = 'PAYMENT_PENDING', 'Payment Pending'
+        PAID = 'PAID', 'Paid'
         CLOSED = 'CLOSED', 'Closed'
+        CANCELLED = 'CANCELLED', 'Cancelled'
 
     session_id = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
     table = models.ForeignKey(RestaurantTable, on_delete=models.CASCADE, related_name='customer_sessions')
     customer_name = models.CharField(max_length=100)
     customer_phone = models.CharField(max_length=20, help_text="Normalized customer phone number")
-    status = models.CharField(max_length=10, choices=SessionStatus.choices, default=SessionStatus.ACTIVE)
+    status = models.CharField(max_length=20, choices=SessionStatus.choices, default=SessionStatus.ACTIVE)
     active = models.BooleanField(default=True)
     started_at = models.DateTimeField(default=timezone.now)
     ended_at = models.DateTimeField(null=True, blank=True)
