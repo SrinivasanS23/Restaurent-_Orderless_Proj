@@ -13,7 +13,7 @@ load_dotenv()
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # Security & Secrets Management
-SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-orderless-dev-key-2026-change-in-production')
+SECRET_KEY = os.getenv('SECRET_KEY') or 'django-insecure-orderless-prod-key-5c44052d3ecba155a9dce955a1daf83c2922a81300fc8cd028342e95721dce16'
 DEBUG = os.getenv('DEBUG', 'True').lower() in ('true', '1', 'yes')
 
 # Allowed Hosts — supporting Vercel and local environments
@@ -267,7 +267,7 @@ MEDIA_ROOT = Path('/tmp/media') if os.getenv('VERCEL') else (BASE_DIR / 'media')
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Restaurant config
-RESTAURANT_NAME = os.getenv('RESTAURANT_NAME', 'OrderLess')
+RESTAURANT_NAME = os.getenv('RESTAURANT_NAME') or 'OrderLess'
 RESTAURANT_ADDRESS = os.getenv('RESTAURANT_ADDRESS', '')
 RESTAURANT_GSTIN = os.getenv('RESTAURANT_GSTIN', '')
 
