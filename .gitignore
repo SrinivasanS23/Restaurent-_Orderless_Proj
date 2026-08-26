@@ -11,3 +11,5 @@ media/menu_images/
 media/receipts/
 *.log
 .DS_Store
+.vercel
+.env*
