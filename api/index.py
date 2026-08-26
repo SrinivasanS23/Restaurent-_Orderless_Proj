@@ -23,27 +23,39 @@ def app(environ, start_response):
     WSGI middleware for Vercel Serverless.
     Restores the true original request path when Vercel rewrites requests to /api/index.py.
     """
+    # Debug: Print all headers to stdout for Vercel logs
+    debug_env = {k: v for k, v in environ.items() if isinstance(v, str) and not any(s in k.upper() for s in ('SECRET', 'PASS', 'TOKEN', 'KEY', 'URL'))}
+    print("[VERCEL_ENVIRON_DEBUG]", debug_env)
+
     path_info = environ.get('PATH_INFO', '')
 
-    # If Vercel rewrote the request to the handler script itself
-    if path_info in ('/api/index.py', '/api/index', '/api/index.py/', '/api/'):
-        # Check standard headers where Vercel/proxies preserve the original request URI
-        raw_target = (
-            environ.get('HTTP_X_FORWARDED_PATH')
-            or environ.get('HTTP_X_VERCEL_PATH')
-            or environ.get('HTTP_X_VERCEL_FORWARDED_PATH')
-            or environ.get('REQUEST_URI')
-            or environ.get('RAW_URI')
-            or environ.get('HTTP_X_ORIGINAL_URI')
-            or '/'
-        )
-        if '?' in raw_target:
-            raw_path, query = raw_target.split('?', 1)
-            environ['QUERY_STRING'] = query
-        else:
-            raw_path = raw_target
+    # Try all possible path sources from Vercel
+    candidates = [
+        environ.get('x-now-route-matches'),
+        environ.get('HTTP_X_NOW_ROUTE_MATCHES'),
+        environ.get('HTTP_X_FORWARDED_PATH'),
+        environ.get('HTTP_X_VERCEL_PATH'),
+        environ.get('HTTP_X_VERCEL_FORWARDED_PATH'),
+        environ.get('REQUEST_URI'),
+        environ.get('RAW_URI'),
+        environ.get('HTTP_X_REAL_URI'),
+        environ.get('HTTP_X_ORIGINAL_URI'),
+    ]
+    
+    target_path = None
+    for cand in candidates:
+        if cand and cand not in ('/api/index.py', '/api/index', '/api/index.py/'):
+            target_path = cand
+            break
 
-        environ['PATH_INFO'] = urllib.parse.unquote(raw_path) if raw_path else '/'
+    if target_path:
+        if '?' in target_path:
+            target_path, q = target_path.split('?', 1)
+            environ['QUERY_STRING'] = q
+        environ['PATH_INFO'] = urllib.parse.unquote(target_path)
+    elif path_info in ('/api/index.py', '/api/index', '/api/index.py/'):
+        # Fallback if nothing else is available
+        environ['PATH_INFO'] = '/'
 
     return _django_app(environ, start_response)
 
