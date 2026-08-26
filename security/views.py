@@ -90,3 +90,41 @@ class SecureLogoutView(auth_views.LogoutView):
         if request.user.is_authenticated:
             logger.info(f"[AUTH_LOGOUT] User='{request.user.username}' IP='{get_client_ip(request)}'")
         return super().dispatch(request, *args, **kwargs)
+
+
+def health_check_view(request):
+    """Safe production diagnostic endpoint to verify deployed commit and DB connectivity."""
+    from django.db import connection
+    from django.http import JsonResponse
+    import os
+
+    db_status = {
+        'connected': False,
+        'engine': 'django.db.backends.mysql',
+        'driver': 'PyMySQL',
+    }
+
+    status_code = 200
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT 1")
+            row = cursor.fetchone()
+            if row and row[0] == 1:
+                db_status['connected'] = True
+                db_status['message'] = "Database query executed successfully."
+    except Exception as e:
+        status_code = 503
+        db_status['connected'] = False
+        db_status['error_type'] = type(e).__name__
+        db_status['error_message'] = str(e)
+        db_host = os.getenv('DB_HOST', '127.0.0.1')
+        if db_host in ('127.0.0.1', 'localhost', ''):
+            db_status['diagnostic_hint'] = "DB_HOST is currently pointing to localhost/127.0.0.1. On Vercel, set DB_HOST, DB_NAME, DB_USER, DB_PASSWORD in Vercel Project Settings to an accessible cloud MySQL database."
+
+    response_data = {
+        'status': 'healthy' if db_status['connected'] else 'database_unavailable',
+        'application': 'restaurant-orderless',
+        'git_commit': '016c15b',
+        'database': db_status,
+    }
+    return JsonResponse(response_data, status=status_code)

@@ -3,7 +3,8 @@ Security and abuse protection middleware for HTTP headers, CSP, and global bot m
 """
 import logging
 from django.conf import settings
-from django.http import JsonResponse
+from django.http import Http404, JsonResponse
+from django.core.exceptions import PermissionDenied
 from .rate_limit import RateLimiter, get_client_ip
 
 logger = logging.getLogger('security')
@@ -75,7 +76,7 @@ class GlobalAbuseProtectionMiddleware:
 
 
 class ExceptionLoggingMiddleware:
-    """Captures unhandled backend exceptions and logs them cleanly for Vercel Runtime Logs."""
+    """Captures unhandled backend 500 exceptions and logs them cleanly for Vercel Runtime Logs."""
 
     def __init__(self, get_response):
         self.get_response = get_response
@@ -84,6 +85,9 @@ class ExceptionLoggingMiddleware:
         return self.get_response(request)
 
     def process_exception(self, request, exception):
+        if isinstance(exception, (Http404, PermissionDenied)):
+            return None
+
         logger.error(
             f"[SERVER_ERROR_500] Path='{request.path}' Method='{request.method}' "
             f"Exception='{type(exception).__name__}': {exception}",

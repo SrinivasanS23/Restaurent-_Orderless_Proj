@@ -8,11 +8,16 @@
         <div style="font-size:3.5rem;margin-bottom:1rem;">⚠️</div>
         <h1 style="font-size:1.8rem;font-weight:900;color:var(--deepest);margin-bottom:0.5rem;">Temporary Server Error</h1>
         <p style="color:var(--text-secondary);font-size:0.95rem;margin-bottom:1.5rem;">
-            We encountered a temporary issue processing your request. Please retry in a few moments.
+            We encountered a temporary issue connecting to the database or processing your request. Please retry in a few moments.
         </p>
-        <a href="/" class="btn btn-dark w-100 py-2 fw-bold" style="background:var(--dark-brown);border-radius:var(--radius-md);">
-            <i class="bi bi-arrow-clockwise"></i> Try Again
-        </a>
+        <div class="d-flex gap-2">
+            <a href="/" class="btn btn-outline-dark flex-fill py-2 fw-bold" style="border-radius:var(--radius-md);">
+                <i class="bi bi-house-door"></i> Home
+            </a>
+            <a href="/health/" class="btn btn-dark flex-fill py-2 fw-bold" style="background:var(--dark-brown);border-radius:var(--radius-md);">
+                <i class="bi bi-heart-pulse"></i> Check Health
+            </a>
+        </div>
     </div>
 </div>
 {% endblock %}
