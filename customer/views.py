@@ -1,3 +1,4 @@
+import uuid
 """Views for customer-facing pages."""
 import re
 import logging
