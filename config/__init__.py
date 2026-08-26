@@ -1,9 +1,15 @@
-"""OrderLess configuration package with PyMySQL and Python 3.14 compatibility."""
-import pymysql
+"""OrderLess configuration package with database driver auto-detection and Python 3.14 compatibility."""
+import os
 from django.template import context as django_context
 
-# Install PyMySQL as MySQLdb for django.db.backends.mysql
-pymysql.install_as_MySQLdb()
+# Install PyMySQL as MySQLdb ONLY when using MySQL backend (local dev)
+# On production (Vercel), DATABASE_URL points to PostgreSQL — no PyMySQL needed
+if not os.getenv('DATABASE_URL'):
+    try:
+        import pymysql
+        pymysql.install_as_MySQLdb()
+    except ImportError:
+        pass
 
 # Python 3.14 copy compatibility for Context & RequestContext in Django test runner
 def _compat_context_copy(self):

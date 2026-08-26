@@ -1,9 +1,9 @@
 """
 Django settings for OrderLess restaurant ordering system.
-Configured for production-grade security, Vercel Serverless compatibility, PyMySQL, and WhiteNoise.
+Configured for production-grade security, Vercel Serverless compatibility, PostgreSQL/Neon, and WhiteNoise.
 """
 import os
-import urllib.parse
+import dj_database_url
 from pathlib import Path
 from dotenv import load_dotenv
 
@@ -99,34 +99,35 @@ TEMPLATES = [
 WSGI_APPLICATION = 'config.wsgi.application'
 ASGI_APPLICATION = 'config.asgi.application'
 
-# Database - MySQL with PyMySQL Driver & DATABASE_URL support
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': os.getenv('DB_NAME', 'orderless_db'),
-        'USER': os.getenv('DB_USER', 'orderless_user'),
-        'PASSWORD': os.getenv('DB_PASSWORD', ''),
-        'HOST': os.getenv('DB_HOST', '127.0.0.1'),
-        'PORT': os.getenv('DB_PORT', '3306'),
-        'OPTIONS': {
-            'charset': 'utf8mb4',
-            'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
-        },
-    }
-}
+# Database — PostgreSQL via DATABASE_URL (Neon cloud) with local MySQL fallback
+DATABASE_URL = os.getenv('DATABASE_URL')
 
-# Auto-parse DATABASE_URL if supplied (e.g. from cloud databases)
-database_url = os.getenv('DATABASE_URL')
-if database_url:
-    try:
-        parsed_url = urllib.parse.urlparse(database_url)
-        DATABASES['default']['NAME'] = parsed_url.path.lstrip('/')
-        DATABASES['default']['USER'] = parsed_url.username or ''
-        DATABASES['default']['PASSWORD'] = parsed_url.password or ''
-        DATABASES['default']['HOST'] = parsed_url.hostname or '127.0.0.1'
-        DATABASES['default']['PORT'] = str(parsed_url.port or 3306)
-    except Exception as err:
-        pass
+if DATABASE_URL:
+    # Production: Neon PostgreSQL (parsed by dj-database-url)
+    DATABASES = {
+        'default': dj_database_url.parse(
+            DATABASE_URL,
+            conn_max_age=600,
+            conn_health_checks=True,
+            ssl_require=True,
+        )
+    }
+else:
+    # Local development: MySQL via PyMySQL (unchanged)
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.mysql',
+            'NAME': os.getenv('DB_NAME', 'orderless_db'),
+            'USER': os.getenv('DB_USER', 'orderless_user'),
+            'PASSWORD': os.getenv('DB_PASSWORD', ''),
+            'HOST': os.getenv('DB_HOST', '127.0.0.1'),
+            'PORT': os.getenv('DB_PORT', '3306'),
+            'OPTIONS': {
+                'charset': 'utf8mb4',
+                'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
+            },
+        }
+    }
 
 # Cache Configuration (Used for Rate Limiting & Abuse Prevention)
 CACHES = {

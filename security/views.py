@@ -93,38 +93,43 @@ class SecureLogoutView(auth_views.LogoutView):
 
 
 def health_check_view(request):
-    """Safe production diagnostic endpoint to verify deployed commit and DB connectivity."""
+    """Safe production status endpoint — /health/."""
+    from django.http import JsonResponse
+    return JsonResponse({'status': 'ok', 'application': 'restaurant-orderless'})
+
+
+def health_db_view(request):
+    """Database connectivity diagnostic — /health/db/."""
     from django.db import connection
+    from django.conf import settings
     from django.http import JsonResponse
     import os
 
+    engine = settings.DATABASES['default'].get('ENGINE', 'unknown')
     db_status = {
         'connected': False,
-        'engine': 'django.db.backends.mysql',
-        'driver': 'PyMySQL',
+        'engine': engine,
     }
 
     status_code = 200
     try:
+        connection.ensure_connection()
         with connection.cursor() as cursor:
             cursor.execute("SELECT 1")
             row = cursor.fetchone()
             if row and row[0] == 1:
                 db_status['connected'] = True
-                db_status['message'] = "Database query executed successfully."
+                db_status['message'] = "Database connection successful."
     except Exception as e:
         status_code = 503
         db_status['connected'] = False
         db_status['error_type'] = type(e).__name__
         db_status['error_message'] = str(e)
-        db_host = os.getenv('DB_HOST', '127.0.0.1')
-        if db_host in ('127.0.0.1', 'localhost', ''):
-            db_status['diagnostic_hint'] = "DB_HOST is currently pointing to localhost/127.0.0.1. On Vercel, set DB_HOST, DB_NAME, DB_USER, DB_PASSWORD in Vercel Project Settings to an accessible cloud MySQL database."
+        if not os.getenv('DATABASE_URL'):
+            db_status['diagnostic_hint'] = "DATABASE_URL is not set. Set DATABASE_URL in Vercel Environment Variables with your Neon PostgreSQL connection string."
 
-    response_data = {
+    return JsonResponse({
         'status': 'healthy' if db_status['connected'] else 'database_unavailable',
         'application': 'restaurant-orderless',
-        'git_commit': '016c15b',
         'database': db_status,
-    }
-    return JsonResponse(response_data, status=status_code)
+    }, status=status_code)

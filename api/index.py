@@ -11,11 +11,7 @@ if str(PROJECT_ROOT) not in sys.path:
 # Set Django settings module
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
 
-# Initialize PyMySQL as MySQLdb driver
-import pymysql
-pymysql.install_as_MySQLdb()
-
-# Initialize WSGI application
+# Initialize WSGI application (PostgreSQL via DATABASE_URL on Vercel)
 from django.core.wsgi import get_wsgi_application
 
 app = get_wsgi_application()
