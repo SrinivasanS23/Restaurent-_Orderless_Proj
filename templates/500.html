@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}500 — Server Error | {{ restaurant_name }}{% endblock %}
+
+{% block body %}
+<div class="d-flex align-items-center justify-content-center" style="min-height:80vh;padding:1.5rem;">
+    <div class="menu-card text-center p-5" style="max-width:480px;width:100%;">
+        <div style="font-size:3.5rem;margin-bottom:1rem;">⚠️</div>
+        <h1 style="font-size:1.8rem;font-weight:900;color:var(--deepest);margin-bottom:0.5rem;">Temporary Server Error</h1>
+        <p style="color:var(--text-secondary);font-size:0.95rem;margin-bottom:1.5rem;">
+            We encountered a temporary issue processing your request. Please retry in a few moments.
+        </p>
+        <a href="/" class="btn btn-dark w-100 py-2 fw-bold" style="background:var(--dark-brown);border-radius:var(--radius-md);">
+            <i class="bi bi-arrow-clockwise"></i> Try Again
+        </a>
+    </div>
+</div>
+{% endblock %}

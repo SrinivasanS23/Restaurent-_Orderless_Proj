@@ -6,6 +6,15 @@ from django.views.decorators.csrf import ensure_csrf_cookie
 from tables.models import RestaurantTable
 
 
+def customer_home_view(request):
+    """Homepage landing hub displaying dining tables and staff portals."""
+    tables = RestaurantTable.objects.filter(active=True).order_by('table_number')
+    return render(request, 'home.html', {
+        'restaurant_name': settings.RESTAURANT_NAME,
+        'tables': tables,
+    })
+
+
 @ensure_csrf_cookie
 def customer_menu_view(request, table_number):
     """Customer menu page — identified by table number from QR scan."""

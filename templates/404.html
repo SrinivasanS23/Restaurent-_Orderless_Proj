@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}404 — Page Not Found | {{ restaurant_name }}{% endblock %}
+
+{% block body %}
+<div class="d-flex align-items-center justify-content-center" style="min-height:80vh;padding:1.5rem;">
+    <div class="menu-card text-center p-5" style="max-width:480px;width:100%;">
+        <div style="font-size:3.5rem;margin-bottom:1rem;">🔍</div>
+        <h1 style="font-size:1.8rem;font-weight:900;color:var(--deepest);margin-bottom:0.5rem;">Page Not Found</h1>
+        <p style="color:var(--text-secondary);font-size:0.95rem;margin-bottom:1.5rem;">
+            The table QR or link you are looking for does not exist or has moved.
+        </p>
+        <a href="/" class="btn btn-dark w-100 py-2 fw-bold" style="background:var(--dark-brown);border-radius:var(--radius-md);">
+            <i class="bi bi-house-door-fill"></i> Return to Homepage
+        </a>
+    </div>
+</div>
+{% endblock %}

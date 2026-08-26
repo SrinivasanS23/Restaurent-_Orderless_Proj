@@ -4,8 +4,10 @@ from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 from security.views import SecureLoginView, SecureLogoutView
+from customer.views import customer_home_view
 
 urlpatterns = [
+    path('', customer_home_view, name='home'),
     path('admin/', admin.site.urls),
     path('login/', SecureLoginView.as_view(), name='login'),
     path('logout/', SecureLogoutView.as_view(), name='logout'),

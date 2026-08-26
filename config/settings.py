@@ -3,6 +3,7 @@ Django settings for OrderLess restaurant ordering system.
 Configured for production-grade security, Vercel Serverless compatibility, PyMySQL, and WhiteNoise.
 """
 import os
+import urllib.parse
 from pathlib import Path
 from dotenv import load_dotenv
 
@@ -97,7 +98,7 @@ TEMPLATES = [
 WSGI_APPLICATION = 'config.wsgi.application'
 ASGI_APPLICATION = 'config.asgi.application'
 
-# Database - MySQL with PyMySQL Driver
+# Database - MySQL with PyMySQL Driver & DATABASE_URL support
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
@@ -112,6 +113,19 @@ DATABASES = {
         },
     }
 }
+
+# Auto-parse DATABASE_URL if supplied (e.g. from cloud databases)
+database_url = os.getenv('DATABASE_URL')
+if database_url:
+    try:
+        parsed_url = urllib.parse.urlparse(database_url)
+        DATABASES['default']['NAME'] = parsed_url.path.lstrip('/')
+        DATABASES['default']['USER'] = parsed_url.username or ''
+        DATABASES['default']['PASSWORD'] = parsed_url.password or ''
+        DATABASES['default']['HOST'] = parsed_url.hostname or '127.0.0.1'
+        DATABASES['default']['PORT'] = str(parsed_url.port or 3306)
+    except Exception as err:
+        pass
 
 # Cache Configuration (Used for Rate Limiting & Abuse Prevention)
 CACHES = {
@@ -191,7 +205,7 @@ SECURE_SSL_REDIRECT = os.getenv('SECURE_SSL_REDIRECT', 'False').lower() in ('tru
 # Password Reset Token Expiry (15 minutes)
 PASSWORD_RESET_TIMEOUT = 900
 
-# Logging Configuration
+# Logging Configuration — Stream-based for serverless runtime compatibility
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
@@ -211,26 +225,20 @@ LOGGING = {
             'class': 'logging.StreamHandler',
             'formatter': 'verbose',
         },
-        'security_file': {
-            'level': 'INFO',
-            'class': 'logging.FileHandler',
-            'filename': BASE_DIR / 'security.log',
-            'formatter': 'verbose',
-        },
     },
     'loggers': {
         'django.security': {
-            'handlers': ['console', 'security_file'],
+            'handlers': ['console'],
             'level': 'WARNING',
             'propagate': False,
         },
         'security': {
-            'handlers': ['console', 'security_file'],
+            'handlers': ['console'],
             'level': 'INFO',
             'propagate': False,
         },
         'payments': {
-            'handlers': ['console', 'security_file'],
+            'handlers': ['console'],
             'level': 'INFO',
             'propagate': False,
         },
@@ -247,11 +255,11 @@ USE_TZ = True
 STATIC_URL = '/static/'
 STATICFILES_DIRS = [BASE_DIR / 'static']
 STATIC_ROOT = BASE_DIR / 'staticfiles'
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedStaticFilesStorage'
 
 # Media files
 MEDIA_URL = '/media/'
-MEDIA_ROOT = BASE_DIR / 'media'
+MEDIA_ROOT = Path('/tmp/media') if os.getenv('VERCEL') else (BASE_DIR / 'media')
 
 # Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
