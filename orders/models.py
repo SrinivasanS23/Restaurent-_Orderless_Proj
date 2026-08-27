@@ -24,13 +24,13 @@ class Order(models.Model):
 
     # State machine transition rules — supports direct one-click acceptance to PREPARING
     VALID_TRANSITIONS = {
-        'ORDER_CREATED': ['ACCEPTED', 'PREPARING', 'CANCELLED'],
-        'ACCEPTED': ['PREPARING', 'READY', 'CANCELLED'],
-        'PREPARING': ['READY', 'CANCELLED'],
-        'READY': ['SERVED', 'CANCELLED'],
-        'SERVED': ['COMPLETED'],
+        'ORDER_CREATED': ['ACCEPTED', 'PREPARING', 'READY', 'SERVED', 'CANCELLED'],
+        'ACCEPTED': ['ORDER_CREATED', 'PREPARING', 'READY', 'SERVED', 'CANCELLED'],
+        'PREPARING': ['ORDER_CREATED', 'ACCEPTED', 'READY', 'SERVED', 'CANCELLED'],
+        'READY': ['ORDER_CREATED', 'PREPARING', 'SERVED', 'CANCELLED'],
+        'SERVED': ['READY', 'COMPLETED'],
         'COMPLETED': [],
-        'CANCELLED': [],
+        'CANCELLED': ['ORDER_CREATED'],
     }
 
     order_number = models.CharField(max_length=20, unique=True, editable=False)

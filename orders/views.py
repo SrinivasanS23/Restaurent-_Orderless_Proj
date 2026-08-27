@@ -142,16 +142,20 @@ def update_order_status(request, order_id):
 @authentication_classes([SessionAuthentication])
 @permission_classes([IsStaffOrCashierPermission])
 def get_kitchen_orders(request):
-    """Get all active orders for the kitchen display (Staff only)."""
-    orders = Order.objects.filter(
-        order_status__in=[
-            Order.OrderStatus.ORDER_CREATED,
-            Order.OrderStatus.ACCEPTED,
-            Order.OrderStatus.PREPARING,
-            Order.OrderStatus.READY,
-            Order.OrderStatus.SERVED,
-        ]
-    ).prefetch_related('items__menu_item', 'payments').select_related('table', 'customer_session').order_by('created_at')
+    """Get orders for kitchen display and POS desk (Staff only)."""
+    include_paid = request.GET.get('include_all', '').lower() in ('true', '1', 'yes') or request.GET.get('include_paid', '').lower() in ('true', '1', 'yes')
+    if include_paid:
+        orders = Order.objects.prefetch_related('items__menu_item', 'payments').select_related('table', 'customer_session').order_by('-created_at')[:60]
+    else:
+        orders = Order.objects.filter(
+            order_status__in=[
+                Order.OrderStatus.ORDER_CREATED,
+                Order.OrderStatus.ACCEPTED,
+                Order.OrderStatus.PREPARING,
+                Order.OrderStatus.READY,
+                Order.OrderStatus.SERVED,
+            ]
+        ).prefetch_related('items__menu_item', 'payments').select_related('table', 'customer_session').order_by('created_at')
 
     return Response(OrderSerializer(orders, many=True).data)
 

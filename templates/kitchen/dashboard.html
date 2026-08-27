@@ -432,21 +432,22 @@ function renderColumn(containerId, orderList) {
 
 /* --- ONE-CLICK Request-Locked State Transition with Instant Optimistic Update --- */
 async function transitionOrderStatus(orderId, orderNumber, targetStatus, btn) {
-    if (isTransitioning[orderId]) return;
+    if (isTransitioning[orderId] || isTransitioning[orderNumber]) return;
     isTransitioning[orderId] = true;
+    isTransitioning[orderNumber] = true;
 
     // Save previous status for rollback if error
     const previousStatus = orders[orderNumber] ? orders[orderNumber].order_status : 'ORDER_CREATED';
 
-    // 1. Optimistic instant visual movement
+    // 1. Instant optimistic visual movement
     if (orders[orderNumber]) {
         orders[orderNumber].order_status = targetStatus;
     }
     renderAllColumns();
 
     try {
-        const res = await fetch(`/api/orders/${orderId}/status/`, {
-            method: 'PATCH',
+        const res = await fetch(`/api/orders/${encodeURIComponent(orderNumber)}/status/`, {
+            method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'X-CSRFToken': CSRF_TOKEN
@@ -460,19 +461,20 @@ async function transitionOrderStatus(orderId, orderNumber, targetStatus, btn) {
         // Confirm server data
         if (orders[orderNumber]) {
             orders[orderNumber].order_status = data.order_status || targetStatus;
+            if (data.order) orders[orderNumber] = data.order;
         }
 
-        showToast('success', `Order #${orderNumber} is now ${targetStatus}!`);
+        showToast('success', `⚡ Order #${orderNumber} is now ${targetStatus}!`);
 
     } catch (err) {
         // Rollback on failure
         if (orders[orderNumber]) {
             orders[orderNumber].order_status = previousStatus;
         }
-        renderAllColumns();
         showToast('error', err.message || 'Unable to update this order. Please retry.');
     } finally {
         delete isTransitioning[orderId];
+        delete isTransitioning[orderNumber];
         renderAllColumns();
     }
 }

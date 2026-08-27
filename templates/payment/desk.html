@@ -184,7 +184,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 async function loadAllOrders() {
     try {
-        const res = await fetch('/api/orders/kitchen/');
+        const res = await fetch('/api/orders/kitchen/?include_paid=1');
         if (!res.ok) return;
 
         allOrders = await res.json();
@@ -197,6 +197,12 @@ async function loadAllOrders() {
             if (found) {
                 selectedOrder = found;
                 renderBill();
+            }
+        } else if (allOrders.length > 0 && !selectedOrder) {
+            // Auto-select first payable order or first active order if none selected
+            const firstPayable = allOrders.find(o => o.order_status === 'SERVED' && o.payment_status !== 'PAID') || allOrders[0];
+            if (firstPayable) {
+                selectOrder(firstPayable.order_number);
             }
         }
     } catch (e) {
@@ -366,15 +372,15 @@ function renderBill() {
                 </tr>
             </thead>
             <tbody>
-                ${o.items.map(i => `
+                ${(o.items || []).map(i => `
                     <tr>
                         <td>
-                            <strong>${i.emoji || '🍽️'} ${i.item_name_snapshot || i.name}</strong>
+                            <strong>${i.emoji || '🍽️'} ${i.item_name_snapshot || i.name || 'Dish Item'}</strong>
                             ${i.special_instructions ? `<div class="small text-muted fst-italic">Note: ${i.special_instructions}</div>` : ''}
                         </td>
-                        <td class="text-center fw-bold">×${i.quantity}</td>
+                        <td class="text-center fw-bold">×${i.quantity || 1}</td>
                         <td class="text-end">₹${parseFloat(i.unit_price || 0).toFixed(2)}</td>
-                        <td class="text-end fw-bold">₹${parseFloat(i.subtotal || (parseFloat(i.unit_price || 0) * i.quantity)).toFixed(2)}</td>
+                        <td class="text-end fw-bold">₹${parseFloat(i.subtotal || (parseFloat(i.unit_price || 0) * (i.quantity || 1))).toFixed(2)}</td>
                     </tr>
                 `).join('')}
             </tbody>
