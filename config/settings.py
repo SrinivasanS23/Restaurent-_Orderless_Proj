@@ -114,34 +114,59 @@ if os.getenv('DB_SSL', 'False').lower() in ('true', '1', 'yes'):
     else:
         db_options['ssl'] = {'ssl_mode': 'REQUIRED'}
 
+import shutil
+from pathlib import Path
+
+# Setup SQLite database path (copy to /tmp on serverless environments for write access)
+sqlite_source = BASE_DIR / 'db.sqlite3'
+if os.getenv('VERCEL') or os.getenv('AWS_LAMBDA_FUNCTION_NAME'):
+    sqlite_target = Path('/tmp/db.sqlite3')
+    if not sqlite_target.exists() and sqlite_source.exists():
+        try:
+            shutil.copyfile(str(sqlite_source), str(sqlite_target))
+            os.chmod(str(sqlite_target), 0o666)
+        except Exception:
+            pass
+    sqlite_db_path = sqlite_target if sqlite_target.exists() else sqlite_source
+else:
+    sqlite_db_path = sqlite_source
+
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': os.getenv('DB_NAME', 'orderless_db'),
-        'USER': os.getenv('DB_USER', 'orderless_user'),
-        'PASSWORD': os.getenv('DB_PASSWORD', ''),
-        'HOST': os.getenv('DB_HOST', '127.0.0.1'),
-        'PORT': os.getenv('DB_PORT', '3306'),
-        'OPTIONS': db_options,
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': sqlite_db_path,
+        'TIMEOUT': 20,
     }
 }
 
-# Auto-parse DATABASE_URL if provided (e.g. mysql://user:pass@host:port/dbname)
+# Auto-parse DATABASE_URL if a valid external database URL is provided
 database_url = os.getenv('DATABASE_URL')
-if database_url and database_url.startswith(('mysql://', 'mysql2://')):
+if database_url and database_url.startswith(('mysql://', 'mysql2://', 'postgres://', 'postgresql://')):
     try:
         parsed_url = urllib.parse.urlparse(database_url)
-        DATABASES['default']['NAME'] = parsed_url.path.lstrip('/')
-        DATABASES['default']['USER'] = urllib.parse.unquote(parsed_url.username or '')
-        DATABASES['default']['PASSWORD'] = urllib.parse.unquote(parsed_url.password or '')
-        DATABASES['default']['HOST'] = parsed_url.hostname or '127.0.0.1'
-        DATABASES['default']['PORT'] = str(parsed_url.port or 3306)
-        
-        # Auto-configure SSL for cloud providers (Aiven, PlanetScale, etc.)
-        if 'ssl-mode=REQUIRED' in database_url or 'aivencloud.com' in (parsed_url.hostname or '') or 'ssl' in parsed_url.query:
-            if 'OPTIONS' not in DATABASES['default']:
-                DATABASES['default']['OPTIONS'] = {}
-            DATABASES['default']['OPTIONS']['ssl'] = {'ssl_mode': 'REQUIRED'}
+        db_host = parsed_url.hostname
+        if db_host and db_host != 'None' and '[SENSITIVE]' not in database_url:
+            if database_url.startswith(('postgres://', 'postgresql://')):
+                DATABASES['default'] = {
+                    'ENGINE': 'django.db.backends.postgresql',
+                    'NAME': parsed_url.path.lstrip('/'),
+                    'USER': urllib.parse.unquote(parsed_url.username or ''),
+                    'PASSWORD': urllib.parse.unquote(parsed_url.password or ''),
+                    'HOST': db_host,
+                    'PORT': str(parsed_url.port or 5432),
+                }
+            else:
+                DATABASES['default'] = {
+                    'ENGINE': 'django.db.backends.mysql',
+                    'NAME': parsed_url.path.lstrip('/'),
+                    'USER': urllib.parse.unquote(parsed_url.username or ''),
+                    'PASSWORD': urllib.parse.unquote(parsed_url.password or ''),
+                    'HOST': db_host,
+                    'PORT': str(parsed_url.port or 3306),
+                    'OPTIONS': db_options,
+                }
+                if 'ssl-mode=REQUIRED' in database_url or 'aivencloud.com' in db_host or 'ssl' in parsed_url.query:
+                    DATABASES['default']['OPTIONS']['ssl'] = {'ssl_mode': 'REQUIRED'}
     except Exception as err:
         pass
 
