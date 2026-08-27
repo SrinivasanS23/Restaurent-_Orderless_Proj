@@ -59,9 +59,12 @@ def check_table_session_status(request, table_number):
     if not session_token:
         return Response({
             'table_id': table.table_number,
+            'table_number': table.table_number,
+            'display_number': table.display_number,
             'is_active_session': False,
+            'has_active_session': False,
             'status': 'AVAILABLE',
-            'message': 'No active session token provided. Check-in required.'
+            'message': 'No active session token provided. Fresh check-in required.'
         })
 
     try:
@@ -74,7 +77,10 @@ def check_table_session_status(request, table_number):
     except (CustomerSession.DoesNotExist, ValueError):
         return Response({
             'table_id': table.table_number,
+            'table_number': table.table_number,
+            'display_number': table.display_number,
             'is_active_session': False,
+            'has_active_session': False,
             'status': 'AVAILABLE',
             'message': 'Session is closed or invalid. Ready for new customer check-in.'
         })
@@ -90,19 +96,26 @@ def check_table_session_status(request, table_number):
         latest = active_orders.first()
         return Response({
             'table_id': table.table_number,
+            'table_number': table.table_number,
+            'display_number': table.display_number,
             'session_id': str(session.session_id),
             'is_active_session': True,
+            'has_active_session': True,
             'status': 'ACTIVE',
             'customer_name': session.customer_name,
             'active_order_number': latest.order_number,
             'order_status': latest.order_status,
+            'order_status_display': latest.get_order_status_display(),
             'payment_status': latest.payment_status,
         })
     else:
         return Response({
             'table_id': table.table_number,
+            'table_number': table.table_number,
+            'display_number': table.display_number,
             'session_id': str(session.session_id),
             'is_active_session': True,
+            'has_active_session': True,
             'status': 'ACTIVE',
             'customer_name': session.customer_name,
             'active_order_number': None,
@@ -159,6 +172,7 @@ def customer_checkin(request):
 
     return Response({
         'session_id': str(customer_session.session_id),
+        'session_token': str(customer_session.session_id),
         'table_id': table.table_number,
         'table_number': table.table_number,
         'display_number': table.display_number,

@@ -50,6 +50,7 @@ class CreateOrderSerializer(serializers.Serializer):
     """Serializer for order creation request."""
     table_number = serializers.CharField(max_length=10)
     customer_session_id = serializers.UUIDField(required=False, allow_null=True)
+    idempotency_key = serializers.CharField(max_length=64, required=False, allow_blank=True, default='')
     special_instructions = serializers.CharField(required=False, default='', allow_blank=True)
     items = serializers.ListField(
         child=serializers.DictField(),

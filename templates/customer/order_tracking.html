@@ -96,7 +96,7 @@ document.addEventListener('DOMContentLoaded', () => {
     loadOrder();
     connectWebSocket();
     // 10s fallback polling
-    setInterval(loadOrder, 10000);
+    setInterval(loadOrder, 3500);
 });
 
 function getSessionToken() {

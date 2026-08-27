@@ -1,30 +1,42 @@
-"""Business logic services for orders and kitchen notifications."""
+"""Domain services for order creation, calculation, and kitchen status management."""
+import logging
+from decimal import Decimal
 from django.db import transaction
 from django.utils import timezone
 from django.utils.html import escape
-from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
+from channels.layers import get_channel_layer
 
 from .models import Order, OrderItem
-from tables.models import RestaurantTable, CustomerSession
 from menu.models import MenuItem
+from tables.models import RestaurantTable, CustomerSession
+
+logger = logging.getLogger('orders')
 
 
 class OrderService:
+    """Service handling order lifecycle, calculations, and kitchen status."""
 
     @staticmethod
     @transaction.atomic
-    def create_order(table_number, items_data, customer_session_id=None, special_instructions=''):
+    def create_order(table_number, items_data, customer_session_id=None, special_instructions='', idempotency_key=None):
         """
-        Create a new order with items.
-        Prices are calculated strictly server-side from MySQL database.
-        Requires a valid ACTIVE dining table session.
+        Create a new dine-in order with item snapshots, GST calculations, and idempotency protection.
         """
-        # Validate table
+        clean_table_num = str(table_number).strip().upper()
+        clean_idempotency = str(idempotency_key).strip()[:64] if idempotency_key else ''
+
+        # Idempotency check: if customer retry happened, return existing order
+        if clean_idempotency:
+            existing = Order.objects.filter(idempotency_key=clean_idempotency).first()
+            if existing:
+                logger.info(f"[IDEMPOTENT_ORDER_RETURN] Order='{existing.order_number}' Key='{clean_idempotency}'")
+                return existing
+
         try:
-            table = RestaurantTable.objects.get(table_number=table_number.upper())
+            table = RestaurantTable.objects.select_for_update().get(table_number=clean_table_num)
         except RestaurantTable.DoesNotExist:
-            raise ValueError("Table not found.")
+            raise ValueError(f"Table '{table_number}' does not exist.")
 
         if not table.active:
             raise ValueError("Table is currently unavailable.")
@@ -67,6 +79,7 @@ class OrderService:
         order = Order.objects.create(
             table=table,
             customer_session=customer_session,
+            idempotency_key=clean_idempotency,
             payment_status=Order.PaymentStatus.PENDING,
             order_status=Order.OrderStatus.ORDER_CREATED,
             special_instructions=clean_instructions
@@ -104,15 +117,29 @@ class OrderService:
     @staticmethod
     @transaction.atomic
     def update_order_status(order_id, new_status, user=None):
-        """Update kitchen order status with state machine enforcement."""
+        """
+        Update kitchen order status with atomic concurrency protection and idempotency.
+        ONE-CLICK state transitions:
+        - ORDER_CREATED -> PREPARING (Accept Order)
+        - PREPARING -> READY (Mark Ready)
+        - READY -> SERVED (Mark Served)
+        """
         try:
-            order = Order.objects.select_for_update().get(id=order_id)
-        except Order.DoesNotExist:
+            # Query with select_for_update to serialize concurrent transitions
+            if isinstance(order_id, str) and order_id.startswith('ORD-'):
+                order = Order.objects.select_for_update().get(order_number=order_id.strip().upper())
+            else:
+                order = Order.objects.select_for_update().get(id=int(order_id))
+        except (Order.DoesNotExist, ValueError):
             raise ValueError("Order not found.")
+
+        # Idempotency check: if order is already in target status, return cleanly
+        if order.order_status == new_status:
+            return order
 
         if not order.can_transition_to(new_status):
             raise ValueError(
-                f"Cannot transition from {order.get_order_status_display()} to {new_status}."
+                f"Cannot transition order #{order.order_number} from {order.get_order_status_display()} to {new_status}."
             )
 
         order.order_status = new_status
@@ -132,53 +159,56 @@ class OrderService:
         """Send new order event to kitchen WebSocket group."""
         try:
             channel_layer = get_channel_layer()
-            order_data = OrderService._serialize_order(order)
-            async_to_sync(channel_layer.group_send)(
-                'kitchen',
-                {
-                    'type': 'kitchen_new_order',
-                    'order': order_data
-                }
-            )
+            if channel_layer:
+                order_data = OrderService._serialize_order(order)
+                async_to_sync(channel_layer.group_send)(
+                    'kitchen',
+                    {
+                        'type': 'kitchen_new_order',
+                        'order': order_data
+                    }
+                )
         except Exception as e:
-            print(f"WS Error in _notify_kitchen_new_order: {e}")
+            logger.debug(f"WS notify kitchen error: {e}")
 
     @staticmethod
     def _notify_order_update(order):
         """Send order status update to both kitchen and customer WebSocket groups."""
         try:
             channel_layer = get_channel_layer()
-            order_data = OrderService._serialize_order(order)
+            if channel_layer:
+                order_data = OrderService._serialize_order(order)
 
-            # Notify kitchen
-            async_to_sync(channel_layer.group_send)(
-                'kitchen',
-                {
-                    'type': 'kitchen_order_update',
-                    'order': order_data
-                }
-            )
+                # Notify kitchen
+                async_to_sync(channel_layer.group_send)(
+                    'kitchen',
+                    {
+                        'type': 'kitchen_order_update',
+                        'order': order_data
+                    }
+                )
 
-            # Notify customer
-            OrderService._notify_customer_order_update(order)
+                # Notify customer
+                OrderService._notify_customer_order_update(order)
         except Exception as e:
-            print(f"WS Error in _notify_order_update: {e}")
+            logger.debug(f"WS notify update error: {e}")
 
     @staticmethod
     def _notify_customer_order_update(order):
         """Send update specifically to the customer tracking room."""
         try:
             channel_layer = get_channel_layer()
-            order_data = OrderService._serialize_order(order)
-            async_to_sync(channel_layer.group_send)(
-                f'order_{order.order_number}',
-                {
-                    'type': 'order_status_update',
-                    'order': order_data
-                }
-            )
+            if channel_layer:
+                order_data = OrderService._serialize_order(order)
+                async_to_sync(channel_layer.group_send)(
+                    f'order_{order.order_number}',
+                    {
+                        'type': 'order_status_update',
+                        'order': order_data
+                    }
+                )
         except Exception as e:
-            print(f"WS Error in _notify_customer_order_update: {e}")
+            logger.debug(f"WS notify customer error: {e}")
 
     @staticmethod
     def _serialize_order(order):

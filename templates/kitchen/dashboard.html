@@ -1,331 +1,289 @@
-{% extends "base.html" %}
+{% extends 'base.html' %}
 {% load static %}
-{% block title %}Kitchen Display System (KDS) — {{ restaurant_name }}{% endblock %}
-{% block meta_description %}Real-time live kitchen order display and preparation tracker for {{ restaurant_name }}{% endblock %}
-{% block body_class %}kds-app{% endblock %}
 
-{% block body %}
-<!-- Audio Unlock Banner (Browsers require user gesture for WebAudio) -->
-<div id="audioUnlockBanner" onclick="KitchenAlertManager.unlockAudio()" class="p-2 text-center" style="background:#b45309; color:#fff; cursor:pointer; font-size:0.86rem; border-bottom:1px solid #d97706;">
-    <span><i class="bi bi-volume-up-fill"></i> <strong>Click anywhere to activate live kitchen audio alarms</strong></span>
-    <button class="btn btn-light btn-sm ms-3 py-0 px-3 fw-bold" style="font-size:0.8rem; color:var(--dark-brown); border-radius:var(--radius-full);">
-        🔊 ENABLE ALERTS
-    </button>
-</div>
+{% block title %}Kitchen Display System (KDS) | {{ restaurant_name }}{% endblock %}
 
-<!-- Top Bar -->
-<div class="kds-topbar">
-    <div class="d-flex align-items-center gap-3">
-        <h1><i class="bi bi-fire text-warning"></i> Kitchen Display System</h1>
-        <div id="alarmBadge" class="kds-alarm-badge" style="display:none; background:#dc2626; color:#fff; padding:0.25rem 0.75rem; border-radius:var(--radius-full); font-size:0.78rem; font-weight:850; animation:alarmPulse 1.2s infinite;">
-            🔔 <span id="alarmBadgeText">NEW ORDERS</span>
+{% block content %}
+<!-- Audio Alert Banner for Autoplay Compliance -->
+<div id="audioUnlockBanner" style="display:none; background: linear-gradient(135deg, var(--roasted-walnut) 0%, var(--deep-espresso) 100%); border-bottom: 2px solid var(--tan-accent); padding: 0.75rem 1.25rem; color: #fff; z-index: 1000;">
+    <div class="container-fluid d-flex align-items-center justify-content-between flex-wrap gap-2" style="max-width: 1400px; margin:0 auto;">
+        <div class="d-flex align-items-center gap-2">
+            <span style="font-size: 1.4rem;">🔔</span>
+            <div>
+                <strong>Enable Kitchen Audio Chime</strong>
+                <div class="small" style="color: var(--tan-accent);">Browser policy requires one-click activation to play repeating sound for new orders.</div>
+            </div>
         </div>
-    </div>
-    
-    <div class="kds-status-bar">
-        <div class="kds-stats-summary">
-            <span>New: <strong id="countNew" class="text-warning">0</strong></span>
-            <span>·</span>
-            <span>Cooking: <strong id="countPreparing" style="color:#fb923c;">0</strong></span>
-            <span>·</span>
-            <span>Ready: <strong id="countReady" style="color:#c084fc;">0</strong></span>
-            <span>·</span>
-            <span>Served: <strong id="countServed" style="color:#38bdf8;">0</strong></span>
+        <div class="d-flex align-items-center gap-2">
+            <button class="btn-premium btn-premium-primary" onclick="KitchenAlertManager.unlockAudio()" style="padding: 0.45rem 1rem; font-size: 0.85rem;">
+                <i class="bi bi-volume-up-fill"></i> Enable Kitchen Audio
+            </button>
         </div>
-        
-        <!-- Live Connection Indicator -->
-        <span class="d-inline-flex align-items-center gap-2" style="font-size:0.8rem;">
-            <span class="kds-status-dot" id="wsStatusDot"></span> 
-            <span id="wsStatusText">Live Sync</span>
-        </span>
-        
-        <!-- Volume Control -->
-        <div class="d-inline-flex align-items-center gap-1" title="Alert Volume">
-            <i class="bi bi-volume-down" style="font-size:0.9rem; opacity:0.8;"></i>
-            <input type="range" id="volumeSlider" min="0" max="1" step="0.05" value="0.7" onchange="KitchenAlertManager.setVolume(this.value)" style="width:65px; cursor:pointer; accent-color:var(--tan);">
-            <i class="bi bi-volume-up" style="font-size:0.9rem; opacity:0.8;"></i>
-        </div>
-
-        <!-- Sound Toggle -->
-        <button class="sound-toggle active" id="soundToggle" onclick="KitchenAlertManager.toggleSound()">
-            <i class="bi bi-bell-fill"></i> Sound ON
-        </button>
-        <button class="sound-toggle" onclick="KitchenAlertManager.testSound()" title="Test 2-beep chime">
-            <i class="bi bi-volume-up"></i> Test
-        </button>
-        <a href="{% url 'logout' %}" class="sound-toggle">
-            <i class="bi bi-box-arrow-right"></i> Logout
-        </a>
     </div>
 </div>
 
-<!-- 4 Sequential Kanban Columns -->
-<div class="kds-columns">
-    <!-- 1. New Orders -->
-    <div class="kds-column col-new">
-        <div class="kds-column-header">
-            <span class="kds-column-title">📋 1. New Orders</span>
-            <span class="kds-column-count" id="colCountNew">0</span>
+<!-- KDS Top Navigation Header -->
+<header class="app-header" style="background: var(--deep-espresso); color: var(--bg-cream); border-bottom: 2px solid var(--tan-accent);">
+    <div class="header-inner" style="max-width: 1400px;">
+        <div class="d-flex align-items-center gap-3">
+            <a href="/" class="brand-logo text-white">
+                <span class="logo-icon">🔥</span>
+                <span class="logo-text text-white">Kitchen Display (KDS)</span>
+            </a>
+            <span class="badge bg-warning text-dark fw-bold px-2 py-1" style="font-size: 0.75rem;">LIVE ORDERS</span>
         </div>
-        <div class="kds-column-body" id="colNew"></div>
-    </div>
 
-    <!-- 2. Cooking & Preparing -->
-    <div class="kds-column col-preparing">
-        <div class="kds-column-header">
-            <span class="kds-column-title">🔥 2. Cooking &amp; Preparing</span>
-            <span class="kds-column-count" id="colCountPreparing">0</span>
+        <div class="d-flex align-items-center gap-2">
+            <!-- Audio Sound Toggle -->
+            <button class="btn btn-sm btn-outline-light rounded-pill px-3 d-flex align-items-center gap-1" id="soundToggleBtn" onclick="KitchenAlertManager.toggleMute()">
+                <i class="bi bi-volume-up-fill" id="soundIcon"></i>
+                <span id="soundText">Sound ON</span>
+            </button>
+            <button class="btn btn-sm btn-outline-warning rounded-pill px-2" onclick="KitchenAlertManager.playSingleChime()" title="Test audio">
+                <i class="bi bi-bell-fill"></i> Test
+            </button>
+            <a href="/dashboard/" class="btn btn-sm btn-outline-light rounded-pill px-3">
+                <i class="bi bi-speedometer2"></i> Admin
+            </a>
+            <a href="/payment/" class="btn btn-sm btn-outline-light rounded-pill px-3">
+                <i class="bi bi-credit-card"></i> POS
+            </a>
+            <a href="/logout/" class="btn btn-sm btn-danger rounded-pill px-3">
+                <i class="bi bi-box-arrow-right"></i> Logout
+            </a>
         </div>
-        <div class="kds-column-body" id="colPreparing"></div>
     </div>
+</header>
 
-    <!-- 3. Ready to Serve -->
-    <div class="kds-column col-ready">
-        <div class="kds-column-header">
-            <span class="kds-column-title">✨ 3. Ready to Serve</span>
-            <span class="kds-column-count" id="colCountReady">0</span>
+<!-- KDS Kanban Board (4 Columns) -->
+<main class="container-fluid py-3 px-3" style="max-width: 1500px; margin: 0 auto;">
+    <div class="kds-board">
+        <!-- 1. New Orders Column -->
+        <div class="kds-column">
+            <div class="kds-column-header" style="background: rgba(217, 119, 6, 0.12); border-left: 4px solid #d97706;">
+                <div class="d-flex align-items-center gap-2">
+                    <span>📋 1. New Orders</span>
+                    <span class="badge bg-warning text-dark" id="colCountNew">0</span>
+                </div>
+                <span class="small text-muted">Awaiting Chef</span>
+            </div>
+            <div class="kds-column-body" id="colNew">
+                <!-- Cards dynamically rendered -->
+            </div>
         </div>
-        <div class="kds-column-body" id="colReady"></div>
-    </div>
 
-    <!-- 4. Served & Dining -->
-    <div class="kds-column col-served">
-        <div class="kds-column-header">
-            <span class="kds-column-title">🍽️ 4. Served (Dining)</span>
-            <span class="kds-column-count" id="colCountServed">0</span>
+        <!-- 2. Cooking & Preparing Column -->
+        <div class="kds-column">
+            <div class="kds-column-header" style="background: rgba(234, 88, 12, 0.12); border-left: 4px solid #ea580c;">
+                <div class="d-flex align-items-center gap-2">
+                    <span>🔥 2. Cooking / Preparing</span>
+                    <span class="badge bg-danger text-white" id="colCountPreparing">0</span>
+                </div>
+                <span class="small text-muted">On Stove / Grill</span>
+            </div>
+            <div class="kds-column-body" id="colPreparing">
+                <!-- Cards dynamically rendered -->
+            </div>
         </div>
-        <div class="kds-column-body" id="colServed"></div>
+
+        <!-- 3. Ready to Serve Column -->
+        <div class="kds-column">
+            <div class="kds-column-header" style="background: rgba(37, 99, 235, 0.12); border-left: 4px solid #2563eb;">
+                <div class="d-flex align-items-center gap-2">
+                    <span>✨ 3. Ready to Serve</span>
+                    <span class="badge bg-primary text-white" id="colCountReady">0</span>
+                </div>
+                <span class="small text-muted">At Pass</span>
+            </div>
+            <div class="kds-column-body" id="colReady">
+                <!-- Cards dynamically rendered -->
+            </div>
+        </div>
+
+        <!-- 4. Served / Dining Column -->
+        <div class="kds-column">
+            <div class="kds-column-header" style="background: rgba(21, 128, 61, 0.12); border-left: 4px solid #15803d;">
+                <div class="d-flex align-items-center gap-2">
+                    <span>🍽️ 4. Served (Dining)</span>
+                    <span class="badge bg-success text-white" id="colCountServed">0</span>
+                </div>
+                <span class="small text-muted">Table Dining</span>
+            </div>
+            <div class="kds-column-body" id="colServed">
+                <!-- Cards dynamically rendered -->
+            </div>
+        </div>
     </div>
-</div>
+</main>
 
-<div class="error-toast" id="errorToast"></div>
-<div class="success-toast" id="successToast"></div>
+<!-- Toasts -->
+<div id="successToast" class="toast-custom success"></div>
+<div id="errorToast" class="toast-custom error"></div>
 
+<!-- =========================================================================
+     KDS JAVASCRIPT & AUDIO MANAGER
+     ========================================================================= -->
 <script>
-const CSRF_TOKEN = '{{ csrf_token }}';
-let orders = {};
-let ws = null;
-let reconnectAttempts = 0;
+const CSRF_TOKEN = "{{ csrf_token }}";
 
-// Centralized Kitchen Alert Controller
-const KitchenAlertManager = {
-    audioCtx: null,
-    alarmInterval: null,
-    soundEnabled: localStorage.getItem('orderless_kds_sound') !== 'false',
-    volume: parseFloat(localStorage.getItem('orderless_kds_volume') || '0.7'),
-    audioUnlocked: false,
+/* --- WebAudio Kitchen Alarm Manager --- */
+const KitchenAlertManager = (() => {
+    let audioCtx = null;
+    let isMuted = false;
+    let isUnlocked = false;
+    let alarmInterval = null;
 
-    init() {
-        this.updateSoundButtonUI();
-        document.getElementById('volumeSlider').value = this.volume;
-
-        const unlock = () => this.unlockAudio();
-        document.addEventListener('click', unlock, { once: true, passive: true });
-        document.addEventListener('keydown', unlock, { once: true, passive: true });
-        document.addEventListener('touchstart', unlock, { once: true, passive: true });
-    },
-
-    getAudioContext() {
-        if (!this.audioCtx) {
-            const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-            if (AudioContextClass) {
-                this.audioCtx = new AudioContextClass();
-            }
+    function getAudioContext() {
+        if (!audioCtx) {
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            audioCtx = new AudioContext();
         }
-        if (this.audioCtx && this.audioCtx.state === 'suspended') {
-            this.audioCtx.resume();
+        if (audioCtx.state === 'suspended') {
+            audioCtx.resume();
         }
-        return this.audioCtx;
-    },
+        return audioCtx;
+    }
 
-    unlockAudio() {
-        const ctx = this.getAudioContext();
-        if (ctx) {
-            ctx.resume().then(() => {
-                this.audioUnlocked = true;
-                const banner = document.getElementById('audioUnlockBanner');
-                if (banner) banner.style.display = 'none';
-                this.checkAndTriggerContinuousAlarm();
-            }).catch(e => console.warn('Audio resume error:', e));
-        }
-    },
-
-    play2BeepChime() {
-        if (!this.soundEnabled) return;
+    function checkAutoplayStatus() {
         try {
-            const ctx = this.getAudioContext();
-            if (!ctx) return;
-            if (ctx.state === 'suspended') ctx.resume();
+            const ctx = getAudioContext();
+            if (ctx.state === 'running') {
+                isUnlocked = true;
+                document.getElementById('audioUnlockBanner').style.display = 'none';
+            } else {
+                document.getElementById('audioUnlockBanner').style.display = 'block';
+            }
+        } catch (e) {
+            document.getElementById('audioUnlockBanner').style.display = 'block';
+        }
+    }
 
+    function unlockAudio() {
+        try {
+            const ctx = getAudioContext();
+            ctx.resume().then(() => {
+                isUnlocked = true;
+                document.getElementById('audioUnlockBanner').style.display = 'none';
+                playSingleChime();
+                showToast('success', 'Kitchen audio alert activated!');
+            });
+        } catch (e) {
+            console.warn('Audio unlock error:', e);
+        }
+    }
+
+    function playSingleChime() {
+        if (isMuted) return;
+        try {
+            const ctx = getAudioContext();
             const now = ctx.currentTime;
-            const masterGain = this.volume;
 
-            // Beep 1 (880Hz)
+            // Beep 1 (High chime)
             const osc1 = ctx.createOscillator();
             const gain1 = ctx.createGain();
             osc1.type = 'sine';
-            osc1.frequency.setValueAtTime(880, now);
-            gain1.gain.setValueAtTime(0.45 * masterGain, now);
-            gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.16);
+            osc1.frequency.setValueAtTime(880, now); // A5
+            gain1.gain.setValueAtTime(0.25, now);
+            gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
             osc1.connect(gain1);
             gain1.connect(ctx.destination);
             osc1.start(now);
-            osc1.stop(now + 0.16);
+            osc1.stop(now + 0.35);
 
-            // Beep 2 (1174Hz)
+            // Beep 2 (Harmonic chime)
             const osc2 = ctx.createOscillator();
             const gain2 = ctx.createGain();
             osc2.type = 'sine';
-            osc2.frequency.setValueAtTime(1174.66, now + 0.18);
-            gain2.gain.setValueAtTime(0.55 * masterGain, now + 0.18);
-            gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.38);
+            osc2.frequency.setValueAtTime(1174.66, now + 0.18); // D6
+            gain2.gain.setValueAtTime(0.3, now + 0.18);
+            gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.55);
             osc2.connect(gain2);
             gain2.connect(ctx.destination);
             osc2.start(now + 0.18);
-            osc2.stop(now + 0.38);
+            osc2.stop(now + 0.55);
+
         } catch (e) {
-            console.warn('Audio play error:', e);
+            console.warn('Chime play error:', e);
         }
-    },
+    }
 
-    checkAndTriggerContinuousAlarm() {
-        const unaccepted = Object.values(orders).filter(o => o.order_status === 'ORDER_CREATED');
-        const badge = document.getElementById('alarmBadge');
-        const badgeText = document.getElementById('alarmBadgeText');
-
-        if (unaccepted.length > 0 && this.soundEnabled) {
-            if (badge) badge.style.display = 'inline-block';
-            if (badgeText) badgeText.textContent = `${unaccepted.length} NEW ORDER${unaccepted.length > 1 ? 'S' : ''}`;
-
-            if (!this.alarmInterval) {
-                this.play2BeepChime();
-                this.alarmInterval = setInterval(() => {
-                    const stillUnaccepted = Object.values(orders).filter(o => o.order_status === 'ORDER_CREATED');
-                    if (stillUnaccepted.length > 0 && this.soundEnabled) {
-                        this.play2BeepChime();
-                    } else {
-                        this.stopAlarm();
-                    }
+    function checkAndTriggerContinuousAlarm(unacceptedCount) {
+        if (unacceptedCount > 0 && !isMuted) {
+            if (!alarmInterval) {
+                playSingleChime();
+                alarmInterval = setInterval(() => {
+                    playSingleChime();
                 }, 3500);
             }
         } else {
-            this.stopAlarm();
-            if (badge) badge.style.display = 'none';
+            if (alarmInterval) {
+                clearInterval(alarmInterval);
+                alarmInterval = null;
+            }
         }
-    },
-
-    stopAlarm() {
-        if (this.alarmInterval) {
-            clearInterval(this.alarmInterval);
-            this.alarmInterval = null;
-        }
-    },
-
-    toggleSound() {
-        this.soundEnabled = !this.soundEnabled;
-        localStorage.setItem('orderless_kds_sound', this.soundEnabled);
-        this.updateSoundButtonUI();
-        if (!this.soundEnabled) {
-            this.stopAlarm();
-        } else {
-            this.checkAndTriggerContinuousAlarm();
-        }
-    },
-
-    updateSoundButtonUI() {
-        const btn = document.getElementById('soundToggle');
-        if (this.soundEnabled) {
-            btn.classList.add('active');
-            btn.innerHTML = '<i class="bi bi-bell-fill"></i> Sound ON';
-        } else {
-            btn.classList.remove('active');
-            btn.innerHTML = '<i class="bi bi-bell-slash-fill"></i> Sound OFF';
-        }
-    },
-
-    setVolume(val) {
-        this.volume = parseFloat(val);
-        localStorage.setItem('orderless_kds_volume', this.volume);
-    },
-
-    testSound() {
-        this.unlockAudio();
-        this.play2BeepChime();
-        showToast('success', 'Playing alert chime test');
     }
-};
+
+    function toggleMute() {
+        isMuted = !isMuted;
+        const icon = document.getElementById('soundIcon');
+        const text = document.getElementById('soundText');
+        const btn = document.getElementById('soundToggleBtn');
+
+        if (isMuted) {
+            icon.className = 'bi bi-volume-mute-fill';
+            text.textContent = 'Muted';
+            btn.classList.replace('btn-outline-light', 'btn-outline-danger');
+            if (alarmInterval) {
+                clearInterval(alarmInterval);
+                alarmInterval = null;
+            }
+        } else {
+            icon.className = 'bi bi-volume-up-fill';
+            text.textContent = 'Sound ON';
+            btn.classList.replace('btn-outline-danger', 'btn-outline-light');
+            unlockAudio();
+        }
+    }
+
+    return {
+        checkAutoplayStatus,
+        unlockAudio,
+        playSingleChime,
+        checkAndTriggerContinuousAlarm,
+        toggleMute
+    };
+})();
+
+/* --- State & Order Map --- */
+let orders = {}; // Map of order_number -> order object
+let isTransitioning = {}; // Map of orderId -> boolean lock
 
 document.addEventListener('DOMContentLoaded', () => {
-    KitchenAlertManager.init();
-    loadKdsOrders();
-    connectKdsWebSocket();
-    // 10s fallback sync
-    setInterval(loadKdsOrders, 10000);
+    KitchenAlertManager.checkAutoplayStatus();
+    loadKitchenOrders();
+    // Short polling every 3 seconds
+    setInterval(loadKitchenOrders, 3000);
 });
 
-async function loadKdsOrders() {
+async function loadKitchenOrders() {
     try {
         const res = await fetch('/api/orders/kitchen/');
         if (!res.ok) return;
-        const list = await res.json();
+
+        const orderList = await res.json();
         
-        orders = {};
-        list.forEach(o => {
-            orders[o.order_number] = o;
+        // Merge updates without clobbering cards currently mid-transition
+        orderList.forEach(order => {
+            if (!isTransitioning[order.id]) {
+                orders[order.order_number] = order;
+            }
         });
 
         renderAllColumns();
-        KitchenAlertManager.checkAndTriggerContinuousAlarm();
+
     } catch (e) {
-        console.warn('KDS fetch error:', e);
+        console.debug('Polling fetch error:', e);
     }
-}
-
-function connectKdsWebSocket() {
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    ws = new WebSocket(`${protocol}//${window.location.host}/ws/kitchen/`);
-
-    const dot = document.getElementById('wsStatusDot');
-    const txt = document.getElementById('wsStatusText');
-
-    ws.onopen = () => {
-        reconnectAttempts = 0;
-        dot.classList.remove('disconnected');
-        txt.textContent = 'Live Sync';
-    };
-
-    ws.onmessage = (event) => {
-        try {
-            const data = JSON.parse(event.data);
-            if (data.type === 'new_order' || data.type === 'order_created') {
-                orders[data.order.order_number] = data.order;
-                renderAllColumns();
-                KitchenAlertManager.play2BeepChime();
-                KitchenAlertManager.checkAndTriggerContinuousAlarm();
-                showToast('success', `New Order #${data.order.order_number} received!`);
-            } else if (data.type === 'order_status_update' || data.type === 'order_update') {
-                if (orders[data.order.order_number]) {
-                    orders[data.order.order_number] = data.order;
-                } else if (data.order.order_status !== 'COMPLETED' && data.order.order_status !== 'CANCELLED') {
-                    orders[data.order.order_number] = data.order;
-                }
-                renderAllColumns();
-                KitchenAlertManager.checkAndTriggerContinuousAlarm();
-            }
-        } catch (e) {
-            console.warn('KDS WS message error:', e);
-        }
-    };
-
-    ws.onclose = () => {
-        dot.classList.add('disconnected');
-        txt.textContent = 'Reconnecting...';
-        reconnectAttempts++;
-        const delay = Math.min(1000 * Math.pow(2, reconnectAttempts), 15000);
-        setTimeout(connectKdsWebSocket, delay);
-    };
-
-    ws.onerror = () => ws.close();
 }
 
 function renderAllColumns() {
@@ -360,94 +318,95 @@ function renderAllColumns() {
     document.getElementById('colCountReady').textContent = cols['READY'].length;
     document.getElementById('colCountServed').textContent = cols['SERVED'].length;
 
-    document.getElementById('countNew').textContent = cols['ORDER_CREATED'].length;
-    document.getElementById('countPreparing').textContent = cols['PREPARING'].length;
-    document.getElementById('countReady').textContent = cols['READY'].length;
-    document.getElementById('countServed').textContent = cols['SERVED'].length;
+    // Trigger or silence repeating chime alarm based on unaccepted count
+    KitchenAlertManager.checkAndTriggerContinuousAlarm(cols['ORDER_CREATED'].length);
 }
 
 function renderColumn(containerId, orderList) {
     const container = document.getElementById(containerId);
+    if (!container) return;
+
     if (orderList.length === 0) {
-        container.innerHTML = `<div class="text-center py-4 text-muted" style="font-size:0.85rem;"><i class="bi bi-inbox" style="font-size:1.8rem;display:block;margin-bottom:4px;opacity:0.4;"></i> No active orders</div>`;
+        container.innerHTML = `
+            <div class="text-center py-5 text-muted" style="font-size:0.85rem;">
+                <i class="bi bi-inbox" style="font-size:2rem; display:block; margin-bottom:6px; opacity:0.35;"></i>
+                <span>No active orders in this stage</span>
+            </div>`;
         return;
     }
 
     container.innerHTML = orderList.map(order => {
         const timeAgo = getTimeAgo(order.created_at);
+        const isUnaccepted = (order.order_status === 'ORDER_CREATED');
         let actionBtn = '';
 
-        // Sequential button transition
+        // ONE-CLICK Transitions:
+        // ORDER_CREATED -> PREPARING (Accept Order)
+        // PREPARING -> READY (Mark Ready to Serve)
+        // READY -> SERVED (Mark Served at Table)
         switch (order.order_status) {
             case 'ORDER_CREATED':
                 actionBtn = `
                 <div class="d-flex gap-2">
-                    <button class="kds-action-btn btn-accept flex-fill" onclick="updateStatus(${order.id}, 'ACCEPTED', this)">
+                    <button class="kds-action-btn kds-btn-accept flex-fill" onclick="transitionOrderStatus(${order.id}, 'PREPARING', this)">
                         <i class="bi bi-check-lg"></i> Accept Order
                     </button>
-                    <button class="kds-action-btn btn-cancel" style="padding:0.5rem 0.75rem;" onclick="cancelOrder(${order.id}, '${order.order_number}', this)" title="Cancel order">
+                    <button class="btn btn-outline-danger btn-sm px-2" onclick="cancelOrder(${order.id}, '${order.order_number}', this)" title="Cancel Order">
                         <i class="bi bi-x-lg"></i>
                     </button>
                 </div>`;
                 break;
             case 'ACCEPTED':
-                actionBtn = `
-                <div class="d-flex gap-2">
-                    <button class="kds-action-btn btn-prepare flex-fill" onclick="updateStatus(${order.id}, 'PREPARING', this)">
-                        <i class="bi bi-fire"></i> Start Cooking
-                    </button>
-                    <button class="kds-action-btn btn-cancel" style="padding:0.5rem 0.75rem;" onclick="cancelOrder(${order.id}, '${order.order_number}', this)" title="Cancel order">
-                        <i class="bi bi-x-lg"></i>
-                    </button>
-                </div>`;
-                break;
             case 'PREPARING':
                 actionBtn = `
-                <button class="kds-action-btn btn-ready" onclick="updateStatus(${order.id}, 'READY', this)">
+                <button class="kds-action-btn kds-btn-ready w-100" onclick="transitionOrderStatus(${order.id}, 'READY', this)">
                     <i class="bi bi-check-circle-fill"></i> Mark Ready to Serve
                 </button>`;
                 break;
             case 'READY':
                 actionBtn = `
-                <button class="kds-action-btn btn-served" onclick="updateStatus(${order.id}, 'SERVED', this)">
+                <button class="kds-action-btn kds-btn-served w-100" onclick="transitionOrderStatus(${order.id}, 'SERVED', this)">
                     <i class="bi bi-check-all"></i> Mark Served at Table
                 </button>`;
                 break;
             case 'SERVED':
                 if (order.payment_status === 'PAID') {
-                    actionBtn = '<div style="text-align:center; color:#22c55e; font-size:0.84rem; font-weight:800; padding:0.4rem;">✓ Paid &amp; Completed</div>';
+                    actionBtn = `<div class="text-center fw-bold text-success small py-1"><i class="bi bi-patch-check-fill"></i> Paid & Completed</div>`;
                 } else {
-                    actionBtn = '<div style="text-align:center; color:#fbbf24; font-size:0.84rem; font-weight:800; padding:0.4rem;">🍽️ Dining · Awaiting Desk Payment</div>';
+                    actionBtn = `<div class="text-center fw-bold text-warning small py-1"><i class="bi bi-clock-history"></i> Dining · Awaiting Desk Payment</div>`;
                 }
                 break;
         }
 
-        const isUnaccepted = (order.order_status === 'ORDER_CREATED');
-
         return `
-        <div class="kds-order-card ${isUnaccepted ? 'new-pulse' : ''}" id="kdsCard${order.id}">
-            <div class="kds-card-header">
+        <div class="kds-order-card ${isUnaccepted ? 'unaccepted-alert' : ''}" id="kdsCard_${order.id}">
+            <div class="d-flex align-items-start justify-content-between mb-2">
                 <div>
-                    <span class="kds-order-id">#${order.order_number}</span>
-                    <div style="font-size:0.8rem; color:#d6c7b9; margin-top:2px;">👤 ${order.customer_name || 'Guest'}</div>
+                    <span class="fw-bold" style="font-size:1.1rem; color:var(--deep-espresso);">#${order.order_number}</span>
+                    <div class="small text-muted">👤 ${order.customer_name || 'Guest'}</div>
                 </div>
-                <div class="text-end">
-                    <span class="kds-table-num">TABLE ${order.table_display || order.table_number}</span>
-                </div>
+                <span class="table-indicator-badge" style="font-size:0.75rem; padding:0.25rem 0.65rem;">
+                    TABLE ${order.table_display || order.table_number}
+                </span>
             </div>
-            <div class="kds-order-time"><i class="bi bi-clock"></i> Placed ${timeAgo}</div>
-            
-            <div class="my-2 py-2" style="border-top:1px solid rgba(255,255,255,0.1); border-bottom:1px solid rgba(255,255,255,0.1);">
-                ${order.items.map(item => `
-                    <div class="kds-item">
-                        <span class="kds-item-name">${item.emoji || '🍽️'} ${item.item_name_snapshot || item.name}</span>
-                        <span class="kds-item-qty">×${item.quantity}</span>
+
+            <div class="small text-muted mb-2"><i class="bi bi-clock"></i> Placed ${timeAgo}</div>
+
+            <div class="py-2 my-2" style="border-top:1px solid rgba(214,184,154,0.3); border-bottom:1px solid rgba(214,184,154,0.3);">
+                ${order.items.map(i => `
+                    <div class="d-flex justify-content-between align-items-center my-1" style="font-size:0.92rem;">
+                        <span class="fw-bold" style="color:var(--deep-espresso);">${i.emoji || '🍽️'} ${i.item_name_snapshot || i.name}</span>
+                        <span class="badge bg-light text-dark border">×${i.quantity}</span>
                     </div>
                 `).join('')}
             </div>
-            
-            ${order.special_instructions ? `<div class="kds-instructions"><i class="bi bi-chat-left-text-fill"></i> Note: ${order.special_instructions}</div>` : ''}
-            
+
+            ${order.special_instructions ? `
+                <div class="p-2 mb-2 rounded small" style="background:rgba(180,83,9,0.1); color:var(--deep-espresso); border:1px dashed var(--tan-accent);">
+                    <i class="bi bi-info-circle-fill text-warning"></i> <strong>Note:</strong> ${order.special_instructions}
+                </div>
+            ` : ''}
+
             <div class="mt-2">
                 ${actionBtn}
             </div>
@@ -455,7 +414,11 @@ function renderColumn(containerId, orderList) {
     }).join('');
 }
 
-async function updateStatus(orderId, newStatus, btn) {
+/* --- ONE-CLICK Request-Locked State Transition --- */
+async function transitionOrderStatus(orderId, targetStatus, btn) {
+    if (isTransitioning[orderId]) return;
+    isTransitioning[orderId] = true;
+
     if (btn) {
         btn.disabled = true;
         btn.innerHTML = '<span class="spinner"></span> Updating...';
@@ -468,29 +431,37 @@ async function updateStatus(orderId, newStatus, btn) {
                 'Content-Type': 'application/json',
                 'X-CSRFToken': CSRF_TOKEN
             },
-            body: JSON.stringify({ status: newStatus })
+            body: JSON.stringify({ status: targetStatus })
         });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || 'Failed to update status');
 
-        if (orders[data.order_number]) {
-            orders[data.order_number].order_status = data.order_status;
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Failed to update order status');
+
+        // Optimistically update memory and re-render
+        if (data.order_number && orders[data.order_number]) {
+            orders[data.order_number].order_status = data.order_status || targetStatus;
+        } else if (data.order && data.order.order_number) {
+            orders[data.order.order_number] = data.order;
         }
+
         renderAllColumns();
-        KitchenAlertManager.checkAndTriggerContinuousAlarm();
+        showToast('success', `Order status updated to ${targetStatus}`);
+
     } catch (err) {
         showToast('error', err.message);
         if (btn) {
             btn.disabled = false;
             btn.textContent = 'Retry';
         }
+    } finally {
+        setTimeout(() => {
+            isTransitioning[orderId] = false;
+        }, 500);
     }
 }
 
 async function cancelOrder(orderId, orderNumber, btn) {
-    if (!confirm(`Are you sure you want to cancel Order #${orderNumber}?`)) {
-        return;
-    }
+    if (!confirm(`Cancel Order #${orderNumber}?`)) return;
 
     if (btn) {
         btn.disabled = true;
@@ -506,13 +477,14 @@ async function cancelOrder(orderId, orderNumber, btn) {
             },
             body: JSON.stringify({ status: 'CANCELLED' })
         });
+
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Failed to cancel order');
 
         delete orders[orderNumber];
         renderAllColumns();
-        KitchenAlertManager.checkAndTriggerContinuousAlarm();
-        showToast('info', `Order #${orderNumber} cancelled`);
+        showToast('info', `Order #${orderNumber} cancelled.`);
+
     } catch (err) {
         showToast('error', err.message);
         if (btn) {
@@ -532,9 +504,10 @@ function getTimeAgo(isoStr) {
 
 function showToast(type, msg) {
     const toast = document.getElementById(type === 'error' ? 'errorToast' : 'successToast');
+    if (!toast) return;
     toast.textContent = msg;
     toast.classList.add('show');
-    setTimeout(() => toast.classList.remove('show'), 3000);
+    setTimeout(() => toast.classList.remove('show'), 3500);
 }
 </script>
 {% endblock %}

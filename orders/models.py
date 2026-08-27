@@ -22,10 +22,10 @@ class Order(models.Model):
         PENDING = 'PENDING', 'Pending'
         PAID = 'PAID', 'Paid'
 
-    # State machine transition rules
+    # State machine transition rules — supports direct one-click acceptance to PREPARING
     VALID_TRANSITIONS = {
-        'ORDER_CREATED': ['ACCEPTED', 'CANCELLED'],
-        'ACCEPTED': ['PREPARING', 'CANCELLED'],
+        'ORDER_CREATED': ['ACCEPTED', 'PREPARING', 'CANCELLED'],
+        'ACCEPTED': ['PREPARING', 'READY', 'CANCELLED'],
         'PREPARING': ['READY', 'CANCELLED'],
         'READY': ['SERVED', 'CANCELLED'],
         'SERVED': ['COMPLETED'],
@@ -41,6 +41,13 @@ class Order(models.Model):
         null=True,
         blank=True,
         related_name='orders'
+    )
+    idempotency_key = models.CharField(
+        max_length=64,
+        blank=True,
+        default='',
+        db_index=True,
+        help_text="Client submission key to prevent duplicate orders on retry/double-click"
     )
     order_status = models.CharField(
         max_length=20,
@@ -98,6 +105,8 @@ class Order(models.Model):
 
     def can_transition_to(self, new_status):
         """Check if the order can transition to the given status."""
+        if self.order_status == new_status:
+            return True
         valid_next = self.VALID_TRANSITIONS.get(self.order_status, [])
         return new_status in valid_next
 

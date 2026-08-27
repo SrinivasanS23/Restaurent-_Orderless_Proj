@@ -1,520 +1,261 @@
-{% extends "base.html" %}
+{% extends 'base.html' %}
 {% load static %}
-{% block title %}Table {{ table_display }} Menu — {{ restaurant_name }}{% endblock %}
-{% block meta_description %}Browse our menu and order directly from Table {{ table_display }} at {{ restaurant_name }}.{% endblock %}
-{% block body_class %}customer-app{% endblock %}
 
-{% block body %}
-{% csrf_token %}
+{% block title %}Menu - Table {{ table_display }} | {{ restaurant_name }}{% endblock %}
 
-<!-- Customer Check-In Modal (Dining Session Initialization) -->
-<div class="modal-backdrop-custom" id="checkinModal" style="display:none;">
-    <div class="checkin-card animate-scale-in">
-        <button type="button" onclick="closeCheckinModal()" class="cart-close" style="position:absolute; top:18px; right:18px;" title="Browse menu first">
-            <i class="bi bi-x-lg"></i>
-        </button>
+{% block content %}
+<!-- =========================================================================
+     APP HEADER
+     ========================================================================= -->
+<header class="app-header">
+    <div class="header-inner">
+        <a href="/" class="brand-logo">
+            <span class="logo-icon">🍽️</span>
+            <span class="logo-text">{{ restaurant_name }}</span>
+        </a>
+        <div class="d-flex align-items-center gap-2">
+            <span class="table-indicator-badge">
+                <i class="bi bi-geo-alt-fill text-warning"></i> Table {{ table_display }}
+            </span>
+            <span id="headerCustName" class="customer-chip" style="display:none;"></span>
+            <button class="btn-premium btn-premium-primary" onclick="toggleCartDrawer()" style="padding: 0.45rem 0.9rem; font-size: 0.85rem;" id="headerCartBtn">
+                <i class="bi bi-cart3"></i>
+                <span id="headerCartCount" class="badge bg-white text-dark ms-1" style="border-radius:10px;">0</span>
+            </button>
+        </div>
+    </div>
+</header>
 
-        <div class="text-center mb-3">
-            <div style="font-size:3rem; margin-bottom:0.25rem; filter:drop-shadow(0 2px 8px rgba(0,0,0,0.1));">🍽️</div>
-            <h2 style="font-family:var(--font-heading); font-weight:900; font-size:1.45rem; color:var(--deepest); margin-bottom:0.35rem; letter-spacing:-0.02em;">Welcome to {{ restaurant_name }}</h2>
-            <div class="table-badge">
-                <i class="bi bi-geo-alt-fill text-danger"></i> Table {{ table_display }}
+<!-- =========================================================================
+     ACTIVE ORDER NOTICE BANNER (IF ONGOING SESSION EXISTS)
+     ========================================================================= -->
+<div id="activeOrderNotice" style="display:none; max-width: 1200px; margin: 1rem auto 0; padding: 0 1.25rem;">
+    <div class="glass-panel p-3 d-flex align-items-center justify-content-between flex-wrap gap-2" style="background: rgba(180, 83, 9, 0.12); border-color: var(--tan-accent);">
+        <div class="d-flex align-items-center gap-2">
+            <span style="font-size: 1.4rem;">🔥</span>
+            <div>
+                <strong style="color: var(--deep-espresso);">Active Order in Progress: <span id="activeOrderNum"></span></strong>
+                <div class="small" style="color: var(--roasted-walnut);">Status: <span id="activeOrderStatus" class="fw-bold"></span> · Awaiting kitchen / payment</div>
             </div>
         </div>
-        
-        <p class="text-muted text-center" style="font-size:0.88rem; margin-bottom:1.4rem; line-height:1.4;">
-            Enter your name &amp; phone to start ordering and receive your digital GST tax invoice.
-        </p>
-        
-        <form id="checkinForm" onsubmit="handleCheckin(event)">
-            <div class="mb-3 text-start">
-                <label class="form-label" style="font-weight:750; font-size:0.85rem; color:var(--deepest); margin-bottom:0.3rem;">
-                    Full Name <span style="color:#e11d48;">*</span>
-                </label>
-                <div class="input-group">
-                    <span class="input-group-text" style="background:#f8f9fa; border-color:var(--border); color:var(--text-muted);"><i class="bi bi-person-fill"></i></span>
-                    <input type="text" class="form-control" id="custName" placeholder="e.g. Arun Kumar" required minlength="2" style="border-color:var(--border); padding:0.7rem 0.9rem; font-size:0.92rem;" autocomplete="name">
-                </div>
-            </div>
-            
-            <div class="mb-4 text-start">
-                <label class="form-label" style="font-weight:750; font-size:0.85rem; color:var(--deepest); margin-bottom:0.3rem;">
-                    Mobile Phone Number <span style="color:#e11d48;">*</span>
-                </label>
-                <div class="input-group">
-                    <span class="input-group-text" style="background:#f8f9fa; border-color:var(--border); font-weight:800; color:var(--dark-brown);">+91</span>
-                    <input type="tel" class="form-control" id="custPhone" placeholder="10-digit mobile number" required maxlength="15" style="border-color:var(--border); padding:0.7rem 0.9rem; font-size:0.92rem;" autocomplete="tel">
-                </div>
-                <small class="text-muted" style="font-size:0.75rem; display:block; margin-top:0.35rem;">Used for payment desk settlement &amp; WhatsApp invoice.</small>
-            </div>
+        <a id="activeOrderLink" href="#" class="btn-premium btn-premium-primary" style="padding: 0.4rem 0.85rem; font-size: 0.82rem;">
+            <i class="bi bi-eye"></i> Track Order
+        </a>
+    </div>
+</div>
 
-            <button type="submit" class="place-order-btn w-100 mb-2" id="checkinBtn">
-                <i class="bi bi-check-circle-fill"></i> Start Dining Session
+<!-- =========================================================================
+     MAIN MENU CONTENT
+     ========================================================================= -->
+<main class="container-xl py-3 px-3" style="max-width: 1200px; margin: 0 auto;">
+    <!-- Search Bar -->
+    <div class="my-3">
+        <div class="glass-panel p-2 d-flex align-items-center gap-2" style="border-radius: var(--radius-full);">
+            <i class="bi bi-search ms-2 text-muted" style="font-size: 1.1rem;"></i>
+            <input type="text" id="foodSearchInput" class="form-control border-0 bg-transparent shadow-none" placeholder="Search dishes, drinks, desserts..." style="color: var(--deep-espresso); font-weight: 600;" oninput="handleSearch(this.value)">
+            <button class="btn btn-sm btn-link text-muted p-0 me-2" id="clearSearchBtn" onclick="clearSearch()" style="display:none;">
+                <i class="bi bi-x-circle-fill"></i>
             </button>
+        </div>
+    </div>
 
-            <button type="button" class="btn btn-link w-100 text-decoration-none text-muted" onclick="closeCheckinModal()" style="font-size:0.84rem; font-weight:700; padding:0.4rem;">
-                <i class="bi bi-eye"></i> Browse Menu First
+    <!-- Category Pills -->
+    <div class="category-nav-wrap">
+        <div class="category-pills" id="categoryPillsContainer">
+            <button class="category-pill active" onclick="selectCategory('all', this)">✨ All Dishes</button>
+        </div>
+    </div>
+
+    <!-- Dish Grid -->
+    <div id="dishGrid" class="dish-grid">
+        <!-- Rendered dynamically by JavaScript -->
+    </div>
+</main>
+
+<!-- =========================================================================
+     FLOATING STICKY MOBILE CART BAR
+     ========================================================================= -->
+<div id="floatingCartBar" class="floating-cart-bar">
+    <div class="floating-cart-info">
+        <span id="floatingCartCount" class="floating-cart-count">0 Items Added</span>
+        <span id="floatingCartTotal" class="floating-cart-total">₹0.00</span>
+    </div>
+    <button class="floating-cart-btn" onclick="toggleCartDrawer()">
+        <span>View Cart</span>
+        <i class="bi bi-arrow-right"></i>
+    </button>
+</div>
+
+<!-- =========================================================================
+     SLIDING CART DRAWER (BOTTOM SHEET)
+     ========================================================================= -->
+<div id="cartDrawerOverlay" class="cart-drawer-overlay" onclick="toggleCartDrawer()"></div>
+
+<aside id="cartDrawer" class="cart-drawer">
+    <div class="drawer-header">
+        <div>
+            <h3 class="m-0" style="font-size: 1.25rem;">Your Order</h3>
+            <span class="small text-muted">Table {{ table_display }} · Dining Session</span>
+        </div>
+        <button class="btn btn-sm btn-light rounded-circle p-2" onclick="toggleCartDrawer()" style="width:36px; height:36px;">
+            <i class="bi bi-x-lg"></i>
+        </button>
+    </div>
+
+    <div class="drawer-body" id="cartItemsContainer">
+        <!-- Cart item rows dynamically populated -->
+    </div>
+
+    <div class="drawer-footer" id="cartFooter" style="display:none;">
+        <div class="mb-3">
+            <label class="form-label small fw-bold text-muted mb-1">Special Cooking Instructions (Optional)</label>
+            <textarea id="specialInstructions" class="form-control form-control-sm" rows="2" placeholder="e.g. Less spicy, extra sauce, allergy info..." maxlength="300" style="border-radius: var(--radius-sm); border: 1px solid var(--glass-border);"></textarea>
+        </div>
+
+        <div class="bill-row">
+            <span>Subtotal</span>
+            <span id="drawerSubtotal" class="fw-bold">₹0.00</span>
+        </div>
+        <div class="bill-row">
+            <span>GST (CGST 2.5% + SGST 2.5%)</span>
+            <span id="drawerGst">₹0.00</span>
+        </div>
+        <div class="bill-row total">
+            <span>Grand Total</span>
+            <span id="drawerTotal">₹0.00</span>
+        </div>
+
+        <div class="desk-payment-notice">
+            <i class="bi bi-credit-card-2-front-fill text-warning" style="font-size: 1.3rem;"></i>
+            <div>
+                <strong>Payment Method: PAY AT PAYMENT DESK</strong>
+                <div class="small" style="opacity:0.85;">Submit your order to kitchen now. Settle bill at counter after dining.</div>
+            </div>
+        </div>
+
+        <button id="sendOrderBtn" class="btn-premium btn-premium-primary w-100" onclick="submitOrder()">
+            <i class="bi bi-fire"></i> Send Order to Kitchen
+        </button>
+    </div>
+</aside>
+
+<!-- =========================================================================
+     WELCOME & CHECK-IN MODAL
+     ========================================================================= -->
+<div id="checkinModal" class="cart-drawer-overlay" style="display:flex; align-items:center; justify-content:center; padding:1.25rem;">
+    <div class="glass-panel p-4" style="background:#ffffff; max-width:440px; width:100%; border-radius:24px; box-shadow: var(--glass-shadow-lg);">
+        <div class="text-center mb-4">
+            <div style="font-size:2.8rem; line-height:1; margin-bottom:0.5rem;">🍽️</div>
+            <h2 style="font-size:1.6rem; color:var(--deep-espresso); margin-bottom:0.25rem;">Welcome to {{ restaurant_name }}</h2>
+            <div class="table-indicator-badge my-1">
+                <i class="bi bi-geo-alt-fill text-warning"></i> Table {{ table_display }}
+            </div>
+            <p class="text-muted small mt-2 mb-0">Please enter your details to start your dining session and receive your GST tax receipt.</p>
+        </div>
+
+        <form id="checkinForm" onsubmit="handleCheckin(event)">
+            <div class="mb-3">
+                <label class="form-label fw-bold small" style="color:var(--deep-espresso);">Full Name <span class="text-danger">*</span></label>
+                <div class="input-group">
+                    <span class="input-group-text bg-light border-end-0"><i class="bi bi-person"></i></span>
+                    <input type="text" id="custName" class="form-control border-start-0" placeholder="e.g. Priya Sharma" minlength="2" maxlength="100" required>
+                </div>
+            </div>
+
+            <div class="mb-4">
+                <label class="form-label fw-bold small" style="color:var(--deep-espresso);">Mobile Phone Number <span class="text-danger">*</span></label>
+                <div class="input-group">
+                    <span class="input-group-text bg-light border-end-0 fw-bold">+91</span>
+                    <input type="tel" id="custPhone" class="form-control border-start-0" placeholder="10-digit mobile number" pattern="[0-9]{10}" maxlength="10" required>
+                </div>
+                <div class="form-text small" style="font-size:0.75rem;">Used exclusively for counter settlement and digital WhatsApp invoice.</div>
+            </div>
+
+            <button type="submit" id="checkinBtn" class="btn-premium btn-premium-primary w-100" style="padding:0.85rem;">
+                <i class="bi bi-check-circle-fill"></i> Start Ordering
             </button>
         </form>
     </div>
 </div>
 
-<!-- Header -->
-<header class="customer-header">
-    <div class="d-flex align-items-center justify-content-between">
-        <div>
-            <div class="restaurant-name">🍽️ {{ restaurant_name }}</div>
-            <div class="d-flex align-items-center gap-2 mt-1">
-                <span class="table-badge"><i class="bi bi-geo-alt-fill text-danger"></i> Table {{ table_display }}</span>
-                <span class="table-badge" id="headerCustName" style="display:none;"></span>
-            </div>
-        </div>
-        <button class="cart-btn" id="cartToggle" onclick="toggleCart()" aria-label="View Cart">
-            <i class="bi bi-bag-fill"></i>
-            <span class="cart-count" id="cartCount">0</span>
-        </button>
-    </div>
-</header>
+<!-- Custom Toast -->
+<div id="successToast" class="toast-custom success"></div>
+<div id="errorToast" class="toast-custom error"></div>
 
-<!-- Active Order Banner (If customer placed an order already) -->
-<div id="activeOrderBanner" class="p-2 p-md-3 text-center animate-fade-in" style="display:none; background:var(--status-new-bg); border-bottom:1px solid rgba(217,119,6,0.3); font-size:0.86rem; color:#92400e;">
-    <div class="d-flex align-items-center justify-content-center gap-2 flex-wrap">
-        <span><i class="bi bi-fire"></i> Active Order <strong id="activeOrderNum"></strong> (<span id="activeOrderStatus" class="fw-bold"></span>)</span>
-        <a href="#" id="activeOrderLink" class="btn btn-sm btn-dark py-1 px-3 fw-bold" style="font-size:0.78rem; border-radius:var(--radius-full);">Track Live Status</a>
-    </div>
-</div>
-
-<!-- Search Section -->
-<div class="search-section">
-    <div class="search-wrapper">
-        <i class="bi bi-search"></i>
-        <input type="text" id="menuSearchInput" placeholder="Search dishes, starters, desserts..." oninput="handleSearch(this.value)">
-    </div>
-</div>
-
-<!-- Category Tabs -->
-<div class="category-bar" id="categoryBar">
-    <div class="category-tab active" data-category="all" onclick="filterCategory('all', this)">
-        ✨ All Dishes
-    </div>
-</div>
-
-<!-- Menu Items Container -->
-<div class="menu-section" id="menuContainer">
-    <!-- Hydrated synchronously from INITIAL_CATEGORIES -->
-</div>
-
-<!-- Floating Bottom Cart Bar -->
-<div class="floating-cart" id="floatingCart" onclick="toggleCart()">
-    <div class="fc-left">
-        <div class="fc-badge" id="fcItems">0 items</div>
-        <div class="fc-total" id="fcTotal">₹0.00</div>
-    </div>
-    <div class="fc-right">
-        <span>View Cart</span>
-        <i class="bi bi-chevron-right"></i>
-    </div>
-</div>
-
-<!-- Sliding Cart Drawer Panel -->
-<div class="cart-overlay" id="cartOverlay" onclick="toggleCart()"></div>
-
-<div class="cart-panel" id="cartPanel">
-    <div class="cart-handle"></div>
-    <div class="cart-header">
-        <div class="cart-title"><i class="bi bi-bag-check"></i> Your Table Cart</div>
-        <button class="cart-close" onclick="toggleCart()"><i class="bi bi-x-lg"></i></button>
-    </div>
-    
-    <div class="cart-body" id="cartBody">
-        <div class="cart-empty">
-            <i class="bi bi-bag-x"></i>
-            <p style="font-weight:700; margin-top:0.6rem; color:var(--deepest);">Your cart is empty</p>
-            <small>Explore our chef specials above and add your favorite dishes.</small>
-        </div>
-    </div>
-    
-    <div class="cart-footer" id="cartFooter" style="display:none;">
-        <div class="cart-instructions">
-            <input type="text" id="specialInstructions" placeholder="Special cooking instructions (e.g. less spicy, extra lemon)..." maxlength="250">
-        </div>
-        
-        <div class="cart-summary-row">
-            <span>Item Subtotal</span>
-            <span id="cartSubtotal">₹0.00</span>
-        </div>
-        <div class="cart-summary-row">
-            <span>GST (5% CGST+SGST)</span>
-            <span id="cartGst">₹0.00</span>
-        </div>
-        <div class="cart-total-row">
-            <span>Grand Total</span>
-            <span id="cartTotal">₹0.00</span>
-        </div>
-        
-        <button class="place-order-btn" id="placeOrderBtn" onclick="placeOrder()">
-            <i class="bi bi-fire"></i> Send Order to Kitchen
-        </button>
-    </div>
-</div>
-
-<!-- Toasts -->
-<div class="error-toast" id="errorToast"></div>
-<div class="success-toast" id="successToast"></div>
-
+<!-- =========================================================================
+     JAVASCRIPT LOGIC
+     ========================================================================= -->
 <script>
-const TABLE_NUMBER = '{{ table_number }}';
-const INITIAL_CATEGORIES = {{ categories_json|default:"[]"|safe }};
+const TABLE_NUMBER = "{{ table_number }}";
+const TABLE_DISPLAY = "{{ table_display }}";
+const CSRF_TOKEN = "{{ csrf_token }}";
+const STORAGE_PREFIX = `orderless_${TABLE_NUMBER}_`;
 
+// Initial embedded menu data for instantaneous 0ms display
+let ALL_CATEGORIES = [];
+try {
+    ALL_CATEGORIES = JSON.parse('{{ categories_json|escapejs }}');
+} catch (e) {
+    ALL_CATEGORIES = [];
+}
+
+let activeCategory = 'all';
+let searchQuery = '';
+let cart = {}; // key: itemId, value: { item, quantity }
 let customerSessionId = null;
 let customerName = null;
 let customerPhone = null;
-let allMenuItems = [];
-let allCategories = [];
-let cart = {};
-let currentCategoryFilter = 'all';
 
+// Initialize on DOM Ready
 document.addEventListener('DOMContentLoaded', () => {
-    // 1. Instant Synchronous Menu Paint (0ms)
-    initMenuFromData(INITIAL_CATEGORIES);
-
-    // 2. Load Cart
-    loadCartFromStorage();
-
-    // 3. Initialize Check-in & Session asynchronously in background
     initCustomerSession();
+    renderCategories();
+    renderDishes();
+    loadCartFromStorage();
 });
 
-function initMenuFromData(categories) {
-    if (!categories || !categories.length) {
-        document.getElementById('menuContainer').innerHTML = '<div class="text-center py-5 text-muted">No menu categories available currently.</div>';
-        return;
-    }
-
-    allCategories = categories;
-    allMenuItems = [];
-    categories.forEach(cat => {
-        if (cat.items) {
-            cat.items.forEach(item => {
-                allMenuItems.push({
-                    ...item,
-                    category_id: cat.id,
-                    category_name: cat.name
-                });
-            });
-        }
-    });
-
-    renderCategoryTabs();
-    renderMenuItems();
-}
-
-function renderCategoryTabs() {
-    const bar = document.getElementById('categoryBar');
-    let html = `<div class="category-tab ${currentCategoryFilter === 'all' ? 'active' : ''}" data-category="all" onclick="filterCategory('all', this)">✨ All Dishes</div>`;
-    
-    allCategories.forEach(cat => {
-        const icon = cat.icon || '🍽️';
-        html += `<div class="category-tab ${currentCategoryFilter == cat.id ? 'active' : ''}" data-category="${cat.id}" onclick="filterCategory('${cat.id}', this)">${icon} ${cat.name}</div>`;
-    });
-
-    bar.innerHTML = html;
-}
-
-function filterCategory(catId, btn) {
-    currentCategoryFilter = catId;
-    document.querySelectorAll('.category-tab').forEach(t => t.classList.remove('active'));
-    if (btn) btn.classList.add('active');
-    renderMenuItems();
-}
-
-function handleSearch(val) {
-    renderMenuItems(val.toLowerCase().trim());
-}
-
-function renderMenuItems(searchTerm = '') {
-    const container = document.getElementById('menuContainer');
-    let itemsToRender = allMenuItems;
-
-    if (currentCategoryFilter !== 'all') {
-        itemsToRender = itemsToRender.filter(i => String(i.category_id) === String(currentCategoryFilter));
-    }
-
-    if (searchTerm) {
-        itemsToRender = itemsToRender.filter(i => 
-            i.name.toLowerCase().includes(searchTerm) || 
-            (i.description && i.description.toLowerCase().includes(searchTerm)) ||
-            (i.category_name && i.category_name.toLowerCase().includes(searchTerm))
-        );
-    }
-
-    if (itemsToRender.length === 0) {
-        container.innerHTML = `
-            <div class="text-center py-5 text-muted">
-                <i class="bi bi-search" style="font-size:2.2rem;color:var(--sand);display:block;margin-bottom:0.5rem;"></i>
-                <p style="font-weight:700;color:var(--deepest);">No dishes found</p>
-                <small>Try a different keyword or explore all categories.</small>
-            </div>`;
-        return;
-    }
-
-    // Group by category if viewing all and not searching
-    if (currentCategoryFilter === 'all' && !searchTerm) {
-        let html = '';
-        allCategories.forEach(cat => {
-            const catItems = itemsToRender.filter(i => i.category_id === cat.id);
-            if (catItems.length > 0) {
-                html += `<div class="category-section-title">${cat.icon || '🍽️'} ${cat.name}</div>`;
-                catItems.forEach(item => {
-                    html += buildMenuItemCard(item);
-                });
-            }
-        });
-        container.innerHTML = html;
-    } else {
-        container.innerHTML = itemsToRender.map(item => buildMenuItemCard(item)).join('');
-    }
-}
-
-function buildMenuItemCard(item) {
-    const inCart = cart[item.id];
-    const qty = inCart ? inCart.quantity : 0;
-
-    const badgeHtml = item.is_veg ? '<span class="badge-veg" title="Vegetarian"></span>' : '<span class="badge-nonveg" title="Non-Vegetarian"></span>';
-    const bestsellerHtml = item.is_bestseller ? '<span class="badge-bestseller">⭐ BESTSELLER</span>' : '';
-
-    let actionBtnHtml = '';
-    if (qty > 0) {
-        actionBtnHtml = `
-        <div class="qty-control">
-            <button class="qty-btn" onclick="updateItemQuantity(${item.id}, -1)">−</button>
-            <span class="qty-value">${qty}</span>
-            <button class="qty-btn" onclick="updateItemQuantity(${item.id}, 1)">+</button>
-        </div>`;
-    } else {
-        actionBtnHtml = `<button class="add-btn" onclick="addToCart(${item.id})"><i class="bi bi-plus-lg"></i> ADD</button>`;
-    }
-
-    return `
-    <div class="menu-card animate-fade-in" id="itemCard${item.id}">
-        <div class="menu-card-emoji">${item.emoji || '🍽️'}</div>
-        <div class="menu-card-info">
-            <div class="menu-card-name">
-                ${badgeHtml}
-                <span>${item.name}</span>
-                ${bestsellerHtml}
-            </div>
-            ${item.description ? `<div class="menu-card-desc">${item.description}</div>` : ''}
-            <div class="menu-card-bottom">
-                <div class="menu-card-price">₹${parseFloat(item.price).toFixed(2)}</div>
-                <div id="itemAction${item.id}">
-                    ${actionBtnHtml}
-                </div>
-            </div>
-        </div>
-    </div>`;
-}
-
-function addToCart(itemId) {
-    const item = allMenuItems.find(i => i.id === itemId);
-    if (!item) return;
-
-    if (!cart[itemId]) {
-        cart[itemId] = {
-            item: item,
-            quantity: 1,
-            special_instructions: ''
-        };
-    } else {
-        cart[itemId].quantity += 1;
-    }
-
-    saveCartToStorage();
-    updateCartUI();
-    refreshItemCardAction(itemId);
-    showToast('success', `Added ${item.name} to cart`);
-}
-
-function updateItemQuantity(itemId, delta) {
-    if (!cart[itemId]) return;
-    cart[itemId].quantity += delta;
-
-    if (cart[itemId].quantity <= 0) {
-        delete cart[itemId];
-    }
-
-    saveCartToStorage();
-    updateCartUI();
-    refreshItemCardAction(itemId);
-}
-
-function removeItemFromCart(itemId) {
-    if (cart[itemId]) {
-        delete cart[itemId];
-        saveCartToStorage();
-        updateCartUI();
-        refreshItemCardAction(itemId);
-    }
-}
-
-function refreshItemCardAction(itemId) {
-    const el = document.getElementById(`itemAction${itemId}`);
-    if (!el) return;
-
-    const item = allMenuItems.find(i => i.id === itemId);
-    if (!item) return;
-
-    const inCart = cart[itemId];
-    const qty = inCart ? inCart.quantity : 0;
-
-    if (qty > 0) {
-        el.innerHTML = `
-        <div class="qty-control">
-            <button class="qty-btn" onclick="updateItemQuantity(${item.id}, -1)">−</button>
-            <span class="qty-value">${qty}</span>
-            <button class="qty-btn" onclick="updateItemQuantity(${item.id}, 1)">+</button>
-        </div>`;
-    } else {
-        el.innerHTML = `<button class="add-btn" onclick="addToCart(${item.id})"><i class="bi bi-plus-lg"></i> ADD</button>`;
-    }
-}
-
-function saveCartToStorage() {
-    sessionStorage.setItem(`orderless_cart_${TABLE_NUMBER}`, JSON.stringify(cart));
-}
-
-function loadCartFromStorage() {
-    try {
-        const saved = sessionStorage.getItem(`orderless_cart_${TABLE_NUMBER}`);
-        if (saved) {
-            cart = JSON.parse(saved);
-            updateCartUI();
-        }
-    } catch (e) {
-        cart = {};
-    }
-}
-
-function updateCartUI() {
-    const items = Object.values(cart);
-    const totalCount = items.reduce((acc, i) => acc + i.quantity, 0);
-
-    let subtotal = 0;
-    items.forEach(i => {
-        subtotal += parseFloat(i.item.price) * i.quantity;
-    });
-
-    // 5% GST (2.5% CGST + 2.5% SGST)
-    const gstAmount = Math.round(subtotal * 0.05 * 100) / 100;
-    const grandTotal = subtotal + gstAmount;
-
-    // Header badge
-    const badge = document.getElementById('cartCount');
-    if (totalCount > 0) {
-        badge.textContent = totalCount;
-        badge.style.display = 'flex';
-    } else {
-        badge.style.display = 'none';
-    }
-
-    // Floating bar
-    const floatBar = document.getElementById('floatingCart');
-    if (totalCount > 0) {
-        document.getElementById('fcItems').textContent = `${totalCount} item${totalCount > 1 ? 's' : ''}`;
-        document.getElementById('fcTotal').textContent = `₹${grandTotal.toFixed(2)}`;
-        floatBar.classList.add('visible');
-    } else {
-        floatBar.classList.remove('visible');
-    }
-
-    // Cart Panel List
-    const cartBody = document.getElementById('cartBody');
-    const cartFooter = document.getElementById('cartFooter');
-
-    if (items.length === 0) {
-        cartBody.innerHTML = `
-            <div class="cart-empty">
-                <i class="bi bi-bag-x"></i>
-                <p style="font-weight:700;margin-top:0.6rem;color:var(--deepest);">Your cart is empty</p>
-                <small>Explore the menu above and add your favorite dishes.</small>
-            </div>`;
-        cartFooter.style.display = 'none';
-    } else {
-        cartBody.innerHTML = items.map(cartItem => `
-            <div class="cart-item">
-                <div class="cart-item-emoji">${cartItem.item.emoji || '🍽️'}</div>
-                <div class="cart-item-info">
-                    <div class="cart-item-name">${cartItem.item.name}</div>
-                    <div class="cart-item-price">₹${parseFloat(cartItem.item.price).toFixed(2)} × ${cartItem.quantity} = ₹${(parseFloat(cartItem.item.price) * cartItem.quantity).toFixed(2)}</div>
-                </div>
-                <div class="qty-control">
-                    <button class="qty-btn" onclick="updateItemQuantity(${cartItem.item.id}, -1)">−</button>
-                    <span class="qty-value">${cartItem.quantity}</span>
-                    <button class="qty-btn" onclick="updateItemQuantity(${cartItem.item.id}, 1)">+</button>
-                </div>
-                <button class="cart-item-remove" onclick="removeItemFromCart(${cartItem.item.id})" title="Remove item">
-                    <i class="bi bi-trash"></i>
-                </button>
-            </div>
-        `).join('');
-
-        document.getElementById('cartSubtotal').textContent = `₹${subtotal.toFixed(2)}`;
-        document.getElementById('cartGst').textContent = `₹${gstAmount.toFixed(2)}`;
-        document.getElementById('cartTotal').textContent = `₹${grandTotal.toFixed(2)}`;
-        cartFooter.style.display = 'block';
-    }
-}
-
-function toggleCart() {
-    const overlay = document.getElementById('cartOverlay');
-    const panel = document.getElementById('cartPanel');
-    const isOpen = panel.classList.contains('active');
-
-    if (isOpen) {
-        overlay.classList.remove('active');
-        panel.classList.remove('active');
-    } else {
-        overlay.classList.add('active');
-        panel.classList.add('active');
-    }
-}
-
 /* =========================================================================
-   CUSTOMER SESSION & CHECK-IN
+   SESSION & ISOLATION MANAGEMENT
    ========================================================================= */
 async function initCustomerSession() {
-    // 1. Check local session storage
-    const savedToken = sessionStorage.getItem('orderless_session_token');
-    const savedName = sessionStorage.getItem('orderless_customer_name');
-    const savedPhone = sessionStorage.getItem('orderless_customer_phone');
+    // 1. Read table-scoped session storage
+    const savedToken = sessionStorage.getItem(`${STORAGE_PREFIX}session_token`);
+    const savedName = sessionStorage.getItem(`${STORAGE_PREFIX}customer_name`);
+    const savedPhone = sessionStorage.getItem(`${STORAGE_PREFIX}customer_phone`);
 
-    if (savedToken && savedName) {
-        customerSessionId = savedToken;
-        customerName = savedName;
-        customerPhone = savedPhone;
-        updateHeaderWithCustomer(savedName);
-    }
-
-    // 2. Validate table status from backend
+    // 2. Validate with backend
     try {
-        const res = await fetch(`/api/tables/${TABLE_NUMBER}/session-status/`);
+        const url = savedToken 
+            ? `/api/tables/${TABLE_NUMBER}/session-status/?session_id=${encodeURIComponent(savedToken)}`
+            : `/api/tables/${TABLE_NUMBER}/session-status/`;
+        
+        const res = await fetch(url);
         if (res.ok) {
             const data = await res.json();
-            if (data.has_active_session) {
-                if (data.session_id === customerSessionId) {
-                    if (data.active_orders && data.active_orders.length > 0) {
-                        showActiveOrderBanner(data.active_orders[0]);
-                    }
+            
+            if (data.is_active_session && savedToken && data.session_id === savedToken) {
+                customerSessionId = savedToken;
+                customerName = data.customer_name || savedName;
+                customerPhone = savedPhone;
+                updateHeaderWithCustomer(customerName);
+                hideCheckinModal();
+
+                if (data.active_order_number) {
+                    showActiveOrderBanner(data.active_order_number, data.order_status_display || data.order_status);
                 }
             } else {
-                // Fresh table, if no local session, show checkin modal
-                if (!customerSessionId) {
-                    showCheckinModal();
-                }
+                // Table is fresh or session was settled/closed -> wipe old state
+                clearLocalSession();
+                showCheckinModal();
             }
+        } else {
+            showCheckinModal();
         }
-    } catch (e) {
-        console.warn('Session status check error:', e);
+    } catch (err) {
+        console.warn('Session verification warning:', err);
+        if (!savedToken) {
+            showCheckinModal();
+        }
     }
 }
 
@@ -522,44 +263,58 @@ function showCheckinModal() {
     document.getElementById('checkinModal').style.display = 'flex';
 }
 
-function closeCheckinModal() {
+function hideCheckinModal() {
     document.getElementById('checkinModal').style.display = 'none';
 }
 
+function clearLocalSession() {
+    customerSessionId = null;
+    customerName = null;
+    customerPhone = null;
+    sessionStorage.removeItem(`${STORAGE_PREFIX}session_token`);
+    sessionStorage.removeItem(`${STORAGE_PREFIX}customer_name`);
+    sessionStorage.removeItem(`${STORAGE_PREFIX}customer_phone`);
+    document.getElementById('custName').value = '';
+    document.getElementById('custPhone').value = '';
+    const nameChip = document.getElementById('headerCustName');
+    if (nameChip) nameChip.style.display = 'none';
+}
+
 function updateHeaderWithCustomer(name) {
-    const el = document.getElementById('headerCustName');
-    if (el && name) {
-        el.textContent = `👤 ${name}`;
-        el.style.display = 'inline-flex';
+    const nameChip = document.getElementById('headerCustName');
+    if (nameChip && name) {
+        nameChip.textContent = `👤 ${name}`;
+        nameChip.style.display = 'inline-flex';
     }
 }
 
-function showActiveOrderBanner(order) {
-    const banner = document.getElementById('activeOrderBanner');
-    document.getElementById('activeOrderNum').textContent = `#${order.order_number}`;
-    document.getElementById('activeOrderStatus').textContent = order.order_status_display || order.order_status;
-    document.getElementById('activeOrderLink').href = `/order/track/${order.order_number}/`;
-    banner.style.display = 'block';
+function showActiveOrderBanner(orderNumber, statusDisplay) {
+    const banner = document.getElementById('activeOrderNotice');
+    if (banner) {
+        document.getElementById('activeOrderNum').textContent = `#${orderNumber}`;
+        document.getElementById('activeOrderStatus').textContent = statusDisplay;
+        document.getElementById('activeOrderLink').href = `/order/track/${orderNumber}/`;
+        banner.style.display = 'block';
+    }
 }
 
 async function handleCheckin(e) {
     e.preventDefault();
-    const name = document.getElementById('custName').value.trim();
-    const rawPhone = document.getElementById('custPhone').value.trim();
-    const cleanPhone = rawPhone.replace(/[^0-9]/g, '');
+    const nameInput = document.getElementById('custName').value.trim();
+    const phoneInput = document.getElementById('custPhone').value.trim().replace(/[^0-9]/g, '');
 
-    if (!name || name.length < 2) {
+    if (!nameInput || nameInput.length < 2) {
         showToast('error', 'Please enter your full name (at least 2 characters).');
         return;
     }
-    if (!cleanPhone || cleanPhone.length < 10) {
+    if (!phoneInput || phoneInput.length < 10) {
         showToast('error', 'Please enter a valid 10-digit mobile number.');
         return;
     }
 
     const btn = document.getElementById('checkinBtn');
     btn.disabled = true;
-    btn.innerHTML = '<span class="spinner"></span> Starting Dining Session...';
+    btn.innerHTML = '<span class="spinner"></span> Starting Session...';
 
     try {
         const res = await fetch('/api/tables/checkin/', {
@@ -567,71 +322,322 @@ async function handleCheckin(e) {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 table_number: TABLE_NUMBER,
-                table_id: TABLE_NUMBER,
-                customer_name: name,
-                name: name,
-                customer_phone: cleanPhone,
-                phone: cleanPhone
+                customer_name: nameInput,
+                customer_phone: phoneInput
             })
         });
 
         const data = await res.json();
         if (!res.ok) {
-            let errorMsg = data.error || 'Failed to initialize session.';
-            if (data.details) {
-                const firstDetail = Object.values(data.details)[0];
-                if (Array.isArray(firstDetail)) errorMsg = firstDetail[0];
-                else if (typeof firstDetail === 'string') errorMsg = firstDetail;
-            }
-            throw new Error(errorMsg);
+            throw new Error(data.error || 'Failed to initialize session.');
         }
 
-        customerSessionId = data.session_id || data.session_token || data.customer_session_id;
-        customerName = data.customer_name || name;
-        customerPhone = `+91${cleanPhone.slice(-10)}`;
+        customerSessionId = data.session_id || data.session_token;
+        customerName = data.customer_name || nameInput;
+        customerPhone = `+91${phoneInput.slice(-10)}`;
 
-        sessionStorage.setItem('orderless_session_token', customerSessionId);
-        sessionStorage.setItem('orderless_customer_name', customerName);
-        sessionStorage.setItem('orderless_customer_phone', customerPhone);
+        // Save table-scoped session
+        sessionStorage.setItem(`${STORAGE_PREFIX}session_token`, customerSessionId);
+        sessionStorage.setItem(`${STORAGE_PREFIX}customer_name`, customerName);
+        sessionStorage.setItem(`${STORAGE_PREFIX}customer_phone`, customerPhone);
 
         updateHeaderWithCustomer(customerName);
-        closeCheckinModal();
-        showToast('success', `Welcome ${customerName}! Your table is ready.`);
+        hideCheckinModal();
+        showToast('success', `Welcome ${customerName}! Start browsing dishes.`);
 
     } catch (err) {
         showToast('error', err.message);
     } finally {
         btn.disabled = false;
-        btn.innerHTML = '<i class="bi bi-check-circle-fill"></i> Start Dining Session';
+        btn.innerHTML = '<i class="bi bi-check-circle-fill"></i> Start Ordering';
     }
 }
 
-async function placeOrder() {
+/* =========================================================================
+   MENU RENDERING & SEARCH
+   ========================================================================= */
+function renderCategories() {
+    const container = document.getElementById('categoryPillsContainer');
+    if (!ALL_CATEGORIES || ALL_CATEGORIES.length === 0) return;
+
+    let html = `<button class="category-pill ${activeCategory === 'all' ? 'active' : ''}" onclick="selectCategory('all', this)">✨ All Dishes</button>`;
+    ALL_CATEGORIES.forEach(cat => {
+        html += `<button class="category-pill ${activeCategory === cat.id ? 'active' : ''}" onclick="selectCategory(${cat.id}, this)">${cat.name}</button>`;
+    });
+    container.innerHTML = html;
+}
+
+function selectCategory(catId, btn) {
+    activeCategory = catId;
+    document.querySelectorAll('.category-pill').forEach(b => b.classList.remove('active'));
+    if (btn) btn.classList.add('active');
+    renderDishes();
+}
+
+function handleSearch(val) {
+    searchQuery = val.trim().toLowerCase();
+    const clearBtn = document.getElementById('clearSearchBtn');
+    if (clearBtn) clearBtn.style.display = searchQuery ? 'inline-block' : 'none';
+    renderDishes();
+}
+
+function clearSearch() {
+    document.getElementById('foodSearchInput').value = '';
+    handleSearch('');
+}
+
+function renderDishes() {
+    const grid = document.getElementById('dishGrid');
+    let allItems = [];
+
+    ALL_CATEGORIES.forEach(cat => {
+        if (activeCategory === 'all' || activeCategory === cat.id) {
+            if (cat.items) {
+                cat.items.forEach(item => {
+                    if (item.available) {
+                        allItems.push(item);
+                    }
+                });
+            }
+        }
+    });
+
+    if (searchQuery) {
+        allItems = allItems.filter(item => 
+            item.name.toLowerCase().includes(searchQuery) ||
+            (item.description && item.description.toLowerCase().includes(searchQuery))
+        );
+    }
+
+    if (allItems.length === 0) {
+        grid.innerHTML = `
+            <div class="glass-panel text-center py-5 px-3" style="grid-column: 1 / -1;">
+                <div style="font-size:2.5rem; opacity:0.4;">🍽️</div>
+                <h4 class="mt-2" style="color:var(--deep-espresso);">No Dishes Found</h4>
+                <p class="text-muted small">Try searching with a different keyword or selecting another category.</p>
+            </div>`;
+        return;
+    }
+
+    grid.innerHTML = allItems.map(item => {
+        const qtyInCart = cart[item.id] ? cart[item.id].quantity : 0;
+        const isVeg = item.is_vegetarian;
+        const isBestseller = item.is_bestseller;
+
+        return `
+        <div class="dish-card" id="dishCard_${item.id}">
+            <div>
+                <div class="dish-header">
+                    <span class="dish-emoji">${item.emoji || '🍽️'}</span>
+                    <div class="dish-badges">
+                        ${isVeg 
+                            ? '<span class="badge-diet-veg"><i class="bi bi-circle-fill" style="font-size:0.5rem;"></i> Veg</span>' 
+                            : '<span class="badge-diet-nonveg"><i class="bi bi-triangle-fill" style="font-size:0.5rem;"></i> Non-Veg</span>'}
+                        ${isBestseller ? '<span class="badge-bestseller"><i class="bi bi-star-fill"></i> Bestseller</span>' : ''}
+                    </div>
+                </div>
+                <h3 class="dish-name">${item.name}</h3>
+                <p class="dish-desc">${item.description || 'Prepared fresh with premium ingredients by our chef.'}</p>
+            </div>
+
+            <div class="dish-footer">
+                <span class="dish-price">₹${parseFloat(item.price).toFixed(2)}</span>
+                <div id="actionContainer_${item.id}">
+                    ${qtyInCart > 0 
+                        ? renderStepperHtml(item.id, qtyInCart) 
+                        : `<button class="add-btn" onclick="addToCart(${item.id})"><i class="bi bi-plus-lg"></i> ADD</button>`
+                    }
+                </div>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+function renderStepperHtml(itemId, qty) {
+    return `
+    <div class="stepper-wrap">
+        <button class="stepper-btn" onclick="changeQuantity(${itemId}, -1)">−</button>
+        <span class="stepper-qty">${qty}</span>
+        <button class="stepper-btn" onclick="changeQuantity(${itemId}, 1)">+</button>
+    </div>`;
+}
+
+/* =========================================================================
+   CART & ORDERING
+   ========================================================================= */
+function findMenuItem(itemId) {
+    for (const cat of ALL_CATEGORIES) {
+        if (cat.items) {
+            const found = cat.items.find(i => i.id === itemId);
+            if (found) return found;
+        }
+    }
+    return null;
+}
+
+function addToCart(itemId) {
+    const item = findMenuItem(itemId);
+    if (!item) return;
+
+    cart[itemId] = { item, quantity: 1 };
+    saveCartToStorage();
+    updateDishCardAction(itemId, 1);
+    updateCartUI();
+    showToast('success', `Added ${item.name} to cart`);
+}
+
+function changeQuantity(itemId, delta) {
+    if (!cart[itemId]) return;
+
+    cart[itemId].quantity += delta;
+    if (cart[itemId].quantity <= 0) {
+        delete cart[itemId];
+        updateDishCardAction(itemId, 0);
+    } else {
+        updateDishCardAction(itemId, cart[itemId].quantity);
+    }
+
+    saveCartToStorage();
+    updateCartUI();
+}
+
+function updateDishCardAction(itemId, qty) {
+    const container = document.getElementById(`actionContainer_${itemId}`);
+    if (!container) return;
+
+    if (qty > 0) {
+        container.innerHTML = renderStepperHtml(itemId, qty);
+    } else {
+        container.innerHTML = `<button class="add-btn" onclick="addToCart(${itemId})"><i class="bi bi-plus-lg"></i> ADD</button>`;
+    }
+}
+
+function updateCartUI() {
+    const items = Object.values(cart);
+    const totalCount = items.reduce((sum, i) => sum + i.quantity, 0);
+    let subtotal = 0;
+
+    items.forEach(i => {
+        subtotal += parseFloat(i.item.price) * i.quantity;
+    });
+
+    const gstAmount = subtotal * 0.05;
+    const grandTotal = subtotal + gstAmount;
+
+    // 1. Header Cart Badge
+    document.getElementById('headerCartCount').textContent = totalCount;
+
+    // 2. Floating Mobile Bar
+    const floatingBar = document.getElementById('floatingCartBar');
+    if (totalCount > 0) {
+        floatingBar.classList.add('active');
+        document.getElementById('floatingCartCount').textContent = `${totalCount} Item${totalCount > 1 ? 's' : ''} Added`;
+        document.getElementById('floatingCartTotal').textContent = `₹${grandTotal.toFixed(2)}`;
+    } else {
+        floatingBar.classList.remove('active');
+    }
+
+    // 3. Cart Drawer Items & Summary
+    const container = document.getElementById('cartItemsContainer');
+    const footer = document.getElementById('cartFooter');
+
+    if (items.length === 0) {
+        container.innerHTML = `
+            <div class="text-center py-5 text-muted">
+                <i class="bi bi-cart-x" style="font-size:3rem; opacity:0.35; display:block; margin-bottom:8px;"></i>
+                <h5>Your Cart is Empty</h5>
+                <p class="small">Add some delicious dishes from the menu above.</p>
+            </div>`;
+        footer.style.display = 'none';
+    } else {
+        container.innerHTML = items.map(i => `
+            <div class="cart-item-row">
+                <div class="cart-item-details">
+                    <div class="cart-item-name">${i.item.emoji || '🍽️'} ${i.item.name}</div>
+                    <div class="cart-item-price">₹${parseFloat(i.item.price).toFixed(2)} × ${i.quantity} = <strong>₹${(parseFloat(i.item.price) * i.quantity).toFixed(2)}</strong></div>
+                </div>
+                <div class="stepper-wrap">
+                    <button class="stepper-btn" onclick="changeQuantity(${i.item.id}, -1)">−</button>
+                    <span class="stepper-qty">${i.quantity}</span>
+                    <button class="stepper-btn" onclick="changeQuantity(${i.item.id}, 1)">+</button>
+                </div>
+                <button class="btn btn-sm text-danger ms-1 p-1" onclick="changeQuantity(${i.item.id}, -${i.quantity})" title="Remove">
+                    <i class="bi bi-trash"></i>
+                </button>
+            </div>
+        `).join('');
+
+        document.getElementById('drawerSubtotal').textContent = `₹${subtotal.toFixed(2)}`;
+        document.getElementById('drawerGst').textContent = `₹${gstAmount.toFixed(2)}`;
+        document.getElementById('drawerTotal').textContent = `₹${grandTotal.toFixed(2)}`;
+        footer.style.display = 'block';
+    }
+}
+
+function toggleCartDrawer() {
+    const overlay = document.getElementById('cartDrawerOverlay');
+    const drawer = document.getElementById('cartDrawer');
+    const isActive = drawer.classList.contains('active');
+
+    if (isActive) {
+        overlay.classList.remove('active');
+        drawer.classList.remove('active');
+    } else {
+        overlay.classList.add('active');
+        drawer.classList.add('active');
+    }
+}
+
+function saveCartToStorage() {
+    sessionStorage.setItem(`${STORAGE_PREFIX}cart`, JSON.stringify(cart));
+}
+
+function loadCartFromStorage() {
+    try {
+        const saved = sessionStorage.getItem(`${STORAGE_PREFIX}cart`);
+        if (saved) {
+            cart = JSON.parse(saved);
+            updateCartUI();
+            // Re-render dish cards to show stepper state
+            renderDishes();
+        }
+    } catch (e) {
+        cart = {};
+    }
+}
+
+/* =========================================================================
+   ORDER SUBMISSION
+   ========================================================================= */
+async function submitOrder() {
     const items = Object.values(cart);
     if (items.length === 0) {
-        showToast('error', 'Please add dishes to your cart first.');
+        showToast('error', 'Your cart is empty. Please add dishes.');
         return;
     }
 
     if (!customerSessionId) {
+        toggleCartDrawer();
         showCheckinModal();
         return;
     }
 
-    const btn = document.getElementById('placeOrderBtn');
+    const btn = document.getElementById('sendOrderBtn');
     btn.disabled = true;
-    btn.innerHTML = '<span class="spinner"></span> Sending Order to Kitchen...';
+    btn.innerHTML = '<span class="spinner"></span> Sending to Kitchen...';
 
-    const specialInstructions = document.getElementById('specialInstructions').value.trim();
+    // Generate unique client idempotency key for this submission
+    const idempotencyKey = `idem_${TABLE_NUMBER}_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+    const instructions = document.getElementById('specialInstructions').value.trim();
 
-    const orderPayload = {
+    const payload = {
         table_number: TABLE_NUMBER,
         customer_session_id: customerSessionId,
-        special_instructions: specialInstructions,
+        idempotency_key: idempotencyKey,
+        special_instructions: instructions,
         items: items.map(i => ({
             menu_item_id: i.item.id,
-            quantity: i.quantity,
-            special_instructions: i.special_instructions || ''
+            quantity: i.quantity
         }))
     };
 
@@ -639,30 +645,27 @@ async function placeOrder() {
         const res = await fetch('/api/orders/create/', {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'X-CSRFToken': CSRF_TOKEN
             },
-            body: JSON.stringify(orderPayload)
+            body: JSON.stringify(payload)
         });
 
-        let data = {};
-        try {
-            data = await res.json();
-        } catch (e) {}
-
+        const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Failed to place order.');
 
-        // Clear Cart
+        // Wipe Cart
         cart = {};
         saveCartToStorage();
         updateCartUI();
-        toggleCart();
+        toggleCartDrawer();
 
-        showToast('success', `Order #${data.order_number} sent to kitchen!`);
-        
-        // Sequential redirect directly to live order tracking
+        showToast('success', `Order #${data.order_number} received by kitchen!`);
+
+        // Smooth redirect to tracking page
         setTimeout(() => {
             window.location.href = `/order/track/${data.order_number}/`;
-        }, 800);
+        }, 700);
 
     } catch (err) {
         showToast('error', err.message);
@@ -671,8 +674,12 @@ async function placeOrder() {
     }
 }
 
+/* =========================================================================
+   TOAST HELPER
+   ========================================================================= */
 function showToast(type, msg) {
     const toast = document.getElementById(type === 'error' ? 'errorToast' : 'successToast');
+    if (!toast) return;
     toast.textContent = msg;
     toast.classList.add('show');
     setTimeout(() => toast.classList.remove('show'), 3500);

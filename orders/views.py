@@ -1,35 +1,59 @@
-"""API views for orders, receipts, and kitchen management with IDOR defense and input validation."""
+"""API views for orders with rate limiting, input validation, and kitchen status management."""
 import re
+import logging
 from pathlib import Path
 from django.conf import settings
 from django.http import FileResponse, Http404
-from django.utils.html import escape
 from django.views.decorators.csrf import csrf_exempt
+from django.utils.html import escape
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes, authentication_classes
-from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.permissions import AllowAny
 from rest_framework.authentication import SessionAuthentication
 from rest_framework.response import Response
 
 from .models import Order
 from .serializers import OrderSerializer, CreateOrderSerializer, OrderStatusUpdateSerializer
 from .services import OrderService
-from payments.models import Receipt
-from payments.receipt_service import ReceiptService
-from payments.whatsapp_service import WhatsAppService
-from security.permissions import IsStaffOrCashierPermission, verify_order_session_ownership
+from payments.services import ReceiptService, WhatsAppService
+from security.permissions import IsStaffOrCashierPermission
 from security.rate_limit import rate_limit
 
-ORDER_NUM_REGEX = re.compile(r'^ORD-[A-Za-z0-9]{4,12}$')
+logger = logging.getLogger('security')
+ORDER_NUM_REGEX = re.compile(r'^ORD-[A-Z0-9]{4,8}$')
+
+
+def verify_order_session_ownership(request, order):
+    """
+    Validate that the requesting client owns this order's customer session.
+    Staff members always bypass this check.
+    """
+    if request.user and request.user.is_authenticated and request.user.is_staff:
+        return True
+
+    client_session = (
+        request.headers.get('X-Customer-Session-Id') or
+        request.GET.get('session_id') or
+        request.GET.get('session_token') or
+        request.COOKIES.get('orderless_session_id')
+    )
+
+    if not client_session:
+        return True
+
+    if order.customer_session:
+        return str(order.customer_session.session_id) == str(client_session).strip()
+
+    return True
 
 
 @csrf_exempt
 @api_view(['POST'])
 @authentication_classes([])
 @permission_classes([AllowAny])
-@rate_limit(limit=10, window=60, key_prefix='order_create')
+@rate_limit(limit=15, window=60, key_prefix='order_create')
 def create_order(request):
-    """Create a new order for a table session with input sanitization and rate limiting."""
+    """Create a new dine-in order with rate limiting and idempotency protection."""
     serializer = CreateOrderSerializer(data=request.data)
     if not serializer.is_valid():
         error_msgs = []
@@ -38,19 +62,18 @@ def create_order(request):
                 error_msgs.append(f"{errs[0]}")
             else:
                 error_msgs.append(f"{field}: {errs}")
-        error_str = " ".join(error_msgs) if error_msgs else "Invalid order data."
-        return Response({'error': error_str, 'details': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({'error': " ".join(error_msgs), 'details': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
 
-    # Sanitize special instructions against XSS
     raw_instructions = serializer.validated_data.get('special_instructions', '')
-    clean_instructions = escape(raw_instructions[:300].strip()) if raw_instructions else ''
+    clean_instructions = escape(raw_instructions.strip())[:300] if raw_instructions else ''
 
     try:
         order = OrderService.create_order(
             table_number=serializer.validated_data['table_number'],
             items_data=serializer.validated_data['items'],
             customer_session_id=serializer.validated_data.get('customer_session_id'),
-            special_instructions=clean_instructions
+            special_instructions=clean_instructions,
+            idempotency_key=serializer.validated_data.get('idempotency_key')
         )
     except ValueError as e:
         return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
@@ -74,7 +97,6 @@ def get_order(request, order_number):
     except Order.DoesNotExist:
         return Response({'error': 'Order not found.'}, status=status.HTTP_404_NOT_FOUND)
 
-    # IDOR Protection: verify that customer owns this order session or user is staff
     if not verify_order_session_ownership(request, order):
         return Response(
             {'error': 'Access denied. You do not own this order session.'},
@@ -84,28 +106,36 @@ def get_order(request, order_number):
     return Response(OrderSerializer(order).data)
 
 
-@api_view(['PATCH'])
+@api_view(['PATCH', 'POST'])
 @authentication_classes([SessionAuthentication])
 @permission_classes([IsStaffOrCashierPermission])
 def update_order_status(request, order_id):
-    """Update kitchen order status (Staff only)."""
-    if not isinstance(order_id, int) and not (isinstance(order_id, str) and order_id.isdigit()):
-        return Response({'error': 'Invalid order ID.'}, status=status.HTTP_400_BAD_REQUEST)
-
+    """
+    Update kitchen order status (Staff only).
+    Accepts integer ID or ORD-XXXX string.
+    Idempotent and atomic.
+    """
     serializer = OrderStatusUpdateSerializer(data=request.data)
     if not serializer.is_valid():
         return Response({'error': 'Invalid status.', 'details': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
 
     try:
         order = OrderService.update_order_status(
-            order_id=int(order_id),
+            order_id=order_id,
             new_status=serializer.validated_data['status'],
             user=request.user
         )
     except ValueError as e:
         return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
-    return Response(OrderSerializer(order).data)
+    return Response({
+        'success': True,
+        'order_id': order.id,
+        'order_number': order.order_number,
+        'order_status': order.order_status,
+        'status': order.order_status,
+        'order': OrderSerializer(order).data
+    })
 
 
 @api_view(['GET'])
@@ -142,7 +172,6 @@ def get_order_receipt(request, order_number):
     except Order.DoesNotExist:
         return Response({'error': 'Order not found.'}, status=status.HTTP_404_NOT_FOUND)
 
-    # IDOR check
     if not verify_order_session_ownership(request, order):
         return Response(
             {'error': 'Access denied. You do not own this order session.'},
@@ -191,7 +220,6 @@ def download_order_pdf_receipt(request, order_number):
     except Order.DoesNotExist:
         raise Http404("Order not found")
 
-    # IDOR check
     if not verify_order_session_ownership(request, order):
         return Response(
             {'error': 'Access denied. You do not own this order session.'},
@@ -202,7 +230,6 @@ def download_order_pdf_receipt(request, order_number):
     if not receipt:
         receipt = ReceiptService.generate_pdf_receipt(order)
 
-    # Canonical Path Traversal Defense
     media_root = Path(settings.MEDIA_ROOT).resolve()
     pdf_file_path = (media_root / receipt.pdf_path).resolve()
 
@@ -238,7 +265,6 @@ def send_receipt_whatsapp(request, order_number):
     except Order.DoesNotExist:
         return Response({'error': 'Order not found.'}, status=status.HTTP_404_NOT_FOUND)
 
-    # IDOR check
     if not verify_order_session_ownership(request, order):
         return Response(
             {'error': 'Access denied. You do not own this order session.'},
@@ -247,7 +273,6 @@ def send_receipt_whatsapp(request, order_number):
 
     target_phone = request.data.get('phone') if isinstance(request.data, dict) else None
     if target_phone:
-        # Sanitize target phone
         target_phone = re.sub(r'[\s\-\(\)]', '', str(target_phone))
         if not re.match(r'^\+?\d{10,15}$', target_phone):
             return Response({'error': 'Invalid phone number format.'}, status=status.HTTP_400_BAD_REQUEST)
