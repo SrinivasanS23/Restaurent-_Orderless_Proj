@@ -466,9 +466,10 @@ function renderStepperHtml(itemId, qty) {
    CART & ORDERING
    ========================================================================= */
 function findMenuItem(itemId) {
+    const numId = Number(itemId);
     for (const cat of ALL_CATEGORIES) {
         if (cat.items) {
-            const found = cat.items.find(i => i.id === itemId);
+            const found = cat.items.find(i => Number(i.id) === numId);
             if (found) return found;
         }
     }
@@ -476,25 +477,32 @@ function findMenuItem(itemId) {
 }
 
 function addToCart(itemId) {
-    const item = findMenuItem(itemId);
-    if (!item) return;
+    const numId = Number(itemId);
+    const item = findMenuItem(numId);
+    if (!item) {
+        console.error('Menu item not found:', itemId);
+        return;
+    }
 
-    cart[itemId] = { item, quantity: 1 };
+    cart[numId] = { item, quantity: 1 };
     saveCartToStorage();
-    updateDishCardAction(itemId, 1);
+    updateDishCardAction(numId, 1);
     updateCartUI();
-    showToast('success', `Added ${item.name} to cart`);
+    showToast('success', `Added 1× ${item.name} to cart`);
 }
 
 function changeQuantity(itemId, delta) {
-    if (!cart[itemId]) return;
+    const numId = Number(itemId);
+    if (!cart[numId]) return;
 
-    cart[itemId].quantity += delta;
-    if (cart[itemId].quantity <= 0) {
-        delete cart[itemId];
-        updateDishCardAction(itemId, 0);
+    cart[numId].quantity += delta;
+    if (cart[numId].quantity <= 0) {
+        const removedName = cart[numId].item.name;
+        delete cart[numId];
+        updateDishCardAction(numId, 0);
+        showToast('info', `Removed ${removedName} from cart`);
     } else {
-        updateDishCardAction(itemId, cart[itemId].quantity);
+        updateDishCardAction(numId, cart[numId].quantity);
     }
 
     saveCartToStorage();
@@ -502,13 +510,14 @@ function changeQuantity(itemId, delta) {
 }
 
 function updateDishCardAction(itemId, qty) {
-    const container = document.getElementById(`actionContainer_${itemId}`);
+    const numId = Number(itemId);
+    const container = document.getElementById(`actionContainer_${numId}`);
     if (!container) return;
 
     if (qty > 0) {
-        container.innerHTML = renderStepperHtml(itemId, qty);
+        container.innerHTML = renderStepperHtml(numId, qty);
     } else {
-        container.innerHTML = `<button class="add-btn" onclick="addToCart(${itemId})"><i class="bi bi-plus-lg"></i> ADD</button>`;
+        container.innerHTML = `<button class="add-btn" onclick="addToCart(${numId})"><i class="bi bi-plus-lg"></i> ADD</button>`;
     }
 }
 
@@ -596,9 +605,12 @@ function loadCartFromStorage() {
     try {
         const saved = sessionStorage.getItem(`${STORAGE_PREFIX}cart`);
         if (saved) {
-            cart = JSON.parse(saved);
+            const parsed = JSON.parse(saved);
+            cart = {};
+            for (const [k, v] of Object.entries(parsed)) {
+                cart[Number(k)] = v;
+            }
             updateCartUI();
-            // Re-render dish cards to show stepper state
             renderDishes();
         }
     } catch (e) {

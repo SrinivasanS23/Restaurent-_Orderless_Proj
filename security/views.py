@@ -21,6 +21,23 @@ class SecureLoginView(auth_views.LoginView):
     template_name = 'registration/login.html'
     redirect_authenticated_user = True
 
+    def get_success_url(self):
+        explicit_next = self.request.POST.get('next') or self.request.GET.get('next')
+        if explicit_next and explicit_next.strip() and explicit_next != '/login/':
+            return explicit_next.strip()
+        user = self.request.user
+        if user.is_superuser or user.username == 'admin':
+            return '/dashboard/'
+        elif user.username == 'cashier':
+            return '/payment/'
+        return '/kitchen/'
+    """
+    Staff login view hardened with rate limiting, brute force lockout,
+    session fixation protection, and security audit logging.
+    """
+    template_name = 'registration/login.html'
+    redirect_authenticated_user = True
+
     @method_decorator(csrf_protect)
     @method_decorator(never_cache)
     def dispatch(self, request, *args, **kwargs):

@@ -1,309 +1,561 @@
-{% extends "base.html" %}
+{% extends 'base.html' %}
 {% load static %}
-{% block title %}Payment POS Desk — {{ restaurant_name }}{% endblock %}
+
+{% block title %}POS Payment Desk — {{ restaurant_name }}{% endblock %}
 {% block meta_description %}Payment counter terminal for billing and settlement at {{ restaurant_name }}{% endblock %}
 {% block body_class %}pos-page{% endblock %}
 
 {% block body %}
-<!-- POS Topbar -->
-<div class="pos-topbar">
-    <div class="d-flex align-items-center gap-3">
-        <h1><i class="bi bi-calculator-fill text-warning"></i> Payment Desk POS</h1>
-        <span class="badge" style="background:var(--cream); color:var(--dark-brown); font-weight:800; font-size:0.8rem; padding:0.3rem 0.75rem; border-radius:var(--radius-full);">
-            <i class="bi bi-shield-check text-success"></i> Cashier Terminal
-        </span>
-    </div>
-    <div class="d-flex align-items-center gap-2">
-        <a href="/dashboard/" class="sound-toggle">
-            <i class="bi bi-speedometer2"></i> Admin Dashboard
-        </a>
-        <a href="/kitchen/" class="sound-toggle">
-            <i class="bi bi-fire"></i> KDS
-        </a>
-        <a href="{% url 'logout' %}" class="sound-toggle">
-            <i class="bi bi-box-arrow-right"></i> Logout
-        </a>
-    </div>
-</div>
-
-<div class="pos-content">
-    <!-- Order Search Form -->
-    <div class="pos-search">
-        <input type="text" id="orderSearchInput" placeholder="Enter Order ID (e.g. ORD-A5X2 or A5X2)..." onkeydown="if(event.key==='Enter') searchOrder(event)" autofocus>
-        <button id="searchBtn" onclick="searchOrder(event)">
-            <i class="bi bi-search"></i> Search Bill
-        </button>
-    </div>
-
-    <!-- Bill Display Section -->
-    <div id="billSection">
-        <div class="bill-card text-center py-5 px-3" style="border-style:dashed;">
-            <div style="font-size:3.5rem; margin-bottom:0.5rem; color:var(--sand);">🧾</div>
-            <h3 style="font-family:var(--font-heading); font-weight:850; color:var(--dark-brown); font-size:1.25rem;">Ready to Process Settlement</h3>
-            <p class="text-muted" style="font-size:0.88rem;">Enter the customer's 4-digit Order ID above to retrieve the live tax bill.</p>
-        </div>
-    </div>
-</div>
-
-<!-- Confirm Payment Modal -->
-<div class="modal-backdrop-custom" id="confirmModal" style="display:none;">
-    <div class="checkin-card animate-scale-in" style="max-width:440px;">
-        <div class="text-center mb-3">
-            <div style="font-size:3rem; margin-bottom:0.25rem; color:var(--brown);">💳</div>
-            <h3 style="font-family:var(--font-heading); font-weight:900; font-size:1.35rem; color:var(--deepest);">Confirm Bill Settlement</h3>
-            <p class="text-muted" style="font-size:0.85rem;">Order <strong id="confirmOrderNum" class="text-dark"></strong></p>
+<!-- App Header -->
+<header class="app-header" style="background: var(--deep-espresso); color: var(--bg-cream); border-bottom: 2px solid var(--tan-accent);">
+    <div class="header-inner" style="max-width: 1500px;">
+        <div class="d-flex align-items-center gap-3">
+            <a href="/" class="brand-logo text-white">
+                <span class="logo-icon">💳</span>
+                <span class="logo-text text-white">Payment Counter (POS)</span>
+            </a>
+            <span class="badge bg-success text-white fw-bold px-2 py-1" style="font-size: 0.75rem;">DESK TERMINAL</span>
         </div>
 
-        <div class="p-3 my-3 rounded" style="background:var(--cream); border:1.5px solid var(--border); text-align:left; font-size:0.88rem;">
-            <div class="d-flex justify-content-between mb-1">
-                <span class="text-muted">Total Payable:</span>
-                <strong id="confirmAmount" style="font-size:1.15rem; color:var(--deepest); font-family:var(--font-heading);">₹0.00</strong>
-            </div>
-            <div id="confirmMethodDetails" class="text-muted" style="font-size:0.82rem; margin-top:0.35rem;">
-                Payment Method: CASH
+        <div class="d-flex align-items-center gap-2">
+            <a href="/dashboard/" class="btn btn-sm btn-outline-light rounded-pill px-3">
+                <i class="bi bi-speedometer2"></i> Admin
+            </a>
+            <a href="/kitchen/" class="btn btn-sm btn-outline-light rounded-pill px-3">
+                <i class="bi bi-fire"></i> KDS
+            </a>
+            <a href="/logout/" class="btn btn-sm btn-danger rounded-pill px-3">
+                <i class="bi bi-box-arrow-right"></i> Logout
+            </a>
+        </div>
+    </div>
+</header>
+
+<!-- Main POS Container -->
+<main class="container-fluid py-3 px-3" style="max-width: 1550px; margin: 0 auto;">
+    
+    <!-- Top Filter & Search Bar -->
+    <div class="glass-panel p-3 mb-3 d-flex align-items-center justify-content-between flex-wrap gap-3" style="background: #ffffff; border-color: var(--tan-accent);">
+        <!-- Search Input -->
+        <div class="d-flex align-items-center gap-2 flex-grow-1" style="max-width: 480px;">
+            <div class="input-group">
+                <span class="input-group-text" style="background: var(--cream); border-color: var(--tan-accent); color: var(--roasted-walnut);"><i class="bi bi-search"></i></span>
+                <input type="text" id="posSearchInput" class="form-control" placeholder="Search by Order # (e.g. ORD-LTUC) or Table (T01-T10)..." onkeyup="if(event.key==='Enter') searchOrder()" style="border-color: var(--tan-accent); font-weight: 600;">
+                <button class="btn-premium btn-premium-primary" onclick="searchOrder()" style="padding: 0.45rem 1.25rem;">
+                    Search
+                </button>
             </div>
         </div>
 
-        <div class="d-flex gap-2">
-            <button class="btn-premium-secondary flex-fill" onclick="closeConfirmModal()">Cancel</button>
-            <button class="btn-premium-success flex-fill" id="confirmPayBtn" onclick="confirmPayment()">
-                <i class="bi bi-check-circle-fill"></i> Mark as Paid
+        <!-- Filter Status Pills -->
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+            <button class="btn btn-sm pos-filter-btn active" id="filterAll" onclick="setPosFilter('ALL', this)">
+                All Orders (<span id="countAll">0</span>)
+            </button>
+            <button class="btn btn-sm pos-filter-btn" id="filterPayable" onclick="setPosFilter('PAYABLE', this)">
+                ⚡ Ready to Pay (<span id="countPayable">0</span>)
+            </button>
+            <button class="btn btn-sm pos-filter-btn" id="filterKitchen" onclick="setPosFilter('KITCHEN', this)">
+                🔥 In Kitchen (<span id="countKitchen">0</span>)
+            </button>
+            <button class="btn btn-sm pos-filter-btn" id="filterPaid" onclick="setPosFilter('PAID', this)">
+                ✅ Paid (<span id="countPaid">0</span>)
+            </button>
+            <button class="btn btn-sm btn-outline-secondary rounded-pill px-3" onclick="loadAllOrders()" title="Refresh">
+                <i class="bi bi-arrow-clockwise"></i> Refresh
+            </button>
+        </div>
+    </div>
+
+    <!-- 2-Column Split Terminal -->
+    <div class="row g-3">
+        
+        <!-- LEFT COLUMN: Order Queue (40%) -->
+        <div class="col-lg-5 col-xl-4">
+            <div class="glass-panel p-3" style="background: #ffffff; border-color: var(--tan-accent); height: calc(100vh - 200px); display: flex; flex-direction: column;">
+                <div class="d-flex align-items-center justify-content-between mb-2 pb-2 border-bottom">
+                    <strong style="color: var(--deep-espresso); font-size: 1rem;"><i class="bi bi-receipt"></i> Dining Orders Queue</strong>
+                    <span class="badge bg-light text-dark border" id="queueCountBadge">0 active</span>
+                </div>
+
+                <!-- Scrollable Order Cards List -->
+                <div id="posOrderList" style="flex: 1; overflow-y: auto; padding-right: 4px;">
+                    <div class="text-center py-5 text-muted">
+                        <div class="spinner-border text-warning" role="status" style="width: 2rem; height: 2rem;"></div>
+                        <div class="mt-2 small">Loading active orders...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- RIGHT COLUMN: Selected Order Bill & Payment Terminal (60%) -->
+        <div class="col-lg-7 col-xl-8">
+            <div class="glass-panel" id="billTerminalCard" style="background: #ffffff; border-color: var(--tan-accent); min-height: calc(100vh - 200px); display: flex; flex-direction: column;">
+                
+                <!-- Empty State -->
+                <div id="billEmptyState" class="text-center py-5 my-auto">
+                    <div style="font-size: 4rem; opacity: 0.35; margin-bottom: 1rem;">🧾</div>
+                    <h3 style="font-family: var(--font-heading); color: var(--deep-espresso); font-weight: 800;">No Order Selected</h3>
+                    <p class="text-muted" style="max-width: 420px; margin: 0 auto; font-size: 0.95rem;">
+                        Select an order from the queue on the left or search by Order Number / Table Number above to generate bill and process desk payment.
+                    </p>
+                </div>
+
+                <!-- Active Order Bill Details (Populated dynamically) -->
+                <div id="billContent" style="display: none; padding: 1.5rem; flex: 1;">
+                    <!-- Dynamically Rendered by renderBill() -->
+                </div>
+
+            </div>
+        </div>
+
+    </div>
+</main>
+
+<!-- Settlement Confirmation Modal -->
+<div id="confirmModal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(61,41,35,0.65); backdrop-filter:blur(6px); z-index:1050; align-items:center; justify-content:center; padding:1rem;">
+    <div class="glass-panel animate-scale-in p-4" style="background:#ffffff; max-width:480px; width:100%; border-radius:var(--radius-lg); border:2px solid var(--tan-accent); box-shadow:0 25px 60px rgba(0,0,0,0.3);">
+        <div class="d-flex align-items-center justify-content-between mb-3 border-bottom pb-2">
+            <h4 style="font-family:var(--font-heading); font-weight:800; color:var(--deep-espresso); margin:0;">Confirm Payment</h4>
+            <button class="btn btn-sm text-muted" onclick="closeConfirmModal()"><i class="bi bi-x-lg"></i></button>
+        </div>
+
+        <div class="text-center py-3">
+            <div style="font-size: 3rem; margin-bottom: 0.5rem;">💵</div>
+            <h3 id="confirmAmount" style="font-family:var(--font-heading); font-weight:900; color:var(--deep-espresso); font-size: 2.2rem; margin-bottom:0.25rem;">₹0.00</h3>
+            <div id="confirmOrderNum" class="badge bg-warning text-dark px-3 py-1 fw-bold mb-3" style="font-size:0.9rem;">#ORD-XXXX</div>
+            <div id="confirmMethodDetails" class="p-3 rounded mb-3" style="background:var(--cream); color:var(--deep-espresso); font-size:0.95rem; border:1px solid var(--tan-accent);">
+                <!-- Populated dynamically -->
+            </div>
+            <p class="text-muted small mb-0">This will complete the order, release the dining table, and generate the official tax receipt.</p>
+        </div>
+
+        <div class="d-flex gap-2 mt-3">
+            <button class="btn btn-outline-secondary flex-fill py-2 fw-bold" onclick="closeConfirmModal()">Cancel</button>
+            <button class="btn-premium btn-premium-primary flex-fill py-2 fw-bold" id="confirmPayBtn" onclick="confirmPayment()">
+                <i class="bi bi-check-circle-fill"></i> Complete &amp; Settle
             </button>
         </div>
     </div>
 </div>
 
-<div class="error-toast" id="errorToast"></div>
-<div class="success-toast" id="successToast"></div>
+<!-- Toast Notifications -->
+<div id="successToast" class="toast-custom success"></div>
+<div id="errorToast" class="toast-custom error"></div>
 
+<!-- CSS Specific to POS -->
+<style>
+.pos-filter-btn {
+    border: 1px solid var(--tan-accent);
+    background: #ffffff;
+    color: var(--deep-espresso);
+    font-weight: 700;
+    border-radius: var(--radius-sm);
+    padding: 0.35rem 0.75rem;
+    transition: all 0.2s ease;
+}
+.pos-filter-btn.active, .pos-filter-btn:hover {
+    background: var(--roasted-walnut);
+    color: #ffffff;
+    border-color: var(--roasted-walnut);
+}
+.pos-order-card {
+    background: #ffffff;
+    border: 1px solid var(--tan-accent);
+    border-radius: var(--radius-md);
+    padding: 0.85rem;
+    margin-bottom: 0.65rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+.pos-order-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(61, 41, 35, 0.08);
+    border-color: var(--cognac-gold);
+}
+.pos-order-card.selected {
+    border: 2px solid var(--cognac-gold);
+    background: var(--cream);
+    box-shadow: 0 6px 18px rgba(178, 131, 90, 0.18);
+}
+.payment-method-btn {
+    border: 2px solid var(--tan-accent);
+    background: #ffffff;
+    color: var(--deep-espresso);
+    font-weight: 800;
+    border-radius: var(--radius-md);
+    padding: 0.85rem;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+.payment-method-btn.selected {
+    border-color: var(--cognac-gold);
+    background: var(--cream);
+    color: var(--deep-espresso);
+    box-shadow: 0 4px 12px rgba(178, 131, 90, 0.2);
+}
+.denom-btn {
+    border: 1px solid var(--tan-accent);
+    background: var(--cream);
+    color: var(--deep-espresso);
+    font-weight: 700;
+    border-radius: var(--radius-sm);
+    padding: 0.4rem 0.65rem;
+    font-size: 0.85rem;
+}
+.denom-btn:hover {
+    background: var(--tan-accent);
+}
+</style>
+
+<!-- POS Javascript -->
 <script>
-const CSRF_TOKEN = '{{ csrf_token }}';
+const CSRF_TOKEN = "{{ csrf_token }}";
+let allOrders = [];
+let filteredOrders = [];
 let currentOrder = null;
+let currentFilter = 'ALL';
 let selectedMethod = 'CASH';
 
-async function searchOrder(e) {
-    if (e) e.preventDefault();
-    const inputEl = document.getElementById('orderSearchInput');
-    let rawVal = inputEl.value.trim().toUpperCase();
-    if (!rawVal) return;
+document.addEventListener('DOMContentLoaded', () => {
+    loadAllOrders();
+    setInterval(loadAllOrders, 5000); // Polling sync every 5s
+});
 
-    // Clean leading # and any invalid characters
-    let cleanCode = rawVal.replace(/^#+/, '').replace(/[^A-Z0-9\-]/g, '').trim();
-    if (!cleanCode) return;
-
-    if (!cleanCode.startsWith('ORD-')) {
-        cleanCode = `ORD-${cleanCode}`;
-    }
-
-    // Update input box to show clean format
-    inputEl.value = cleanCode;
-
-    const btn = document.getElementById('searchBtn');
-    btn.disabled = true;
-    btn.innerHTML = '<span class="spinner"></span> Searching...';
-
+async function loadAllOrders() {
     try {
-        const res = await fetch(`/api/payments/desk/order/${encodeURIComponent(cleanCode)}/`, {
-            headers: { 
-                'Content-Type': 'application/json',
-                'X-CSRFToken': CSRF_TOKEN 
+        const res = await fetch('/api/payments/desk/orders/');
+        if (!res.ok) return;
+        allOrders = await res.json();
+        updateCounts();
+        applyFilter();
+
+        // If an order is currently open in terminal, refresh its live state
+        if (currentOrder) {
+            const updated = allOrders.find(o => o.order_number === currentOrder.order_number);
+            if (updated) {
+                currentOrder = updated;
+                renderBill();
             }
-        });
-        
-        let data = {};
-        try {
-            data = await res.json();
-        } catch (parseErr) {
-            throw new Error(`Order #${cleanCode} not found in the system.`);
         }
-
-        if (!res.ok) {
-            throw new Error(data.error || `Order #${cleanCode} not found.`);
-        }
-
-        currentOrder = data;
-        renderBill();
-    } catch (err) {
-        showToast('error', err.message);
-        document.getElementById('billSection').innerHTML = `
-            <div class="bill-card text-center py-5 px-3 text-danger animate-fade-in">
-                <i class="bi bi-exclamation-triangle" style="font-size:2.8rem; color:var(--error);"></i>
-                <p class="mt-2 fw-bold" style="font-size:1.1rem; color:var(--error);">${err.message}</p>
-                <p class="text-muted small">Please verify the Order ID (e.g. ${cleanCode}) and try again.</p>
-            </div>`;
-    } finally {
-        btn.disabled = false;
-        btn.innerHTML = '<i class="bi bi-search"></i> Search Bill';
+    } catch (e) {
+        console.debug('POS order polling error:', e);
     }
 }
 
-function renderBill() {
-    const o = currentOrder;
-    const section = document.getElementById('billSection');
+function updateCounts() {
+    const total = allOrders.length;
+    const payable = allOrders.filter(o => o.order_status === 'SERVED' && o.payment_status === 'PENDING').length;
+    const kitchen = allOrders.filter(o => ['ORDER_CREATED', 'ACCEPTED', 'PREPARING', 'READY'].includes(o.order_status) && o.payment_status === 'PENDING').length;
+    const paid = allOrders.filter(o => o.payment_status === 'PAID').length;
 
-    let statusClass = 'badge-created';
-    if (o.order_status === 'COMPLETED') statusClass = 'badge-completed';
-    else if (o.order_status === 'SERVED') statusClass = 'badge-served';
+    document.getElementById('countAll').textContent = total;
+    document.getElementById('countPayable').textContent = payable;
+    document.getElementById('countKitchen').textContent = kitchen;
+    document.getElementById('countPaid').textContent = paid;
+    document.getElementById('queueCountBadge').textContent = `${payable} ready to pay`;
+}
 
-    let paymentClass = (o.payment_status === 'PAID') ? 'badge-paid' : 'badge-unpaid';
+function setPosFilter(filter, btn) {
+    currentFilter = filter;
+    document.querySelectorAll('.pos-filter-btn').forEach(b => b.classList.remove('active'));
+    if (btn) btn.classList.add('active');
+    applyFilter();
+}
 
-    let paymentActionBlock = '';
+function applyFilter() {
+    if (currentFilter === 'ALL') {
+        filteredOrders = allOrders;
+    } else if (currentFilter === 'PAYABLE') {
+        filteredOrders = allOrders.filter(o => o.order_status === 'SERVED' && o.payment_status === 'PENDING');
+    } else if (currentFilter === 'KITCHEN') {
+        filteredOrders = allOrders.filter(o => ['ORDER_CREATED', 'ACCEPTED', 'PREPARING', 'READY'].includes(o.order_status) && o.payment_status === 'PENDING');
+    } else if (currentFilter === 'PAID') {
+        filteredOrders = allOrders.filter(o => o.payment_status === 'PAID');
+    }
+    renderOrderList();
+}
 
-    if (o.is_paid || o.payment_status === 'PAID') {
-        paymentActionBlock = `
-            <div class="mt-4 p-3 rounded" style="background:var(--success-bg); border:1px solid var(--success); color:var(--success);">
-                <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
-                    <div>
-                        <h4 style="font-family:var(--font-heading); font-size:1.15rem; font-weight:850; margin:0;"><i class="bi bi-check-circle-fill"></i> Order Fully Paid &amp; Completed</h4>
-                        <div style="font-size:0.85rem; margin-top:0.25rem; color:var(--text);">Settled: <strong>₹${parseFloat(o.total_amount).toFixed(2)}</strong> ${o.payment_method ? `via ${o.payment_method}` : ''}</div>
-                    </div>
-                    <a href="/api/orders/${o.order_number}/receipt/pdf/" target="_blank" class="btn-premium-success" style="padding:0.6rem 1.1rem; font-size:0.85rem;">
-                        <i class="bi bi-file-earmark-pdf"></i> View / Print Official PDF Invoice
-                    </a>
-                </div>
+function renderOrderList() {
+    const listEl = document.getElementById('posOrderList');
+    if (filteredOrders.length === 0) {
+        listEl.innerHTML = `
+            <div class="text-center py-5 text-muted">
+                <i class="bi bi-inbox" style="font-size:2.5rem; opacity:0.35; display:block; margin-bottom:8px;"></i>
+                <div class="fw-bold">No orders in this view</div>
+                <div class="small">Try selecting another filter above.</div>
             </div>`;
-    } else if (!o.is_served && o.order_status !== 'SERVED') {
-        paymentActionBlock = `
-            <div class="mt-4 p-3 rounded" style="background:var(--status-new-bg); border:1px solid rgba(217,119,6,0.4); color:var(--dark-brown);">
-                <h4 style="font-family:var(--font-heading); font-size:1rem; font-weight:800; margin:0;"><i class="bi bi-clock-history"></i> Kitchen Status: ${o.order_status_display || o.order_status}</h4>
-                <p class="mb-0 mt-1" style="font-size:0.85rem;">Payment is usually collected once dishes are served to the table.</p>
-            </div>`;
-    } else {
-        paymentActionBlock = `
-            <div class="mt-4 pt-3 border-top">
-                <h3 style="font-family:var(--font-heading); font-size:1.15rem; font-weight:850; margin-bottom:0.75rem; color:var(--dark-brown);"><i class="bi bi-wallet2"></i> Settle Bill at Counter</h3>
-                
-                <!-- Payment Method Selection -->
-                <div class="payment-method-selector mb-3">
-                    <button class="payment-method-btn selected" id="btnMethodCASH" onclick="selectMethod('CASH')">
-                        <i class="bi bi-cash-stack"></i> CASH
-                    </button>
-                    <button class="payment-method-btn" id="btnMethodUPI" onclick="selectMethod('UPI')">
-                        <i class="bi bi-qr-code"></i> UPI
-                    </button>
-                    <button class="payment-method-btn" id="btnMethodCARD" onclick="selectMethod('CARD')">
-                        <i class="bi bi-credit-card"></i> CARD
-                    </button>
-                </div>
-
-                <!-- Cash Calculator Section -->
-                <div id="cashCalcSection" class="p-3 mb-3 rounded" style="background:var(--cream); border:1px solid var(--border); display:block;">
-                    <label style="font-size:0.84rem; font-weight:750; color:var(--dark-brown);">Cash Received from Customer (₹):</label>
-                    <div class="input-group my-2">
-                        <span class="input-group-text" style="background:#fff; border-color:var(--border); font-weight:700;">₹</span>
-                        <input type="number" class="form-control" id="cashReceivedInput" placeholder="${parseFloat(o.total_amount).toFixed(2)}"
-                               oninput="calculateCashChange()" min="${o.total_amount}" step="any" style="border-color:var(--border); font-weight:800; font-size:1.1rem;">
-                    </div>
-                    
-                    <div class="quick-cash-btns">
-                        <span style="font-size:0.75rem; color:var(--text-muted); align-self:center; font-weight:600;">Quick Tender:</span>
-                        <button type="button" class="quick-cash-btn" onclick="setCashAmount(${Math.ceil(o.total_amount)})">Exact ₹${Math.ceil(o.total_amount)}</button>
-                        <button type="button" class="quick-cash-btn" onclick="setCashAmount(500)">₹500</button>
-                        <button type="button" class="quick-cash-btn" onclick="setCashAmount(1000)">₹1000</button>
-                        <button type="button" class="quick-cash-btn" onclick="setCashAmount(2000)">₹2000</button>
-                    </div>
-
-                    <div class="d-flex justify-content-between mt-3 pt-2 border-top" style="font-size:0.9rem;">
-                        <span class="text-muted font-weight-bold">Change to Return to Customer:</span>
-                        <strong id="cashChangeDisplay" style="color:var(--success); font-size:1.15rem; font-family:var(--font-heading);">₹0.00</strong>
-                    </div>
-                </div>
-
-                <!-- Transaction reference input for UPI / Card -->
-                <div id="txnRefSection" class="mb-3" style="display:none;">
-                    <label style="font-size:0.84rem; font-weight:750; color:var(--dark-brown);">Transaction Reference (Optional):</label>
-                    <input type="text" class="form-control mt-1" id="txnRefInput" placeholder="e.g. UPI Ref No / POS Terminal Txn ID" style="border-color:var(--border); padding:0.65rem 0.85rem;">
-                </div>
-
-                <button class="place-order-btn w-100" id="markPaidBtn" onclick="openConfirmModal()" style="background:linear-gradient(135deg, #16a34a, #15803d); box-shadow:var(--shadow-glow-emerald);">
-                    <i class="bi bi-check-circle-fill"></i> Collect &amp; Mark as Paid — ₹${parseFloat(o.total_amount).toFixed(2)}
-                </button>
-            </div>`;
+        return;
     }
 
-    section.innerHTML = `
-    <div class="bill-card animate-fade-in">
-        <div class="bill-header">
-            <div class="bill-order-info">
-                <h2>#${o.order_number}</h2>
-                <div class="bill-table-info">
-                    <span><i class="bi bi-geo-alt-fill text-danger"></i> Table ${o.table_display || o.table_number}</span>
-                    <span>·</span>
-                    <span><i class="bi bi-person-fill"></i> ${o.customer_name || 'Guest'} (${o.customer_phone_masked || 'N/A'})</span>
-                    <span>·</span>
-                    <span><i class="bi bi-clock"></i> ${new Date(o.created_at).toLocaleTimeString()}</span>
+    listEl.innerHTML = filteredOrders.map(order => {
+        const isSelected = currentOrder && currentOrder.order_number === order.order_number;
+        const isPayable = (order.order_status === 'SERVED' && order.payment_status === 'PENDING');
+        const isPaid = (order.payment_status === 'PAID');
+        
+        let statusBadge = '';
+        if (isPaid) {
+            statusBadge = '<span class="badge bg-success text-white">✅ Paid</span>';
+        } else if (isPayable) {
+            statusBadge = '<span class="badge bg-warning text-dark fw-bold animate-pulse">⚡ Ready to Pay</span>';
+        } else {
+            statusBadge = `<span class="badge bg-secondary text-white">${order.order_status_display || order.order_status}</span>`;
+        }
+
+        return `
+        <div class="pos-order-card ${isSelected ? 'selected' : ''}" onclick="selectOrder('${order.order_number}')">
+            <div class="d-flex align-items-center justify-content-between mb-1">
+                <span class="fw-bold" style="font-size:1.05rem; color:var(--deep-espresso);">#${order.order_number}</span>
+                <span class="table-indicator-badge" style="font-size:0.75rem; padding:0.2rem 0.5rem;">TABLE ${order.table_display || order.table_number}</span>
+            </div>
+            <div class="d-flex align-items-center justify-content-between mb-1">
+                <span class="small text-muted">👤 ${order.customer_name || 'Guest'}</span>
+                <strong style="color:var(--deep-espresso); font-size:1rem;">₹${parseFloat(order.total_amount).toFixed(2)}</strong>
+            </div>
+            <div class="d-flex align-items-center justify-content-between pt-1 border-top" style="font-size:0.78rem;">
+                <span class="text-muted"><i class="bi bi-clock"></i> ${order.items ? order.items.length : 0} items</span>
+                ${statusBadge}
+            </div>
+        </div>`;
+    }).join('');
+}
+
+async function selectOrder(orderNumber) {
+    try {
+        const res = await fetch(`/api/payments/desk/order/${encodeURIComponent(orderNumber)}/`);
+        if (!res.ok) throw new Error('Order not found');
+        currentOrder = await res.json();
+        renderBill();
+        renderOrderList();
+    } catch (err) {
+        showToast('error', err.message);
+    }
+}
+
+async function searchOrder() {
+    const rawVal = document.getElementById('posSearchInput').value.trim();
+    if (!rawVal) {
+        showToast('error', 'Please enter an Order # or Table ID to search.');
+        return;
+    }
+    const cleanVal = rawVal.replace(/^#/, '').trim();
+    selectOrder(cleanVal);
+}
+
+function renderBill() {
+    const emptyState = document.getElementById('billEmptyState');
+    const content = document.getElementById('billContent');
+
+    if (!currentOrder) {
+        emptyState.style.display = 'block';
+        content.style.display = 'none';
+        return;
+    }
+
+    emptyState.style.display = 'none';
+    content.style.display = 'block';
+
+    const o = currentOrder;
+    const isPayable = (o.order_status === 'SERVED' && o.payment_status === 'PENDING');
+    const isPaid = (o.payment_status === 'PAID');
+
+    let statusHeader = '';
+    if (isPaid) {
+        statusHeader = `
+        <div class="alert alert-success d-flex align-items-center justify-content-between p-3 mb-3" style="border-radius:var(--radius-md);">
+            <div class="d-flex align-items-center gap-2">
+                <i class="bi bi-patch-check-fill" style="font-size:1.5rem;"></i>
+                <div>
+                    <strong style="font-size:1rem;">Bill Fully Paid &amp; Settled</strong>
+                    <div class="small">Payment Method: ${o.payment_method || 'CASH'} · Table is Released</div>
                 </div>
             </div>
-            <div class="d-flex gap-2 align-items-center">
-                <span class="status-badge ${statusClass}">${o.order_status_display || o.order_status}</span>
-                <span class="status-badge ${paymentClass}">${o.payment_status_display || o.payment_status}</span>
+            <a href="/api/orders/${o.order_number}/receipt/pdf/" target="_blank" class="btn btn-sm btn-dark rounded-pill px-3">
+                <i class="bi bi-printer-fill"></i> Print Receipt PDF
+            </a>
+        </div>`;
+    } else if (isPayable) {
+        statusHeader = `
+        <div class="alert alert-warning d-flex align-items-center justify-content-between p-3 mb-3" style="border-radius:var(--radius-md); background:rgba(217,119,6,0.12); border-color:var(--tan-accent); color:var(--deep-espresso);">
+            <div class="d-flex align-items-center gap-2">
+                <span style="font-size:1.4rem;">🍽️</span>
+                <div>
+                    <strong style="font-size:1rem;">Food Served · Ready for Cashier Settlement</strong>
+                    <div class="small text-muted">Customer is ready to pay at the payment counter.</div>
+                </div>
             </div>
+            <span class="badge bg-warning text-dark fw-bold px-2 py-1">Awaiting Payment</span>
+        </div>`;
+    } else {
+        statusHeader = `
+        <div class="alert alert-info d-flex align-items-center justify-content-between p-3 mb-3" style="border-radius:var(--radius-md);">
+            <div>
+                <strong>Order in Progress: ${o.order_status_display || o.order_status}</strong>
+                <div class="small">Payment counter settlement becomes available once food is marked SERVED by the kitchen.</div>
+            </div>
+            <span class="badge bg-primary text-white">${o.order_status_display || o.order_status}</span>
+        </div>`;
+    }
+
+    // Payment Box
+    let paymentActionBlock = '';
+    if (isPayable) {
+        paymentActionBlock = `
+        <div class="p-3 rounded mb-3" style="background:var(--cream); border:1px solid var(--tan-accent);">
+            <h5 style="font-family:var(--font-heading); font-weight:850; color:var(--deep-espresso); margin-bottom:0.75rem;">
+                Select Payment Mode
+            </h5>
+            
+            <div class="row g-2 mb-3">
+                <div class="col-4">
+                    <div class="payment-method-btn ${selectedMethod === 'CASH' ? 'selected' : ''}" id="btnMethodCASH" onclick="selectMethod('CASH')">
+                        <div style="font-size:1.5rem;">💵</div>
+                        <div>Cash</div>
+                    </div>
+                </div>
+                <div class="col-4">
+                    <div class="payment-method-btn ${selectedMethod === 'CARD' ? 'selected' : ''}" id="btnMethodCARD" onclick="selectMethod('CARD')">
+                        <div style="font-size:1.5rem;">💳</div>
+                        <div>Card POS</div>
+                    </div>
+                </div>
+                <div class="col-4">
+                    <div class="payment-method-btn ${selectedMethod === 'UPI' ? 'selected' : ''}" id="btnMethodUPI" onclick="selectMethod('UPI')">
+                        <div style="font-size:1.5rem;">📱</div>
+                        <div>UPI / QR</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Cash Calculation Section -->
+            <div id="cashCalcSection" style="display:${selectedMethod === 'CASH' ? 'block' : 'none'};">
+                <div class="mb-2">
+                    <label class="small fw-bold text-muted mb-1">Quick Cash Denominations</label>
+                    <div class="d-flex gap-1 flex-wrap">
+                        <button class="denom-btn" onclick="setCashAmount(${parseFloat(o.total_amount)})">Exact (₹${parseFloat(o.total_amount).toFixed(2)})</button>
+                        <button class="denom-btn" onclick="setCashAmount(100)">₹100</button>
+                        <button class="denom-btn" onclick="setCashAmount(200)">₹200</button>
+                        <button class="denom-btn" onclick="setCashAmount(500)">₹500</button>
+                        <button class="denom-btn" onclick="setCashAmount(1000)">₹1000</button>
+                        <button class="denom-btn" onclick="setCashAmount(2000)">₹2000</button>
+                    </div>
+                </div>
+                
+                <div class="row g-2 align-items-center mb-3">
+                    <div class="col-6">
+                        <label class="small fw-bold text-muted">Cash Received (₹)</label>
+                        <input type="number" class="form-control fw-bold" id="cashReceivedInput" value="${parseFloat(o.total_amount)}" min="${parseFloat(o.total_amount)}" step="1" oninput="calculateCashChange()" style="border-color:var(--tan-accent); font-size:1.1rem;">
+                    </div>
+                    <div class="col-6">
+                        <label class="small fw-bold text-muted">Change to Return</label>
+                        <div class="p-2 rounded fw-bold text-center" id="cashChangeDisplay" style="background:#ffffff; border:1px dashed var(--tan-accent); font-size:1.2rem; color:var(--deep-espresso);">
+                            ₹0.00
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Transaction Reference Section for Card/UPI -->
+            <div id="txnRefSection" style="display:${selectedMethod !== 'CASH' ? 'block' : 'none'};" class="mb-3">
+                <label class="small fw-bold text-muted">Transaction / Approval Code / RRN (Optional)</label>
+                <input type="text" class="form-control" id="txnRefInput" placeholder="e.g. POS-987654 or UPI Ref" style="border-color:var(--tan-accent);">
+            </div>
+
+            <button class="btn-premium btn-premium-primary w-100 py-3 fw-bold" style="font-size:1.1rem;" onclick="openConfirmModal()">
+                <i class="bi bi-check-circle-fill"></i> Complete &amp; Settle Bill — ₹${parseFloat(o.total_amount).toFixed(2)}
+            </button>
+        </div>`;
+    }
+
+    content.innerHTML = `
+        ${statusHeader}
+
+        <!-- Invoice Meta Header -->
+        <div class="d-flex align-items-start justify-content-between mb-3 pb-3 border-bottom">
+            <div>
+                <h3 style="font-family:var(--font-heading); font-weight:900; color:var(--deep-espresso); margin-bottom:0.25rem;">
+                    Order #${o.order_number}
+                </h3>
+                <div class="text-muted small">
+                    <span>👤 <strong>${o.customer_name || 'Guest'}</strong> (${o.customer_phone_masked || 'N/A'})</span>
+                    <span class="mx-2">·</span>
+                    <span><i class="bi bi-clock"></i> Placed: ${new Date(o.created_at).toLocaleTimeString()}</span>
+                </div>
+            </div>
+            <span class="table-indicator-badge" style="font-size:1rem; padding:0.4rem 1rem;">
+                TABLE ${o.table_display || o.table_number}
+            </span>
         </div>
 
-        <div class="p-3 p-md-4">
-            <table class="dashboard-table">
-                <thead>
+        <!-- Itemized Bill Table -->
+        <div class="table-responsive mb-3">
+            <table class="table table-hover align-middle mb-0">
+                <thead style="background:var(--cream); font-size:0.85rem; color:var(--roasted-walnut);">
                     <tr>
                         <th>Dish / Item</th>
-                        <th>Qty</th>
-                        <th>Price</th>
-                        <th>Subtotal</th>
+                        <th class="text-center">Qty</th>
+                        <th class="text-end">Unit Price</th>
+                        <th class="text-end">Amount</th>
                     </tr>
                 </thead>
                 <tbody>
-                    ${o.items.map(item => `
-                        <tr>
-                            <td><strong>${item.emoji || '🍽️'} ${item.item_name_snapshot || item.name}</strong></td>
-                            <td class="fw-bold">×${item.quantity}</td>
-                            <td>₹${parseFloat(item.unit_price).toFixed(2)}</td>
-                            <td class="fw-bold">₹${parseFloat(item.subtotal).toFixed(2)}</td>
+                    ${o.items.map(i => `
+                        <tr style="font-size:0.92rem;">
+                            <td class="fw-bold" style="color:var(--deep-espresso);">${i.emoji || '🍽️'} ${i.item_name_snapshot || i.name}</td>
+                            <td class="text-center"><span class="badge bg-light text-dark border">×${i.quantity}</span></td>
+                            <td class="text-end text-muted">₹${parseFloat(i.unit_price).toFixed(2)}</td>
+                            <td class="text-end fw-bold" style="color:var(--deep-espresso);">₹${parseFloat(i.subtotal).toFixed(2)}</td>
                         </tr>
                     `).join('')}
-                    <tr class="text-muted" style="font-size:0.85rem;">
-                        <td colspan="3" class="pt-3">Item Subtotal</td>
-                        <td class="pt-3">₹${parseFloat(o.subtotal || o.total_amount).toFixed(2)}</td>
+                    
+                    <!-- Financial Calculations -->
+                    <tr style="border-top:2px solid var(--tan-accent); font-size:0.88rem;" class="text-muted">
+                        <td colspan="3" class="text-end pt-3">Items Subtotal:</td>
+                        <td class="text-end pt-3 fw-bold">₹${parseFloat(o.subtotal).toFixed(2)}</td>
                     </tr>
-                    <tr class="text-muted" style="font-size:0.85rem;">
-                        <td colspan="3">CGST (2.5%)</td>
-                        <td>₹${parseFloat(o.cgst_amount || 0).toFixed(2)}</td>
+                    <tr style="font-size:0.85rem;" class="text-muted">
+                        <td colspan="3" class="text-end">CGST (2.5%):</td>
+                        <td class="text-end">₹${parseFloat(o.cgst_amount).toFixed(2)}</td>
                     </tr>
-                    <tr class="text-muted" style="font-size:0.85rem;">
-                        <td colspan="3">SGST (2.5%)</td>
-                        <td>₹${parseFloat(o.sgst_amount || 0).toFixed(2)}</td>
+                    <tr style="font-size:0.85rem;" class="text-muted">
+                        <td colspan="3" class="text-end">SGST (2.5%):</td>
+                        <td class="text-end">₹${parseFloat(o.sgst_amount).toFixed(2)}</td>
                     </tr>
-                    <tr style="font-family:var(--font-heading); font-size:1.3rem; font-weight:900; color:var(--deepest); border-top:2px solid var(--border);">
-                        <td colspan="3" class="pt-2">GRAND TOTAL</td>
-                        <td class="pt-2">₹${parseFloat(o.total_amount).toFixed(2)}</td>
+                    <tr style="font-family:var(--font-heading); font-size:1.35rem; font-weight:900; color:var(--deep-espresso); border-top:2px solid var(--deep-espresso);">
+                        <td colspan="3" class="text-end pt-2">GRAND TOTAL:</td>
+                        <td class="text-end pt-2">₹${parseFloat(o.total_amount).toFixed(2)}</td>
                     </tr>
                 </tbody>
             </table>
         </div>
 
         <!-- WhatsApp Digital Invoice Dispatch -->
-        <div class="p-3 m-3 rounded" style="background:var(--cream); border:1px solid var(--border);">
+        <div class="p-3 mb-3 rounded" style="background:var(--cream); border:1px solid var(--tan-accent);">
             <div class="d-flex align-items-center gap-2 mb-2">
-                <i class="bi bi-whatsapp" style="font-size:1.3rem; color:#16a34a;"></i>
-                <strong style="color:var(--dark-brown); font-size:0.9rem;">Send Official Tax Invoice to Customer WhatsApp</strong>
+                <i class="bi bi-whatsapp text-success" style="font-size:1.3rem;"></i>
+                <strong style="color:var(--deep-espresso); font-size:0.9rem;">Send Official Tax Invoice to Customer WhatsApp</strong>
             </div>
             <div class="row g-2 align-items-center">
                 <div class="col-md-7">
                     <div class="input-group input-group-sm">
-                        <span class="input-group-text" style="background:#fff; border-color:var(--border); font-weight:700;">+91</span>
-                        <input type="tel" class="form-control" id="posRecipientPhone" placeholder="Enter 10-digit mobile" value="${o.customer_phone_masked ? o.customer_phone_masked.replace(/[^0-9]/g,'').slice(-10) : ''}" maxlength="10" style="border-color:var(--border);">
+                        <span class="input-group-text" style="background:#fff; border-color:var(--tan-accent); font-weight:700;">+91</span>
+                        <input type="tel" class="form-control" id="posRecipientPhone" placeholder="Enter 10-digit mobile" value="${o.customer_phone_masked ? o.customer_phone_masked.replace(/[^0-9]/g,'').slice(-10) : ''}" maxlength="10" style="border-color:var(--tan-accent); font-weight:600;">
                     </div>
                 </div>
                 <div class="col-md-5">
-                    <button class="btn-premium-success w-100 py-1" id="posWaSendBtn" onclick="sendReceiptOnWhatsAppFromPOS()">
+                    <button class="btn-premium btn-premium-primary w-100 py-1" id="posWaSendBtn" onclick="sendReceiptOnWhatsAppFromPOS()" style="font-size:0.85rem;">
                         <i class="bi bi-send-fill"></i> Send PDF Link
                     </button>
                 </div>
             </div>
         </div>
 
-        <div class="px-3 px-md-4 pb-4">
+        <!-- Action Settlement Block -->
+        <div>
             ${paymentActionBlock}
         </div>
-    </div>`;
+    `;
 }
 
 function selectMethod(method) {
@@ -344,7 +596,7 @@ function openConfirmModal() {
     document.getElementById('confirmOrderNum').textContent = `#${currentOrder.order_number}`;
     document.getElementById('confirmAmount').textContent = `₹${parseFloat(currentOrder.total_amount).toFixed(2)}`;
     
-    let detailText = `Method: <strong>${selectedMethod}</strong>`;
+    let detailText = `Mode: <strong>${selectedMethod}</strong>`;
     if (selectedMethod === 'CASH') {
         const received = parseFloat(document.getElementById('cashReceivedInput')?.value) || currentOrder.total_amount;
         const change = Math.max(0, received - currentOrder.total_amount);
@@ -387,19 +639,19 @@ async function confirmPayment() {
         if (!res.ok) throw new Error(data.error || 'Payment processing failed');
 
         closeConfirmModal();
-        showToast('success', 'Payment successful! Order completed and table released.');
+        showToast('success', `Payment of ₹${parseFloat(currentOrder.total_amount).toFixed(2)} completed! Table released.`);
 
         currentOrder.payment_status = 'PAID';
         currentOrder.order_status = 'COMPLETED';
         currentOrder.payment_method = selectedMethod;
-        currentOrder.is_paid = true;
         renderBill();
+        loadAllOrders();
 
     } catch (err) {
         showToast('error', err.message);
     } finally {
         btn.disabled = false;
-        btn.innerHTML = '<i class="bi bi-check-circle-fill"></i> Mark as Paid';
+        btn.innerHTML = '<i class="bi bi-check-circle-fill"></i> Complete &amp; Settle';
     }
 }
 
@@ -409,14 +661,14 @@ async function sendReceiptOnWhatsAppFromPOS() {
     const phoneVal = phoneInput.value.trim().replace(/[^0-9]/g, '');
 
     if (!phoneVal || phoneVal.length < 10) {
-        showToast('error', 'Please enter a valid 10-digit mobile phone number.');
+        showToast('error', 'Please enter a valid 10-digit mobile number.');
         phoneInput.focus();
         return;
     }
 
     const btn = document.getElementById('posWaSendBtn');
     btn.disabled = true;
-    btn.innerHTML = '<span class="spinner"></span>';
+    btn.innerHTML = '<span class="spinner"></span> Sending...';
 
     try {
         const res = await fetch(`/api/orders/${currentOrder.order_number}/receipt/send/`, {
@@ -432,10 +684,10 @@ async function sendReceiptOnWhatsAppFromPOS() {
         if (data.whatsapp_share_url) {
             window.open(data.whatsapp_share_url, '_blank');
         }
-        showToast('success', `Opening WhatsApp for invoice dispatch`);
+        showToast('success', 'WhatsApp invoice share link generated!');
     } catch (err) {
         const pdfLink = `${window.location.origin}/api/orders/${currentOrder.order_number}/receipt/pdf/`;
-        const text = encodeURIComponent(`Hi, here is your official tax invoice for Order #${currentOrder.order_number}: ${pdfLink}`);
+        const text = encodeURIComponent(`Hello, here is your tax invoice for Order #${currentOrder.order_number} at ${TABLE_DISPLAY || 'OrderLess'}: ${pdfLink}`);
         window.open(`https://api.whatsapp.com/send?phone=91${phoneVal}&text=${text}`, '_blank');
         showToast('success', 'Opening WhatsApp...');
     } finally {
@@ -446,9 +698,10 @@ async function sendReceiptOnWhatsAppFromPOS() {
 
 function showToast(type, msg) {
     const toast = document.getElementById(type === 'error' ? 'errorToast' : 'successToast');
+    if (!toast) return;
     toast.textContent = msg;
     toast.classList.add('show');
-    setTimeout(() => toast.classList.remove('show'), 4000);
+    setTimeout(() => toast.classList.remove('show'), 3500);
 }
 </script>
 {% endblock %}

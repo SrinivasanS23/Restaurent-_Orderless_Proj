@@ -4,12 +4,13 @@
 {% block body_class %}login-page{% endblock %}
 
 {% block body %}
-<div class="login-container">
-    <div class="login-card animate-scale-in">
-        <div class="login-header text-center">
-            <div class="login-logo" style="filter:drop-shadow(0 4px 12px rgba(0,0,0,0.12));">🍽️</div>
-            <h1>{{ restaurant_name }}</h1>
-            <p>Staff Operations &amp; Administration</p>
+<div class="login-container" style="min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 1.5rem; background: radial-gradient(circle at top, var(--cream-accent) 0%, var(--bg-cream) 100%);">
+    <div class="login-card animate-scale-in" style="max-width: 460px; width: 100%; background: #ffffff; border-radius: var(--radius-lg); padding: 2.25rem 2rem; box-shadow: 0 20px 45px rgba(61, 41, 35, 0.12); border: 1px solid var(--tan-accent);">
+        
+        <div class="login-header text-center mb-4">
+            <div class="login-logo" style="font-size: 3rem; margin-bottom: 0.5rem; filter: drop-shadow(0 4px 12px rgba(101, 64, 50, 0.2));">🍽️</div>
+            <h1 style="font-family: var(--font-heading); font-size: 1.85rem; font-weight: 900; color: var(--deep-espresso); margin-bottom: 0.25rem;">{{ restaurant_name }}</h1>
+            <p style="color: var(--roasted-walnut); font-size: 0.92rem; margin: 0; font-weight: 500;">Staff Operations &amp; Administration</p>
         </div>
         
         {% if lockout_error %}
@@ -22,27 +23,73 @@
         </div>
         {% endif %}
 
+        <!-- Quick-Fill Role Selector -->
+        <div class="mb-4">
+            <div class="small fw-bold text-muted mb-2 text-center" style="letter-spacing: 0.5px; font-size: 0.75rem; text-transform: uppercase;">⚡ Quick-Fill Demo Roles</div>
+            <div class="d-flex gap-2">
+                <button type="button" class="btn btn-sm flex-fill role-select-btn active-role" onclick="fillCredentials('admin', 'admin123', this)" style="border: 1px solid var(--tan-accent); border-radius: var(--radius-sm); font-size: 0.8rem; font-weight: 700; padding: 0.45rem 0.2rem; background: var(--cream); color: var(--deep-espresso);">
+                    👑 Admin
+                </button>
+                <button type="button" class="btn btn-sm flex-fill role-select-btn" onclick="fillCredentials('staff', 'staff123', this)" style="border: 1px solid var(--tan-accent); border-radius: var(--radius-sm); font-size: 0.8rem; font-weight: 700; padding: 0.45rem 0.2rem; background: #fff; color: var(--deep-espresso);">
+                    🍳 Chef (KDS)
+                </button>
+                <button type="button" class="btn btn-sm flex-fill role-select-btn" onclick="fillCredentials('cashier', 'cashier123', this)" style="border: 1px solid var(--tan-accent); border-radius: var(--radius-sm); font-size: 0.8rem; font-weight: 700; padding: 0.45rem 0.2rem; background: #fff; color: var(--deep-espresso);">
+                    💳 POS Desk
+                </button>
+            </div>
+        </div>
+
         <form method="post" class="login-form" autocomplete="off">
             {% csrf_token %}
             <div class="form-group mb-3">
-                <label for="id_username">Staff Username</label>
-                <input type="text" id="id_username" name="username" placeholder="Enter staff username" required autofocus autocomplete="off">
+                <label for="id_username" style="font-weight: 700; font-size: 0.85rem; color: var(--deep-espresso); margin-bottom: 0.35rem; display: block;">Staff Username</label>
+                <div class="input-group">
+                    <span class="input-group-text" style="background: var(--cream); border-color: var(--tan-accent); color: var(--roasted-walnut);"><i class="bi bi-person-fill"></i></span>
+                    <input type="text" id="id_username" name="username" class="form-control" placeholder="Enter staff username" value="admin" required autofocus autocomplete="off" style="border-color: var(--tan-accent); font-weight: 600;">
+                </div>
             </div>
             
             <div class="form-group mb-4">
-                <label for="id_password">Password</label>
-                <input type="password" id="id_password" name="password" placeholder="••••••••" required autocomplete="current-password">
+                <label for="id_password" style="font-weight: 700; font-size: 0.85rem; color: var(--deep-espresso); margin-bottom: 0.35rem; display: block;">Password</label>
+                <div class="input-group">
+                    <span class="input-group-text" style="background: var(--cream); border-color: var(--tan-accent); color: var(--roasted-walnut);"><i class="bi bi-key-fill"></i></span>
+                    <input type="password" id="id_password" name="password" class="form-control" placeholder="••••••••" value="admin123" required autocomplete="current-password" style="border-color: var(--tan-accent); font-weight: 600;">
+                </div>
             </div>
             
-            <input type="hidden" name="next" value="{{ next|default:'/kitchen/' }}">
-            <button type="submit" class="btn-login" {% if lockout_error %}disabled{% endif %}>
+            <input type="hidden" name="next" id="nextInput" value="{{ next|default:'' }}">
+            <button type="submit" class="btn-premium btn-premium-primary w-100 py-2 fw-bold" style="font-size: 1rem; border-radius: var(--radius-md);" {% if lockout_error %}disabled{% endif %}>
                 <i class="bi bi-box-arrow-in-right"></i> Sign In to Portal
             </button>
         </form>
 
-        <div class="mt-4 pt-3 border-top text-center" style="font-size:0.75rem; color:var(--text-muted); font-weight:600;">
+        <div class="mt-4 pt-3 border-top text-center" style="font-size:0.75rem; color:var(--roasted-walnut); font-weight:600;">
             <i class="bi bi-shield-check text-success"></i> Rate-Limited Brute Force Defense Active
         </div>
     </div>
 </div>
+
+<script>
+function fillCredentials(user, pass, btn) {
+    document.getElementById('id_username').value = user;
+    document.getElementById('id_password').value = pass;
+    
+    // Set appropriate destination based on role
+    const nextInput = document.getElementById('nextInput');
+    if (!nextInput.value || nextInput.value === '/kitchen/' || nextInput.value === '/dashboard/' || nextInput.value === '/payment/') {
+        if (user === 'admin') nextInput.value = '/dashboard/';
+        else if (user === 'staff') nextInput.value = '/kitchen/';
+        else if (user === 'cashier') nextInput.value = '/payment/';
+    }
+
+    document.querySelectorAll('.role-select-btn').forEach(b => {
+        b.style.background = '#ffffff';
+        b.style.borderColor = 'var(--tan-accent)';
+    });
+    if (btn) {
+        btn.style.background = 'var(--cream)';
+        btn.style.borderColor = 'var(--cognac-gold)';
+    }
+}
+</script>
 {% endblock %}

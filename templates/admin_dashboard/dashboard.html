@@ -1,747 +1,520 @@
 {% extends "base.html" %}
 {% load static %}
+
 {% block title %}Admin Operations Dashboard — {{ restaurant_name }}{% endblock %}
 {% block meta_description %}Executive Admin Dashboard for {{ restaurant_name }}{% endblock %}
 {% block body_class %}dashboard-page{% endblock %}
 
 {% block body %}
-<!-- Topbar -->
-<div class="dashboard-topbar">
-    <div class="d-flex align-items-center gap-3">
-        <h1><i class="bi bi-speedometer2 text-warning"></i> Admin Operations Dashboard</h1>
-        <span class="badge" style="background:var(--cream); color:var(--dark-brown); font-weight:800; font-size:0.8rem; padding:0.3rem 0.75rem; border-radius:var(--radius-full);">
-            {{ restaurant_name }} Executive Console
-        </span>
-    </div>
-    <div class="d-flex align-items-center gap-2 flex-wrap">
-        <a href="/kitchen/" class="sound-toggle">
-            <i class="bi bi-fire"></i> KDS
-        </a>
-        <a href="/payment/" class="sound-toggle">
-            <i class="bi bi-calculator"></i> Payment POS
-        </a>
-        <a href="/admin/" class="sound-toggle" target="_blank">
-            <i class="bi bi-gear"></i> Django Admin
-        </a>
-        <a href="{% url 'logout' %}" class="sound-toggle">
-            <i class="bi bi-box-arrow-right"></i> Logout
-        </a>
-    </div>
-</div>
+<!-- Admin Top Header -->
+<header class="app-header" style="background: var(--deep-espresso); color: var(--bg-cream); border-bottom: 2px solid var(--tan-accent);">
+    <div class="header-inner" style="max-width: 1550px;">
+        <div class="d-flex align-items-center gap-3">
+            <a href="/" class="brand-logo text-white">
+                <span class="logo-icon">👑</span>
+                <span class="logo-text text-white">Admin Operations Control</span>
+            </a>
+            <span class="badge bg-warning text-dark fw-bold px-2 py-1" style="font-size: 0.75rem;">LIVE MANAGEMENT</span>
+        </div>
 
-<div class="dashboard-content">
-    <!-- Metric Stat Cards -->
-    <div class="stats-grid">
-        <div class="stat-card">
-            <div class="stat-icon">💰</div>
-            <div class="stat-value" id="statTodaySales">₹0.00</div>
-            <div class="stat-label">Today's Revenue</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-icon">📅</div>
-            <div class="stat-value" id="statMonthSales" style="color:var(--dark-brown);">₹0.00</div>
-            <div class="stat-label">Monthly Revenue</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-icon">📈</div>
-            <div class="stat-value" id="statYearSales" style="color:var(--deepest);">₹0.00</div>
-            <div class="stat-label">Yearly Revenue</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-icon">📦</div>
-            <div class="stat-value" id="statTodayOrders">0</div>
-            <div class="stat-label">Today's Orders</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-icon">✅</div>
-            <div class="stat-value" id="statPaidOrders" style="color:var(--success);">0</div>
-            <div class="stat-label">Completed &amp; Paid</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-icon">⏳</div>
-            <div class="stat-value" id="statPendingPayments" style="color:var(--warning);">0</div>
-            <div class="stat-label">Pending Payments</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-icon">🍽️</div>
-            <div class="stat-value" id="statActiveTables">0</div>
-            <div class="stat-label">Active Tables</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-icon">📊</div>
-            <div class="stat-value" id="statTotalOrders">0</div>
-            <div class="stat-label">Total Lifetime Orders</div>
+        <div class="d-flex align-items-center gap-2">
+            <a href="/kitchen/" class="btn btn-sm btn-outline-light rounded-pill px-3">
+                <i class="bi bi-fire"></i> KDS
+            </a>
+            <a href="/payment/" class="btn btn-sm btn-outline-light rounded-pill px-3">
+                <i class="bi bi-credit-card"></i> POS Desk
+            </a>
+            <a href="/admin/" class="btn btn-sm btn-outline-warning rounded-pill px-3" target="_blank">
+                <i class="bi bi-gear-fill"></i> Django Admin
+            </a>
+            <a href="/logout/" class="btn btn-sm btn-danger rounded-pill px-3">
+                <i class="bi bi-box-arrow-right"></i> Logout
+            </a>
         </div>
     </div>
+</header>
 
-    <!-- Navigation Tabs & CSV Download Button -->
-    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
-        <div class="dashboard-tabs mb-0">
-            <div class="dashboard-tab active" id="tabBtnOrders" onclick="switchTab('orders')">
-                <i class="bi bi-receipt"></i> Orders Management
-            </div>
-            <div class="dashboard-tab" id="tabBtnCustomers" onclick="switchTab('customers')">
-                <i class="bi bi-people-fill"></i> Customer Directory &amp; History
-            </div>
-            <div class="dashboard-tab" id="tabBtnMenu" onclick="switchTab('menu')">
-                <i class="bi bi-pencil-square"></i> Add &amp; Edit Menu Dishes
+<!-- Main Dashboard Container -->
+<main class="container-fluid py-4 px-3 px-xl-4" style="max-width: 1600px; margin: 0 auto;">
+
+    <!-- Top KPI Cards Row -->
+    <div class="row g-3 mb-4">
+        <!-- 1. Total Revenue -->
+        <div class="col-6 col-lg-3">
+            <div class="glass-panel p-3 h-100" style="background: #ffffff; border-color: var(--tan-accent); border-left: 5px solid #16a34a;">
+                <div class="d-flex align-items-center justify-content-between mb-1">
+                    <span class="small fw-bold text-muted text-uppercase">Total Revenue</span>
+                    <span style="font-size: 1.4rem;">💰</span>
+                </div>
+                <h2 id="kpiRevenue" style="font-family: var(--font-heading); font-weight: 900; color: var(--deep-espresso); margin-bottom: 0.2rem; font-size: 1.75rem;">₹0.00</h2>
+                <div class="small text-muted"><span id="kpiPaidCount" class="fw-bold text-success">0</span> paid transactions</div>
             </div>
         </div>
 
-        <button class="btn-premium-secondary" id="downloadCsvBtn" onclick="downloadCurrentDataCsv()">
-            <i class="bi bi-file-earmark-spreadsheet-fill text-success" style="font-size:1.1rem;"></i>
-            <span>Export Data as .CSV</span>
+        <!-- 2. Total Orders Placed -->
+        <div class="col-6 col-lg-3">
+            <div class="glass-panel p-3 h-100" style="background: #ffffff; border-color: var(--tan-accent); border-left: 5px solid #d97706;">
+                <div class="d-flex align-items-center justify-content-between mb-1">
+                    <span class="small fw-bold text-muted text-uppercase">Orders Placed</span>
+                    <span style="font-size: 1.4rem;">📦</span>
+                </div>
+                <h2 id="kpiOrders" style="font-family: var(--font-heading); font-weight: 900; color: var(--deep-espresso); margin-bottom: 0.2rem; font-size: 1.75rem;">0</h2>
+                <div class="small text-muted"><span id="kpiActiveOrders" class="fw-bold text-warning">0</span> active in restaurant</div>
+            </div>
+        </div>
+
+        <!-- 3. Active Tables Occupied -->
+        <div class="col-6 col-lg-3">
+            <div class="glass-panel p-3 h-100" style="background: #ffffff; border-color: var(--tan-accent); border-left: 5px solid #2563eb;">
+                <div class="d-flex align-items-center justify-content-between mb-1">
+                    <span class="small fw-bold text-muted text-uppercase">Table Occupancy</span>
+                    <span style="font-size: 1.4rem;">🪑</span>
+                </div>
+                <h2 id="kpiTables" style="font-family: var(--font-heading); font-weight: 900; color: var(--deep-espresso); margin-bottom: 0.2rem; font-size: 1.75rem;">0 / 10</h2>
+                <div class="small text-muted"><span id="kpiTablesAvail" class="fw-bold text-primary">10</span> available for guests</div>
+            </div>
+        </div>
+
+        <!-- 4. Average Ticket / Customer Count -->
+        <div class="col-6 col-lg-3">
+            <div class="glass-panel p-3 h-100" style="background: #ffffff; border-color: var(--tan-accent); border-left: 5px solid var(--cognac-gold);">
+                <div class="d-flex align-items-center justify-content-between mb-1">
+                    <span class="small fw-bold text-muted text-uppercase">Average Bill</span>
+                    <span style="font-size: 1.4rem;">⭐</span>
+                </div>
+                <h2 id="kpiAvgBill" style="font-family: var(--font-heading); font-weight: 900; color: var(--deep-espresso); margin-bottom: 0.2rem; font-size: 1.75rem;">₹0.00</h2>
+                <div class="small text-muted"><span id="kpiCustCount" class="fw-bold" style="color:var(--roasted-walnut);">0</span> registered guests</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Segmented Navigation Tabs -->
+    <div class="glass-panel p-2 mb-4 d-flex align-items-center justify-content-between flex-wrap gap-2" style="background: #ffffff; border-color: var(--tan-accent);">
+        <div class="d-flex gap-2 flex-wrap">
+            <button class="dash-tab-btn active" onclick="switchDashTab('live-orders', this)">
+                <i class="bi bi-activity"></i> Live Orders &amp; Sales
+            </button>
+            <button class="dash-tab-btn" onclick="switchDashTab('menu-mgmt', this)">
+                <i class="bi bi-egg-fried"></i> Menu &amp; Stock Toggles
+            </button>
+            <button class="dash-tab-btn" onclick="switchDashTab('order-ledger', this)">
+                <i class="bi bi-journal-text"></i> Full Orders Ledger
+            </button>
+            <button class="dash-tab-btn" onclick="switchDashTab('customer-dir', this)">
+                <i class="bi bi-people-fill"></i> Customer Directory
+            </button>
+            <button class="dash-tab-btn" onclick="switchDashTab('tables-matrix', this)">
+                <i class="bi bi-qr-code-scan"></i> Physical Tables &amp; QR
+            </button>
+        </div>
+
+        <button class="btn btn-sm btn-outline-secondary rounded-pill px-3" onclick="refreshCurrentTab()" title="Refresh Data">
+            <i class="bi bi-arrow-clockwise"></i> Refresh
         </button>
     </div>
 
-    <!-- 1. ORDERS VIEW -->
-    <div id="ordersView">
-        <div class="dashboard-section">
-            <div class="dashboard-section-header">
-                <h2><i class="bi bi-list-check"></i> Orders Operations Log</h2>
-                <button class="btn-premium-secondary py-1 px-3" onclick="loadOrders()" style="font-size:0.82rem;">
-                    <i class="bi bi-arrow-clockwise"></i> Refresh
-                </button>
+    <!-- =========================================================================
+         TAB 1: LIVE ORDERS & SALES OVERVIEW
+         ========================================================================= -->
+    <div class="dash-tab-pane active" id="tab-live-orders">
+        <div class="row g-3">
+            <div class="col-lg-8">
+                <div class="glass-panel p-3" style="background: #ffffff; border-color: var(--tan-accent);">
+                    <div class="d-flex align-items-center justify-content-between mb-3 border-bottom pb-2">
+                        <strong style="color: var(--deep-espresso); font-size: 1.05rem;"><i class="bi bi-clock-history"></i> Real-Time Active Floor Orders</strong>
+                        <span class="badge bg-warning text-dark fw-bold px-2 py-1" id="liveOrdersCountBadge">0 active</span>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead style="background:var(--cream); font-size:0.82rem; color:var(--roasted-walnut);">
+                                <tr>
+                                    <th>Order #</th>
+                                    <th>Table</th>
+                                    <th>Customer</th>
+                                    <th>Items</th>
+                                    <th>Amount</th>
+                                    <th>Stage</th>
+                                    <th>Payment</th>
+                                    <th class="text-end">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="liveOrdersTbody">
+                                <tr><td colspan="8" class="text-center py-4 text-muted">Loading live orders...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
 
-            <!-- Filters Bar -->
-            <div class="dashboard-filters">
-                <input type="text" id="orderSearch" placeholder="Search Order #, Customer, Table..." style="min-width:220px;" oninput="debounceOrderSearch()">
-                
-                <!-- Date Filter -->
-                <div class="d-flex align-items-center gap-1 p-1 px-2 rounded" style="background:#fff; border:1.5px solid var(--border); font-size:0.85rem;">
-                    <i class="bi bi-calendar3 text-muted"></i>
-                    <label for="filterDate" class="text-muted small mb-0 me-1" style="font-weight:700;">Date:</label>
-                    <input type="date" id="filterDate" onchange="loadOrders()" style="border:none; background:transparent; outline:none; font-size:0.85rem; color:var(--text); cursor:pointer;">
-                    <button type="button" class="btn btn-sm btn-link text-muted p-0 ms-1" onclick="clearDateFilter()" title="Clear date" id="clearDateBtn" style="display:none;">
-                        <i class="bi bi-x-circle-fill"></i>
-                    </button>
+            <!-- Quick Summary Panel -->
+            <div class="col-lg-4">
+                <div class="glass-panel p-3 mb-3" style="background: #ffffff; border-color: var(--tan-accent);">
+                    <strong style="color: var(--deep-espresso); font-size: 1rem; display:block; margin-bottom: 0.75rem;"><i class="bi bi-pie-chart-fill"></i> Order Stage Breakdown</strong>
+                    <div class="d-flex flex-column gap-2" id="stageBreakdownList">
+                        <div class="d-flex justify-content-between p-2 rounded" style="background:var(--cream); font-size:0.88rem;">
+                            <span>📋 New Orders (Awaiting Chef)</span>
+                            <strong id="stageNewCount">0</strong>
+                        </div>
+                        <div class="d-flex justify-content-between p-2 rounded" style="background:var(--cream); font-size:0.88rem;">
+                            <span>🔥 Cooking / Preparing</span>
+                            <strong id="stagePrepCount">0</strong>
+                        </div>
+                        <div class="d-flex justify-content-between p-2 rounded" style="background:var(--cream); font-size:0.88rem;">
+                            <span>✨ Ready to Serve</span>
+                            <strong id="stageReadyCount">0</strong>
+                        </div>
+                        <div class="d-flex justify-content-between p-2 rounded" style="background:var(--cream); font-size:0.88rem;">
+                            <span>🍽️ Served (Dining)</span>
+                            <strong id="stageServedCount">0</strong>
+                        </div>
+                    </div>
                 </div>
 
-                <!-- Status Filter -->
-                <select id="filterStatus" onchange="loadOrders()" style="font-weight:700;">
-                    <option value="">All Order Statuses</option>
-                    <option value="ORDER_CREATED">1. Order Placed</option>
-                    <option value="ACCEPTED">2. Kitchen Accepted</option>
-                    <option value="PREPARING">3. Cooking &amp; Preparing</option>
-                    <option value="READY">4. Ready to Serve</option>
-                    <option value="SERVED">5. Served at Table</option>
-                    <option value="COMPLETED">6. Completed &amp; Paid</option>
-                    <option value="CANCELLED">Cancelled</option>
-                </select>
+                <div class="glass-panel p-3" style="background: #ffffff; border-color: var(--tan-accent);">
+                    <strong style="color: var(--deep-espresso); font-size: 1rem; display:block; margin-bottom: 0.75rem;"><i class="bi bi-shield-check"></i> System Operational Status</strong>
+                    <div class="small text-muted mb-2">Database: <span class="badge bg-success text-white">Aiven MySQL 8.4.8 (SSL)</span></div>
+                    <div class="small text-muted mb-2">Hosting: <span class="badge bg-dark text-white">Vercel Serverless</span></div>
+                    <div class="small text-muted">GST Tax Rate: <span class="badge bg-warning text-dark">5% (2.5% CGST + 2.5% SGST)</span></div>
+                </div>
+            </div>
+        </div>
+    </div>
 
-                <!-- Payment Status Filter -->
-                <select id="filterPayment" onchange="loadOrders()" style="font-weight:700;">
-                    <option value="">All Payment Statuses</option>
-                    <option value="PAID">Paid</option>
-                    <option value="PENDING">Pending / Unpaid</option>
-                </select>
-
-                <button class="btn-premium-secondary py-1 px-3" onclick="resetOrderFilters()" style="font-size:0.82rem;">
-                    Reset Filters
-                </button>
+    <!-- =========================================================================
+         TAB 2: MENU & REAL-TIME STOCK TOGGLES
+         ========================================================================= -->
+    <div class="dash-tab-pane" id="tab-menu-mgmt" style="display:none;">
+        <div class="glass-panel p-3" style="background: #ffffff; border-color: var(--tan-accent);">
+            <div class="d-flex align-items-center justify-content-between mb-3 border-bottom pb-2 flex-wrap gap-2">
+                <div>
+                    <strong style="color: var(--deep-espresso); font-size: 1.1rem;"><i class="bi bi-card-checklist"></i> Menu Items &amp; Availability Toggles</strong>
+                    <div class="small text-muted">Toggle dishes available or out-of-stock (86) in real-time. Instantly updates customer menus.</div>
+                </div>
+                <div class="d-flex gap-2">
+                    <input type="text" id="menuFilterSearch" class="form-control form-control-sm" placeholder="Search dish..." onkeyup="renderMenuItemsTable()" style="max-width:220px; border-color:var(--tan-accent);">
+                </div>
             </div>
 
-            <!-- Orders Table -->
-            <div style="overflow-x:auto;">
-                <table class="dashboard-table">
-                    <thead>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead style="background:var(--cream); font-size:0.82rem; color:var(--roasted-walnut);">
                         <tr>
-                            <th>Order ID</th>
+                            <th>Dish Name</th>
+                            <th>Category</th>
+                            <th>Diet</th>
+                            <th>Price</th>
+                            <th>Bestseller</th>
+                            <th class="text-center">Live Availability</th>
+                        </tr>
+                    </thead>
+                    <tbody id="menuMgmtTbody">
+                        <tr><td colspan="6" class="text-center py-4 text-muted">Loading menu items...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- =========================================================================
+         TAB 3: FULL ORDERS AUDIT LEDGER
+         ========================================================================= -->
+    <div class="dash-tab-pane" id="tab-order-ledger" style="display:none;">
+        <div class="glass-panel p-3" style="background: #ffffff; border-color: var(--tan-accent);">
+            <div class="d-flex align-items-center justify-content-between mb-3 border-bottom pb-2 flex-wrap gap-2">
+                <strong style="color: var(--deep-espresso); font-size: 1.1rem;"><i class="bi bi-journal-bookmark-fill"></i> Chronological Orders Audit Ledger</strong>
+                <div class="d-flex gap-2">
+                    <input type="text" id="ledgerSearchInput" class="form-control form-control-sm" placeholder="Filter Order # or Customer..." onkeyup="filterLedger()" style="max-width:260px; border-color:var(--tan-accent);">
+                </div>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead style="background:var(--cream); font-size:0.82rem; color:var(--roasted-walnut);">
+                        <tr>
+                            <th>Order #</th>
+                            <th>Date / Time</th>
                             <th>Table</th>
                             <th>Customer</th>
-                            <th>Items</th>
-                            <th>Total (incl. GST)</th>
-                            <th>Order Status</th>
+                            <th>Subtotal</th>
+                            <th>GST (5%)</th>
+                            <th>Grand Total</th>
+                            <th>Status</th>
                             <th>Payment</th>
-                            <th>Placed Time</th>
-                            <th>Actions</th>
+                            <th class="text-end">Invoice PDF</th>
                         </tr>
                     </thead>
-                    <tbody id="ordersTableBody">
-                        <tr><td colspan="9" class="text-center py-4 text-muted"><div class="spinner dark"></div> Loading orders...</td></tr>
+                    <tbody id="ledgerTbody">
+                        <tr><td colspan="10" class="text-center py-4 text-muted">Loading ledger...</td></tr>
                     </tbody>
                 </table>
             </div>
-
-            <div class="d-flex justify-content-between align-items-center p-3 border-top" id="ordersPagination"></div>
         </div>
     </div>
 
-    <!-- 2. CUSTOMER DIRECTORY & HISTORY VIEW -->
-    <div id="customersView" style="display:none;">
-        <div class="dashboard-section">
-            <div class="dashboard-section-header">
-                <h2><i class="bi bi-people-fill"></i> Customer Directory &amp; Lifetime History</h2>
-                <button class="btn-premium-secondary py-1 px-3" onclick="loadCustomers()" style="font-size:0.82rem;">
-                    <i class="bi bi-arrow-clockwise"></i> Refresh
-                </button>
+    <!-- =========================================================================
+         TAB 4: CUSTOMER DINING DIRECTORY
+         ========================================================================= -->
+    <div class="dash-tab-pane" id="tab-customer-dir" style="display:none;">
+        <div class="glass-panel p-3" style="background: #ffffff; border-color: var(--tan-accent);">
+            <div class="d-flex align-items-center justify-content-between mb-3 border-bottom pb-2 flex-wrap gap-2">
+                <strong style="color: var(--deep-espresso); font-size: 1.1rem;"><i class="bi bi-people-fill"></i> Registered Customer Directory &amp; Dining History</strong>
+                <input type="text" id="custSearchInput" class="form-control form-control-sm" placeholder="Search customer name or phone..." onkeyup="filterCustomers()" style="max-width:260px; border-color:var(--tan-accent);">
             </div>
 
-            <div class="dashboard-filters">
-                <input type="text" id="custSearch" placeholder="Search Customer Name or Phone Number..." style="min-width:280px;" oninput="debounceCustSearch()">
-            </div>
-
-            <div style="overflow-x:auto;">
-                <table class="dashboard-table">
-                    <thead>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead style="background:var(--cream); font-size:0.82rem; color:var(--roasted-walnut);">
                         <tr>
                             <th>Customer Name</th>
-                            <th>Mobile Phone</th>
-                            <th>Lifetime Orders</th>
+                            <th>Phone Number</th>
+                            <th>Total Dining Sessions</th>
                             <th>Total Spend</th>
-                            <th>First Visit</th>
                             <th>Last Visit</th>
-                            <th>Actions</th>
+                            <th class="text-end">History</th>
                         </tr>
                     </thead>
-                    <tbody id="customersTableBody">
-                        <tr><td colspan="7" class="text-center py-4 text-muted"><div class="spinner dark"></div> Loading customer directory...</td></tr>
-                    </tbody>
-                </table>
-            </div>
-
-            <div class="d-flex justify-content-between align-items-center p-3 border-top" id="customersPagination"></div>
-        </div>
-    </div>
-
-    <!-- 3. ADD & EDIT MENU DISHES VIEW -->
-    <div id="menuView" style="display:none;">
-        <div class="dashboard-section">
-            <div class="dashboard-section-header">
-                <h2><i class="bi bi-card-list"></i> Menu Management &amp; Dishes</h2>
-                <button class="btn-premium-primary py-1 px-3" onclick="openAddMenuItemModal()" style="font-size:0.85rem;">
-                    <i class="bi bi-plus-circle-fill"></i> Add New Dish
-                </button>
-            </div>
-
-            <div class="dashboard-filters">
-                <select id="menuFilterCategory" onchange="filterMenuItemsByCategory(this.value)" style="font-weight:700;">
-                    <option value="">All Categories</option>
-                </select>
-            </div>
-
-            <div style="overflow-x:auto;">
-                <table class="dashboard-table">
-                    <thead>
-                        <tr>
-                            <th>Dish / Item</th>
-                            <th>Category</th>
-                            <th>Price</th>
-                            <th>Type</th>
-                            <th>Bestseller</th>
-                            <th>Availability</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody id="menuItemsTableBody">
-                        <tr><td colspan="7" class="text-center py-4 text-muted"><div class="spinner dark"></div> Loading menu dishes...</td></tr>
+                    <tbody id="customersTbody">
+                        <tr><td colspan="6" class="text-center py-4 text-muted">Loading customer records...</td></tr>
                     </tbody>
                 </table>
             </div>
         </div>
     </div>
-</div>
 
-<!-- ORDER DETAIL MODAL -->
-<div class="modal-backdrop-custom" id="orderModal" style="display:none;">
-    <div class="checkin-card animate-scale-in" style="max-width:560px; width:95%;">
-        <div class="d-flex justify-content-between align-items-center mb-3">
-            <h3 style="font-family:var(--font-heading); font-weight:850; font-size:1.25rem; color:var(--dark-brown); margin:0;" id="modalOrderTitle">Order Details</h3>
-            <button class="cart-close" onclick="closeOrderModal()"><i class="bi bi-x-lg"></i></button>
+    <!-- =========================================================================
+         TAB 5: PHYSICAL TABLES & QR CODE MATRIX
+         ========================================================================= -->
+    <div class="dash-tab-pane" id="tab-tables-matrix" style="display:none;">
+        <div class="glass-panel p-3" style="background: #ffffff; border-color: var(--tan-accent);">
+            <div class="d-flex align-items-center justify-content-between mb-3 border-bottom pb-2">
+                <div>
+                    <strong style="color: var(--deep-espresso); font-size: 1.1rem;"><i class="bi bi-grid-3x3-gap-fill"></i> Physical Dining Tables &amp; QR Access Matrix</strong>
+                    <div class="small text-muted">Independent table links for all 10 physical dining stations.</div>
+                </div>
+            </div>
+
+            <div class="row g-3" id="tablesGridContainer">
+                <!-- 10 Tables dynamically populated -->
+            </div>
         </div>
-        <div id="modalOrderBody"></div>
+    </div>
+
+</main>
+
+<!-- Order Details Modal -->
+<div id="orderModal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(61,41,35,0.65); backdrop-filter:blur(6px); z-index:1050; align-items:center; justify-content:center; padding:1rem;">
+    <div class="glass-panel animate-scale-in p-4" style="background:#ffffff; max-width:550px; width:100%; border-radius:var(--radius-lg); border:2px solid var(--tan-accent); max-height:90vh; overflow-y:auto;">
+        <div class="d-flex align-items-center justify-content-between mb-3 border-bottom pb-2">
+            <h4 id="modalOrderTitle" style="font-family:var(--font-heading); font-weight:800; color:var(--deep-espresso); margin:0;">Order Details</h4>
+            <button class="btn btn-sm text-muted" onclick="closeOrderModal()"><i class="bi bi-x-lg"></i></button>
+        </div>
+        <div id="modalOrderBody">
+            <!-- Dynamically populated -->
+        </div>
     </div>
 </div>
 
-<!-- CUSTOMER PROFILE MODAL -->
-<div class="modal-backdrop-custom" id="customerModal" style="display:none;">
-    <div class="checkin-card animate-scale-in" style="max-width:580px; width:95%;">
-        <div class="d-flex justify-content-between align-items-center mb-3">
-            <h3 style="font-family:var(--font-heading); font-weight:850; font-size:1.25rem; color:var(--dark-brown); margin:0;" id="modalCustTitle">Customer Profile</h3>
-            <button class="cart-close" onclick="closeCustomerModal()"><i class="bi bi-x-lg"></i></button>
+<!-- Customer History Modal -->
+<div id="customerModal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(61,41,35,0.65); backdrop-filter:blur(6px); z-index:1050; align-items:center; justify-content:center; padding:1rem;">
+    <div class="glass-panel animate-scale-in p-4" style="background:#ffffff; max-width:550px; width:100%; border-radius:var(--radius-lg); border:2px solid var(--tan-accent); max-height:90vh; overflow-y:auto;">
+        <div class="d-flex align-items-center justify-content-between mb-3 border-bottom pb-2">
+            <h4 id="modalCustTitle" style="font-family:var(--font-heading); font-weight:800; color:var(--deep-espresso); margin:0;">Customer Profile</h4>
+            <button class="btn btn-sm text-muted" onclick="closeCustomerModal()"><i class="bi bi-x-lg"></i></button>
         </div>
-        <div id="modalCustBody"></div>
+        <div id="modalCustBody">
+            <!-- Dynamically populated -->
+        </div>
     </div>
 </div>
 
-<!-- ADD & EDIT MENU ITEM MODAL -->
-<div class="modal-backdrop-custom" id="menuItemModal" style="display:none;">
-    <div class="checkin-card animate-scale-in" style="max-width:520px; width:95%;">
-        <div class="d-flex justify-content-between align-items-center mb-3">
-            <h3 style="font-family:var(--font-heading); font-weight:850; font-size:1.25rem; color:var(--dark-brown); margin:0;" id="modalMenuItemTitle">Add New Dish</h3>
-            <button class="cart-close" onclick="closeMenuItemModal()"><i class="bi bi-x-lg"></i></button>
-        </div>
-        
-        <form id="menuItemForm" onsubmit="handleSaveMenuItem(event)">
-            <input type="hidden" id="editItemId" value="">
-            
-            <div class="mb-3">
-                <label class="form-label" style="font-weight:750; font-size:0.85rem; color:var(--dark-brown);">Dish Name *</label>
-                <input type="text" class="form-control" id="formItemName" placeholder="e.g. Butter Chicken or Paneer Tikka" required minlength="2" style="border-color:var(--border);">
-            </div>
+<!-- Custom Toasts -->
+<div id="successToast" class="toast-custom success"></div>
+<div id="errorToast" class="toast-custom error"></div>
 
-            <div class="row g-2 mb-3">
-                <div class="col-7">
-                    <label class="form-label" style="font-weight:750; font-size:0.85rem; color:var(--dark-brown);">Category *</label>
-                    <select class="form-select" id="formItemCategory" required style="border-color:var(--border); font-size:0.9rem;">
-                        <option value="">Select Category</option>
-                    </select>
-                </div>
-                <div class="col-5">
-                    <label class="form-label" style="font-weight:750; font-size:0.85rem; color:var(--dark-brown);">Price (₹) *</label>
-                    <input type="number" step="0.01" min="1" class="form-control" id="formItemPrice" placeholder="0.00" required style="border-color:var(--border); font-weight:700;">
-                </div>
-            </div>
-
-            <div class="mb-3">
-                <label class="form-label" style="font-weight:750; font-size:0.85rem; color:var(--dark-brown);">Emoji Icon</label>
-                <input type="text" class="form-control" id="formItemEmoji" placeholder="e.g. 🍗, 🍕, 🥗, ☕" maxlength="10" style="border-color:var(--border);">
-            </div>
-
-            <div class="mb-3">
-                <label class="form-label" style="font-weight:750; font-size:0.85rem; color:var(--dark-brown);">Description</label>
-                <textarea class="form-control" id="formItemDescription" rows="2" placeholder="Brief description of dish, spices, ingredients..." style="border-color:var(--border); font-size:0.85rem;"></textarea>
-            </div>
-
-            <div class="d-flex flex-wrap gap-3 p-3 rounded mb-4" style="background:var(--cream); border:1px solid var(--border-light);">
-                <div class="form-check">
-                    <input class="form-check-input" type="checkbox" id="formItemIsVeg">
-                    <label class="form-check-label" for="formItemIsVeg" style="font-size:0.85rem; font-weight:700;">Vegetarian 🌿</label>
-                </div>
-                <div class="form-check">
-                    <input class="form-check-input" type="checkbox" id="formItemIsBestseller">
-                    <label class="form-check-label" for="formItemIsBestseller" style="font-size:0.85rem; font-weight:700;">Bestseller ⭐</label>
-                </div>
-                <div class="form-check">
-                    <input class="form-check-input" type="checkbox" id="formItemAvailable" checked>
-                    <label class="form-check-label" for="formItemAvailable" style="font-size:0.85rem; font-weight:700; color:var(--success);">In Stock / Available ✅</label>
-                </div>
-            </div>
-
-            <div class="d-flex gap-2">
-                <button type="button" class="btn-premium-secondary flex-fill" onclick="closeMenuItemModal()">Cancel</button>
-                <button type="submit" class="btn-premium-primary flex-fill" id="saveMenuItemBtn">
-                    <i class="bi bi-check-circle-fill"></i> Save Dish
-                </button>
-            </div>
-        </form>
-    </div>
-</div>
-
-<div class="error-toast" id="errorToast"></div>
-<div class="success-toast" id="successToast"></div>
+<style>
+.dash-tab-btn {
+    border: 1px solid var(--tan-accent);
+    background: #ffffff;
+    color: var(--deep-espresso);
+    font-weight: 700;
+    border-radius: var(--radius-sm);
+    padding: 0.45rem 1rem;
+    font-size: 0.88rem;
+    transition: all 0.2s ease;
+}
+.dash-tab-btn.active, .dash-tab-btn:hover {
+    background: var(--roasted-walnut);
+    color: #ffffff;
+    border-color: var(--roasted-walnut);
+}
+.table-tile {
+    background: #ffffff;
+    border: 1px solid var(--tan-accent);
+    border-radius: var(--radius-md);
+    padding: 1rem;
+    transition: all 0.2s ease;
+}
+.table-tile:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(61,41,35,0.08);
+}
+.table-tile.active-table {
+    border: 2px solid var(--cognac-gold);
+    background: var(--cream);
+}
+.form-switch .form-check-input {
+    cursor: pointer;
+    width: 2.5rem;
+    height: 1.3rem;
+}
+.form-switch .form-check-input:checked {
+    background-color: #16a34a;
+    border-color: #16a34a;
+}
+</style>
 
 <script>
-const CSRF_TOKEN = '{{ csrf_token }}';
-let activeTab = 'orders';
-let searchTimeout = null;
-let allMenuItemsData = [];
-let allMenuCategoriesData = [];
+const CSRF_TOKEN = "{{ csrf_token }}";
+let activeTab = 'live-orders';
+let dashboardData = {};
+let menuItems = [];
+let allLedgerOrders = [];
+let allCustomers = [];
 
 document.addEventListener('DOMContentLoaded', () => {
-    loadStats();
-    loadOrders();
-    loadCategoriesForForm();
-    setInterval(loadStats, 30000);
+    loadDashboardData();
+    setInterval(loadDashboardData, 6000); // Polling every 6s
 });
 
-function switchTab(tab) {
-    activeTab = tab;
-    document.querySelectorAll('.dashboard-tab').forEach(t => t.classList.remove('active'));
-    document.getElementById('ordersView').style.display = 'none';
-    document.getElementById('customersView').style.display = 'none';
-    document.getElementById('menuView').style.display = 'none';
+function switchDashTab(tabId, btn) {
+    activeTab = tabId;
+    document.querySelectorAll('.dash-tab-btn').forEach(b => b.classList.remove('active'));
+    if (btn) btn.classList.add('active');
 
-    if (tab === 'orders') {
-        document.getElementById('tabBtnOrders').classList.add('active');
-        document.getElementById('ordersView').style.display = 'block';
-        loadOrders();
-    } else if (tab === 'customers') {
-        document.getElementById('tabBtnCustomers').classList.add('active');
-        document.getElementById('customersView').style.display = 'block';
-        loadCustomers();
-    } else if (tab === 'menu') {
-        document.getElementById('tabBtnMenu').classList.add('active');
-        document.getElementById('menuView').style.display = 'block';
-        loadMenuItems();
-    }
+    document.querySelectorAll('.dash-tab-pane').forEach(p => p.style.display = 'none');
+    const pane = document.getElementById(`tab-${tabId}`);
+    if (pane) pane.style.display = 'block';
+
+    if (tabId === 'menu-mgmt' && menuItems.length === 0) loadMenuItems();
+    if (tabId === 'order-ledger' && allLedgerOrders.length === 0) loadLedgerOrders();
+    if (tabId === 'customer-dir' && allCustomers.length === 0) loadCustomers();
+    if (tabId === 'tables-matrix') renderTablesMatrix();
 }
 
-// -------------------------------------------------------------
-// STATS OVERVIEW
-// -------------------------------------------------------------
-async function loadStats() {
+function refreshCurrentTab() {
+    loadDashboardData();
+    if (activeTab === 'menu-mgmt') loadMenuItems();
+    if (activeTab === 'order-ledger') loadLedgerOrders();
+    if (activeTab === 'customer-dir') loadCustomers();
+    if (activeTab === 'tables-matrix') renderTablesMatrix();
+    showToast('success', 'Data refreshed successfully');
+}
+
+async function loadDashboardData() {
     try {
-        const res = await fetch('/dashboard/api/stats/');
+        const res = await fetch('/dashboard/api/summary/');
         if (!res.ok) return;
-        const d = await res.json();
+        dashboardData = await res.json();
 
-        document.getElementById('statTodaySales').textContent = `₹${parseFloat(d.today_sales).toFixed(2)}`;
-        document.getElementById('statMonthSales').textContent = `₹${parseFloat(d.month_sales || 0).toFixed(2)}`;
-        document.getElementById('statYearSales').textContent = `₹${parseFloat(d.year_sales || 0).toFixed(2)}`;
-        document.getElementById('statTodayOrders').textContent = d.today_orders;
-        document.getElementById('statPaidOrders').textContent = d.paid_orders;
-        document.getElementById('statPendingPayments').textContent = d.pending_payments;
-        document.getElementById('statActiveTables').textContent = d.active_tables;
-        document.getElementById('statTotalOrders').textContent = d.total_orders;
-    } catch (e) {
-        console.warn('Stats fetch error:', e);
-    }
-}
+        // Update KPIs
+        document.getElementById('kpiRevenue').textContent = `₹${parseFloat(dashboardData.total_revenue || 0).toFixed(2)}`;
+        document.getElementById('kpiPaidCount').textContent = dashboardData.paid_orders_count || 0;
+        document.getElementById('kpiOrders').textContent = dashboardData.total_orders || 0;
+        document.getElementById('kpiActiveOrders').textContent = dashboardData.active_orders_count || 0;
+        document.getElementById('kpiTables').textContent = `${dashboardData.occupied_tables || 0} / 10`;
+        document.getElementById('kpiTablesAvail').textContent = `${10 - (dashboardData.occupied_tables || 0)} available`;
+        document.getElementById('kpiAvgBill').textContent = `₹${parseFloat(dashboardData.average_order_value || 0).toFixed(2)}`;
+        document.getElementById('kpiCustCount').textContent = dashboardData.total_customers || 0;
 
-// -------------------------------------------------------------
-// ORDERS LOG TAB
-// -------------------------------------------------------------
-let ordersCurrentPage = 1;
+        // Update Stage Counts
+        document.getElementById('stageNewCount').textContent = dashboardData.orders_by_status?.ORDER_CREATED || 0;
+        document.getElementById('stagePrepCount').textContent = (dashboardData.orders_by_status?.PREPARING || 0) + (dashboardData.orders_by_status?.ACCEPTED || 0);
+        document.getElementById('stageReadyCount').textContent = dashboardData.orders_by_status?.READY || 0;
+        document.getElementById('stageServedCount').textContent = dashboardData.orders_by_status?.SERVED || 0;
 
-function debounceOrderSearch() {
-    clearTimeout(searchTimeout);
-    searchTimeout = setTimeout(() => {
-        ordersCurrentPage = 1;
-        loadOrders();
-    }, 350);
-}
-
-function clearDateFilter() {
-    document.getElementById('filterDate').value = '';
-    document.getElementById('clearDateBtn').style.display = 'none';
-    loadOrders();
-}
-
-function resetOrderFilters() {
-    document.getElementById('orderSearch').value = '';
-    document.getElementById('filterDate').value = '';
-    document.getElementById('filterStatus').value = '';
-    document.getElementById('filterPayment').value = '';
-    document.getElementById('clearDateBtn').style.display = 'none';
-    ordersCurrentPage = 1;
-    loadOrders();
-}
-
-async function loadOrders(page = 1) {
-    ordersCurrentPage = page;
-    const search = document.getElementById('orderSearch').value.trim();
-    const dateVal = document.getElementById('filterDate').value;
-    const status = document.getElementById('filterStatus').value;
-    const payment = document.getElementById('filterPayment').value;
-
-    if (dateVal) {
-        document.getElementById('clearDateBtn').style.display = 'inline-block';
-    } else {
-        document.getElementById('clearDateBtn').style.display = 'none';
-    }
-
-    const params = new URLSearchParams({
-        page: page,
-        search: search,
-        date: dateVal,
-        status: status,
-        payment: payment
-    });
-
-    const tbody = document.getElementById('ordersTableBody');
-
-    try {
-        const res = await fetch(`/dashboard/api/orders/?${params.toString()}`);
-        if (!res.ok) throw new Error('Failed to load orders');
-        const data = await res.json();
-
-        if (!data.results || data.results.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="9" class="text-center py-5 text-muted"><i class="bi bi-inbox" style="font-size:2rem;display:block;opacity:0.4;"></i>No orders match your filter criteria</td></tr>';
-            document.getElementById('ordersPagination').innerHTML = '';
-            return;
-        }
-
-        tbody.innerHTML = data.results.map(o => {
-            let statusBadge = '';
-            switch (o.order_status) {
-                case 'ORDER_CREATED': statusBadge = '<span class="status-badge badge-created">1. Placed</span>'; break;
-                case 'ACCEPTED': statusBadge = '<span class="status-badge badge-cooking">2. Accepted</span>'; break;
-                case 'PREPARING': statusBadge = '<span class="status-badge badge-cooking">3. Cooking</span>'; break;
-                case 'READY': statusBadge = '<span class="status-badge badge-ready">4. Ready</span>'; break;
-                case 'SERVED': statusBadge = '<span class="status-badge badge-served">5. Served</span>'; break;
-                case 'COMPLETED': statusBadge = '<span class="status-badge badge-completed">6. Completed</span>'; break;
-                default: statusBadge = `<span class="status-badge">${o.order_status}</span>`;
-            }
-
-            const payBadge = (o.payment_status === 'PAID' || o.is_paid) ? 
-                '<span class="status-badge badge-paid">PAID</span>' : 
-                '<span class="status-badge badge-unpaid">UNPAID</span>';
-
-            return `
-            <tr>
-                <td><strong>#${o.order_number}</strong></td>
-                <td><span class="table-badge"><i class="bi bi-geo-alt-fill text-danger"></i> T${o.table_display || o.table_number}</span></td>
-                <td>
-                    <div style="font-weight:700;">${escapeHtml(o.customer_name || 'Guest')}</div>
-                    <div class="text-muted small">${o.customer_phone_masked || ''}</div>
-                </td>
-                <td>${o.items_count} item${o.items_count > 1 ? 's' : ''}</td>
-                <td style="font-weight:800; color:var(--dark-brown);">₹${parseFloat(o.total_amount).toFixed(2)}</td>
-                <td>${statusBadge}</td>
-                <td>${payBadge}</td>
-                <td style="font-size:0.8rem; color:var(--text-muted);">${o.created_at_display}</td>
-                <td>
-                    <button class="btn-premium-secondary py-1 px-2" onclick="viewOrderDetail('${o.order_number}')" style="font-size:0.78rem;">
-                        <i class="bi bi-eye"></i> Details
-                    </button>
-                </td>
-            </tr>`;
-        }).join('');
-
-        renderPagination('ordersPagination', data.page, data.total_pages, loadOrders);
+        // Render Live Orders Table
+        renderLiveOrdersTable(dashboardData.recent_orders || []);
 
     } catch (e) {
-        tbody.innerHTML = `<tr><td colspan="9" class="text-center py-4 text-danger">${e.message}</td></tr>`;
+        console.debug('Dashboard summary poll error:', e);
     }
 }
 
-// -------------------------------------------------------------
-// CSV EXPORT
-// -------------------------------------------------------------
-function downloadCurrentDataCsv() {
-    const search = document.getElementById('orderSearch').value.trim();
-    const dateVal = document.getElementById('filterDate').value;
-    const status = document.getElementById('filterStatus').value;
-    const payment = document.getElementById('filterPayment').value;
+function renderLiveOrdersTable(orders) {
+    const tbody = document.getElementById('liveOrdersTbody');
+    const badge = document.getElementById('liveOrdersCountBadge');
+    
+    const activeOrders = orders.filter(o => o.order_status !== 'COMPLETED' && o.order_status !== 'CANCELLED');
+    if (badge) badge.textContent = `${activeOrders.length} active`;
 
-    const params = new URLSearchParams({
-        search: search,
-        date: dateVal,
-        status: status,
-        payment: payment
-    });
-
-    showToast('success', 'Preparing CSV export...');
-    window.location.href = `/dashboard/api/orders/export-csv/?${params.toString()}`;
-}
-
-// -------------------------------------------------------------
-// CUSTOMER DIRECTORY TAB
-// -------------------------------------------------------------
-let custCurrentPage = 1;
-
-function debounceCustSearch() {
-    clearTimeout(searchTimeout);
-    searchTimeout = setTimeout(() => {
-        custCurrentPage = 1;
-        loadCustomers();
-    }, 350);
-}
-
-async function loadCustomers(page = 1) {
-    custCurrentPage = page;
-    const search = document.getElementById('custSearch').value.trim();
-    const tbody = document.getElementById('customersTableBody');
-
-    try {
-        const res = await fetch(`/dashboard/api/customers/?page=${page}&search=${encodeURIComponent(search)}`);
-        if (!res.ok) throw new Error('Failed to load customer list');
-        const data = await res.json();
-
-        if (!data.results || data.results.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="7" class="text-center py-5 text-muted">No customers found</td></tr>';
-            document.getElementById('customersPagination').innerHTML = '';
-            return;
-        }
-
-        tbody.innerHTML = data.results.map(c => `
-            <tr>
-                <td><strong>👤 ${escapeHtml(c.name)}</strong></td>
-                <td><code>${c.phone_masked}</code></td>
-                <td style="font-weight:750;">${c.total_orders}</td>
-                <td style="font-weight:850; color:var(--deepest);">₹${parseFloat(c.total_spent).toFixed(2)}</td>
-                <td style="font-size:0.82rem; color:var(--text-muted);">${c.first_visit}</td>
-                <td style="font-size:0.82rem; color:var(--text-muted);">${c.last_visit}</td>
-                <td>
-                    <button class="btn-premium-secondary py-1 px-2" onclick="viewCustomerDetail('${c.id}')" style="font-size:0.78rem;">
-                        <i class="bi bi-clock-history"></i> Past Orders
-                    </button>
-                </td>
-            </tr>
-        `).join('');
-
-        renderPagination('customersPagination', data.page, data.total_pages, loadCustomers);
-
-    } catch (e) {
-        tbody.innerHTML = `<tr><td colspan="7" class="text-center py-4 text-danger">${e.message}</td></tr>`;
-    }
-}
-
-// -------------------------------------------------------------
-// MENU MANAGEMENT TAB
-// -------------------------------------------------------------
-async function loadMenuItems() {
-    const tbody = document.getElementById('menuItemsTableBody');
-    try {
-        const res = await fetch('/dashboard/api/menu-items/');
-        if (!res.ok) throw new Error('Failed to load menu items');
-        allMenuItemsData = await res.json();
-        renderMenuItemsTable(allMenuItemsData);
-    } catch (e) {
-        tbody.innerHTML = `<tr><td colspan="7" class="text-center py-4 text-danger">${e.message}</td></tr>`;
-    }
-}
-
-function filterMenuItemsByCategory(catId) {
-    if (!catId) {
-        renderMenuItemsTable(allMenuItemsData);
-    } else {
-        const filtered = allMenuItemsData.filter(i => String(i.category_id) === String(catId));
-        renderMenuItemsTable(filtered);
-    }
-}
-
-function renderMenuItemsTable(items) {
-    const tbody = document.getElementById('menuItemsTableBody');
-    if (!items || items.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7" class="text-center py-5 text-muted">No menu items found</td></tr>';
+    if (orders.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="8" class="text-center py-4 text-muted">No recent orders found</td></tr>`;
         return;
     }
 
-    tbody.innerHTML = items.map(item => {
-        const vegBadge = item.is_veg ? 
-            '<span class="badge" style="background:#dcfce7; color:#166534; font-size:0.75rem;">VEG 🌿</span>' : 
-            '<span class="badge" style="background:#fee2e2; color:#991b1b; font-size:0.75rem;">NON-VEG 🍗</span>';
-
-        const bestBadge = item.is_bestseller ? 
-            '<span class="badge" style="background:#fef3c7; color:#92400e; font-size:0.75rem;">⭐ BESTSELLER</span>' : 
-            '<span class="text-muted small">—</span>';
-
-        const availBadge = item.available ? 
-            '<span class="badge bg-success" style="font-size:0.75rem;">IN STOCK</span>' : 
-            '<span class="badge bg-secondary" style="font-size:0.75rem;">OUT OF STOCK</span>';
-
+    tbody.innerHTML = orders.slice(0, 10).map(o => {
+        const isPaid = (o.payment_status === 'PAID');
         return `
-        <tr>
-            <td>
-                <div class="d-flex align-items-center gap-2">
-                    <span style="font-size:1.4rem;">${item.emoji || '🍽️'}</span>
-                    <div>
-                        <strong>${escapeHtml(item.name)}</strong>
-                        ${item.description ? `<div class="text-muted small">${escapeHtml(item.description.substring(0, 45))}...</div>` : ''}
-                    </div>
-                </div>
-            </td>
-            <td><span class="badge" style="background:var(--cream); color:var(--dark-brown);">${escapeHtml(item.category_name)}</span></td>
-            <td style="font-weight:800; color:var(--dark-brown);">₹${parseFloat(item.price).toFixed(2)}</td>
-            <td>${vegBadge}</td>
-            <td>${bestBadge}</td>
-            <td>${availBadge}</td>
-            <td>
-                <div class="d-flex gap-1">
-                    <button class="btn-premium-secondary py-1 px-2" onclick="openEditMenuItemModal(${item.id})" style="font-size:0.75rem;" title="Edit dish">
-                        <i class="bi bi-pencil"></i>
-                    </button>
-                    <button class="btn btn-sm ${item.available ? 'btn-outline-danger' : 'btn-outline-success'} py-1 px-2" onclick="toggleItemAvailability(${item.id}, ${!item.available})" style="font-size:0.75rem; border-radius:var(--radius-md);" title="Toggle availability">
-                        <i class="bi bi-power"></i>
-                    </button>
-                </div>
+        <tr style="font-size:0.88rem;">
+            <td class="fw-bold"><a href="#" onclick="viewOrderDetail('${o.order_number}'); return false;" style="color:var(--deep-espresso);">#${o.order_number}</a></td>
+            <td><span class="table-indicator-badge" style="font-size:0.72rem; padding:0.15rem 0.45rem;">Table ${o.table_display || o.table_number}</span></td>
+            <td>${o.customer_name || 'Guest'}</td>
+            <td><span class="badge bg-light text-dark border">${o.items_count || (o.items ? o.items.length : 1)} items</span></td>
+            <td class="fw-bold" style="color:var(--deep-espresso);">₹${parseFloat(o.total_amount).toFixed(2)}</td>
+            <td><span class="badge bg-secondary text-white">${o.order_status_display || o.order_status}</span></td>
+            <td>${isPaid ? '<span class="badge bg-success text-white">Paid</span>' : '<span class="badge bg-warning text-dark">Pending</span>'}</td>
+            <td class="text-end">
+                <button class="btn btn-sm btn-outline-dark py-0 px-2" onclick="viewOrderDetail('${o.order_number}')">
+                    <i class="bi bi-eye"></i> View
+                </button>
             </td>
         </tr>`;
     }).join('');
 }
 
-async function loadCategoriesForForm() {
+async function loadMenuItems() {
     try {
-        const res = await fetch('/api/menu/');
+        const res = await fetch('/dashboard/api/menu-items/');
         if (!res.ok) return;
-        allMenuCategoriesData = await res.json();
-
-        // Populate dropdowns
-        const formSelect = document.getElementById('formItemCategory');
-        const filterSelect = document.getElementById('menuFilterCategory');
-
-        formSelect.innerHTML = '<option value="">Select Category</option>' + 
-            allMenuCategoriesData.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
-
-        filterSelect.innerHTML = '<option value="">All Categories</option>' + 
-            allMenuCategoriesData.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+        menuItems = await res.json();
+        renderMenuItemsTable();
     } catch (e) {
-        console.warn('Category load error:', e);
+        console.error('Menu load error:', e);
     }
 }
 
-function openAddMenuItemModal() {
-    document.getElementById('modalMenuItemTitle').textContent = 'Add New Dish';
-    document.getElementById('editItemId').value = '';
-    document.getElementById('menuItemForm').reset();
-    document.getElementById('formItemAvailable').checked = true;
-    document.getElementById('menuItemModal').style.display = 'flex';
-}
+function renderMenuItemsTable() {
+    const tbody = document.getElementById('menuMgmtTbody');
+    const query = (document.getElementById('menuFilterSearch')?.value || '').toLowerCase().trim();
 
-function openEditMenuItemModal(itemId) {
-    const item = allMenuItemsData.find(i => i.id === itemId);
-    if (!item) return;
-
-    document.getElementById('modalMenuItemTitle').textContent = `Edit Dish: ${item.name}`;
-    document.getElementById('editItemId').value = item.id;
-    document.getElementById('formItemName').value = item.name;
-    document.getElementById('formItemCategory').value = item.category_id;
-    document.getElementById('formItemPrice').value = parseFloat(item.price);
-    document.getElementById('formItemEmoji').value = item.emoji || '';
-    document.getElementById('formItemDescription').value = item.description || '';
-    document.getElementById('formItemIsVeg').checked = boolValue(item.is_veg);
-    document.getElementById('formItemIsBestseller').checked = boolValue(item.is_bestseller);
-    document.getElementById('formItemAvailable').checked = boolValue(item.available);
-
-    document.getElementById('menuItemModal').style.display = 'flex';
-}
-
-function closeMenuItemModal() {
-    document.getElementById('menuItemModal').style.display = 'none';
-}
-
-async function handleSaveMenuItem(e) {
-    e.preventDefault();
-    const itemId = document.getElementById('editItemId').value;
-    const isEdit = Boolean(itemId);
-
-    const payload = {
-        name: document.getElementById('formItemName').value.trim(),
-        category_id: parseInt(document.getElementById('formItemCategory').value),
-        price: parseFloat(document.getElementById('formItemPrice').value),
-        emoji: document.getElementById('formItemEmoji').value.trim(),
-        description: document.getElementById('formItemDescription').value.trim(),
-        is_veg: document.getElementById('formItemIsVeg').checked,
-        is_bestseller: document.getElementById('formItemIsBestseller').checked,
-        available: document.getElementById('formItemAvailable').checked
-    };
-
-    const btn = document.getElementById('saveMenuItemBtn');
-    btn.disabled = true;
-    btn.innerHTML = '<span class="spinner"></span> Saving...';
-
-    try {
-        const url = isEdit ? `/dashboard/api/menu-items/${itemId}/` : '/dashboard/api/menu-items/';
-        const method = isEdit ? 'PUT' : 'POST';
-
-        const res = await fetch(url, {
-            method: method,
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': CSRF_TOKEN
-            },
-            body: JSON.stringify(payload)
-        });
-
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || 'Failed to save menu item');
-
-        closeMenuItemModal();
-        showToast('success', `Dish "${payload.name}" saved successfully!`);
-        loadMenuItems();
-
-    } catch (err) {
-        showToast('error', err.message);
-    } finally {
-        btn.disabled = false;
-        btn.innerHTML = '<i class="bi bi-check-circle-fill"></i> Save Dish';
+    let items = menuItems;
+    if (query) {
+        items = items.filter(i => i.name.toLowerCase().includes(query) || (i.category_name && i.category_name.toLowerCase().includes(query)));
     }
+
+    if (items.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-muted">No matching menu items</td></tr>`;
+        return;
+    }
+
+    tbody.innerHTML = items.map(item => `
+        <tr style="font-size:0.9rem;">
+            <td class="fw-bold" style="color:var(--deep-espresso);">${item.emoji || '🍽️'} ${item.name}</td>
+            <td><span class="badge bg-light text-dark border">${item.category_name || 'General'}</span></td>
+            <td>${item.is_vegetarian ? '<span class="badge-diet-veg" style="font-size:0.75rem;">Veg</span>' : '<span class="badge-diet-nonveg" style="font-size:0.75rem;">Non-Veg</span>'}</td>
+            <td class="fw-bold">₹${parseFloat(item.price).toFixed(2)}</td>
+            <td>${item.is_bestseller ? '<span class="badge-bestseller" style="font-size:0.75rem;">★ Bestseller</span>' : '—'}</td>
+            <td class="text-center">
+                <div class="form-check form-switch d-inline-block">
+                    <input class="form-check-input" type="checkbox" role="switch" ${item.available ? 'checked' : ''} onchange="toggleDishAvailability(${item.id}, this.checked)">
+                </div>
+                <span class="small fw-bold ms-1" style="color:${item.available ? '#16a34a' : '#dc2626'};">${item.available ? 'Available' : 'Out of Stock'}</span>
+            </td>
+        </tr>
+    `).join('');
 }
 
-async function toggleItemAvailability(itemId, newStatus) {
+async function toggleDishAvailability(itemId, newAvailable) {
     try {
         const res = await fetch(`/dashboard/api/menu-items/${itemId}/`, {
             method: 'PATCH',
@@ -749,82 +522,184 @@ async function toggleItemAvailability(itemId, newStatus) {
                 'Content-Type': 'application/json',
                 'X-CSRFToken': CSRF_TOKEN
             },
-            body: JSON.stringify({ available: newStatus })
+            body: JSON.stringify({ available: newAvailable })
         });
-        if (!res.ok) throw new Error('Unable to change availability');
-        showToast('success', 'Dish availability updated');
+        if (!res.ok) throw new Error('Failed to update dish status');
+        showToast('success', `Dish availability updated to ${newAvailable ? 'Available' : 'Out of Stock'}!`);
         loadMenuItems();
-    } catch (e) {
-        showToast('error', e.message);
+    } catch (err) {
+        showToast('error', err.message);
+        loadMenuItems();
     }
 }
 
-// -------------------------------------------------------------
-// DETAIL MODALS
-// -------------------------------------------------------------
+async function loadLedgerOrders() {
+    try {
+        const res = await fetch('/dashboard/api/orders/');
+        if (!res.ok) return;
+        const data = await res.json();
+        allLedgerOrders = data.results || data;
+        renderLedgerTable(allLedgerOrders);
+    } catch (e) {
+        console.error('Ledger load error:', e);
+    }
+}
+
+function filterLedger() {
+    const q = (document.getElementById('ledgerSearchInput')?.value || '').toLowerCase().trim();
+    if (!q) {
+        renderLedgerTable(allLedgerOrders);
+        return;
+    }
+    const filtered = allLedgerOrders.filter(o => 
+        o.order_number.toLowerCase().includes(q) || 
+        (o.customer_name && o.customer_name.toLowerCase().includes(q)) ||
+        o.table_number.toLowerCase().includes(q)
+    );
+    renderLedgerTable(filtered);
+}
+
+function renderLedgerTable(orders) {
+    const tbody = document.getElementById('ledgerTbody');
+    if (orders.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="10" class="text-center py-4 text-muted">No orders found in ledger</td></tr>`;
+        return;
+    }
+
+    tbody.innerHTML = orders.map(o => `
+        <tr style="font-size:0.88rem;">
+            <td class="fw-bold"><a href="#" onclick="viewOrderDetail('${o.order_number}'); return false;" style="color:var(--deep-espresso);">#${o.order_number}</a></td>
+            <td class="text-muted small">${new Date(o.created_at).toLocaleString()}</td>
+            <td><span class="table-indicator-badge" style="font-size:0.72rem; padding:0.15rem 0.45rem;">Table ${o.table_display || o.table_number}</span></td>
+            <td>${o.customer_name || 'Guest'}</td>
+            <td>₹${parseFloat(o.subtotal || o.total_amount).toFixed(2)}</td>
+            <td>₹${parseFloat(o.tax_amount || 0).toFixed(2)}</td>
+            <td class="fw-bold" style="color:var(--deep-espresso);">₹${parseFloat(o.total_amount).toFixed(2)}</td>
+            <td><span class="badge bg-secondary text-white">${o.order_status_display || o.order_status}</span></td>
+            <td>${o.payment_status === 'PAID' ? '<span class="badge bg-success text-white">Paid</span>' : '<span class="badge bg-warning text-dark">Pending</span>'}</td>
+            <td class="text-end">
+                <a href="/api/orders/${o.order_number}/receipt/pdf/" target="_blank" class="btn btn-sm btn-outline-dark py-0 px-2">
+                    <i class="bi bi-file-earmark-pdf"></i> PDF
+                </a>
+            </td>
+        </tr>
+    `).join('');
+}
+
+async function loadCustomers() {
+    try {
+        const res = await fetch('/dashboard/api/customers/');
+        if (!res.ok) return;
+        const data = await res.json();
+        allCustomers = data.results || data;
+        renderCustomersTable(allCustomers);
+    } catch (e) {
+        console.error('Customers load error:', e);
+    }
+}
+
+function filterCustomers() {
+    const q = (document.getElementById('custSearchInput')?.value || '').toLowerCase().trim();
+    if (!q) {
+        renderCustomersTable(allCustomers);
+        return;
+    }
+    const filtered = allCustomers.filter(c => 
+        (c.name && c.name.toLowerCase().includes(q)) || 
+        (c.phone && c.phone.includes(q))
+    );
+    renderCustomersTable(filtered);
+}
+
+function renderCustomersTable(customers) {
+    const tbody = document.getElementById('customersTbody');
+    if (customers.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-muted">No customer records found</td></tr>`;
+        return;
+    }
+
+    tbody.innerHTML = customers.map(c => `
+        <tr style="font-size:0.9rem;">
+            <td class="fw-bold" style="color:var(--deep-espresso);">👤 ${c.name}</td>
+            <td>${c.phone || c.phone_masked || 'N/A'}</td>
+            <td><span class="badge bg-light text-dark border">${c.total_orders || 1} Orders</span></td>
+            <td class="fw-bold">₹${parseFloat(c.total_spent || 0).toFixed(2)}</td>
+            <td class="small text-muted">${c.last_visit ? new Date(c.last_visit).toLocaleDateString() : 'Recent'}</td>
+            <td class="text-end">
+                <button class="btn btn-sm btn-outline-dark py-0 px-2" onclick="viewCustomerDetail('${c.session_id || c.id}')">
+                    <i class="bi bi-clock-history"></i> History
+                </button>
+            </td>
+        </tr>
+    `).join('');
+}
+
+function renderTablesMatrix() {
+    const container = document.getElementById('tablesGridContainer');
+    let html = '';
+
+    for (let i = 1; i <= 10; i++) {
+        const tNum = `T${String(i).padStart(2, '0')}`;
+        const tableUrl = `/order/${tNum}/`;
+        
+        html += `
+        <div class="col-6 col-md-4 col-lg-3 col-xl-2">
+            <div class="table-tile text-center">
+                <div style="font-size: 2rem; margin-bottom: 0.25rem;">🍽️</div>
+                <h4 style="font-family: var(--font-heading); font-weight: 900; color: var(--deep-espresso); margin-bottom: 0.25rem;">Table ${String(i).padStart(2, '0')}</h4>
+                <div class="badge bg-dark text-white px-2 py-1 mb-2">${tNum}</div>
+                <div class="d-flex flex-column gap-1 mt-2">
+                    <a href="${tableUrl}" target="_blank" class="btn btn-sm btn-outline-dark" style="font-size:0.78rem;">
+                        <i class="bi bi-box-arrow-up-right"></i> Open Customer View
+                    </a>
+                </div>
+            </div>
+        </div>`;
+    }
+    container.innerHTML = html;
+}
+
 async function viewOrderDetail(orderNumber) {
     document.getElementById('modalOrderTitle').textContent = `Order #${orderNumber}`;
-    document.getElementById('modalOrderBody').innerHTML = '<div class="text-center py-4"><div class="spinner dark"></div></div>';
+    document.getElementById('modalOrderBody').innerHTML = '<div class="text-center py-4"><div class="spinner-border text-warning" role="status"></div></div>';
     document.getElementById('orderModal').style.display = 'flex';
 
     try {
-        const res = await fetch(`/dashboard/api/orders/${orderNumber}/`);
-        if (!res.ok) throw new Error('Unable to retrieve details');
+        const res = await fetch(`/api/orders/${orderNumber}/`);
+        if (!res.ok) throw new Error('Failed to retrieve order details');
         const o = await res.json();
 
-        let paymentDetailHtml = '';
-        if (o.payments_detail && o.payments_detail.length > 0) {
-            paymentDetailHtml = `
-            <div class="mt-3 p-3 rounded" style="background:var(--cream); border:1px solid var(--border);">
-                <h5 style="font-size:0.88rem; font-weight:800; color:var(--dark-brown); margin-bottom:0.4rem;">Payment Settlement</h5>
-                ${o.payments_detail.map(p => `
-                    <div style="font-size:0.82rem;">
-                        <div>Method: <strong>${p.payment_method}</strong> · Settled Amount: <strong>₹${parseFloat(p.amount).toFixed(2)}</strong></div>
-                        ${p.transaction_reference ? `<div>Ref: <code>${p.transaction_reference}</code></div>` : ''}
-                        ${p.cashier ? `<div>Cashier: ${p.cashier}</div>` : ''}
-                        ${p.paid_at ? `<div>Time: ${new Date(p.paid_at).toLocaleString()}</div>` : ''}
-                    </div>
-                `).join('')}
-            </div>`;
-        }
-
         document.getElementById('modalOrderBody').innerHTML = `
-            <div class="mb-3">
-                <div class="d-flex justify-content-between mb-1">
-                    <span>Table: <strong>Table ${o.table_display || o.table_number}</strong></span>
-                    <span>Status: <strong>${o.order_status_display || o.order_status}</strong></span>
+            <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
+                <div>
+                    <strong>Table ${o.table_display || o.table_number}</strong> · 👤 ${o.customer_name || 'Guest'}
+                    <div class="small text-muted">${new Date(o.created_at).toLocaleString()}</div>
                 </div>
-                <div class="d-flex justify-content-between mb-1">
-                    <span>Customer: <strong>${escapeHtml(o.customer_name || 'Guest')}</strong></span>
-                    <span>Contact: <strong>${o.customer_phone_full || o.customer_phone_masked || 'N/A'}</strong></span>
-                </div>
-                <div class="text-muted small">Placed: ${new Date(o.created_at).toLocaleString()}</div>
+                <span class="badge bg-primary text-white">${o.order_status_display || o.order_status}</span>
             </div>
 
             <div class="mb-3">
-                <h5 style="font-size:0.88rem; font-weight:800; color:var(--dark-brown); border-bottom:1px solid var(--border-light); padding-bottom:4px;">Dishes Ordered</h5>
+                <strong style="font-size:0.88rem; color:var(--roasted-walnut);">Dishes Ordered:</strong>
                 ${o.items.map(i => `
-                    <div class="d-flex justify-content-between py-1 border-bottom" style="font-size:0.85rem;">
-                        <div>${i.emoji || '🍽️'} ${escapeHtml(i.item_name_snapshot || i.name)} × ${i.quantity}</div>
-                        <div style="font-weight:700;">₹${parseFloat(i.subtotal).toFixed(2)}</div>
+                    <div class="d-flex justify-content-between align-items-center py-1 border-bottom" style="font-size:0.9rem;">
+                        <span>${i.emoji || '🍽️'} ${i.item_name_snapshot || i.name} × ${i.quantity}</span>
+                        <span class="fw-bold">₹${parseFloat(i.subtotal).toFixed(2)}</span>
                     </div>
                 `).join('')}
             </div>
 
-            <div class="p-3 rounded mb-3" style="background:#fbf9f6; font-size:0.85rem; border:1px solid var(--border-light);">
-                <div class="d-flex justify-content-between text-muted"><span>Item Subtotal:</span><span>₹${parseFloat(o.subtotal).toFixed(2)}</span></div>
+            <div class="p-3 rounded mb-3" style="background:var(--cream); font-size:0.88rem; border:1px solid var(--tan-accent);">
+                <div class="d-flex justify-content-between text-muted"><span>Items Subtotal:</span><span>₹${parseFloat(o.subtotal).toFixed(2)}</span></div>
                 <div class="d-flex justify-content-between text-muted"><span>CGST (2.5%):</span><span>₹${parseFloat(o.cgst_amount).toFixed(2)}</span></div>
                 <div class="d-flex justify-content-between text-muted"><span>SGST (2.5%):</span><span>₹${parseFloat(o.sgst_amount).toFixed(2)}</span></div>
-                <div class="d-flex justify-content-between fw-bold pt-2 border-top mt-1" style="font-family:var(--font-heading); font-size:1.15rem; color:var(--deepest);">
-                    <span>Total Amount:</span><span>₹${parseFloat(o.total_amount).toFixed(2)}</span>
+                <div class="d-flex justify-content-between fw-bold pt-2 border-top mt-1" style="font-family:var(--font-heading); font-size:1.15rem; color:var(--deep-espresso);">
+                    <span>Grand Total:</span><span>₹${parseFloat(o.total_amount).toFixed(2)}</span>
                 </div>
             </div>
 
-            ${paymentDetailHtml}
-
-            <div class="mt-3 text-end">
-                <a href="/api/orders/${o.order_number}/receipt/pdf/" target="_blank" class="btn-premium-success" style="padding:0.6rem 1.2rem; font-size:0.85rem;">
-                    <i class="bi bi-file-earmark-pdf"></i> Download Official Tax Invoice
+            <div class="d-flex gap-2">
+                <a href="/api/orders/${o.order_number}/receipt/pdf/" target="_blank" class="btn-premium btn-premium-primary flex-fill text-center py-2">
+                    <i class="bi bi-file-earmark-pdf"></i> Download Invoice PDF
                 </a>
             </div>
         `;
@@ -838,8 +713,8 @@ function closeOrderModal() {
 }
 
 async function viewCustomerDetail(sessionId) {
-    document.getElementById('modalCustTitle').textContent = 'Customer Record';
-    document.getElementById('modalCustBody').innerHTML = '<div class="text-center py-4"><div class="spinner dark"></div></div>';
+    document.getElementById('modalCustTitle').textContent = 'Customer Profile';
+    document.getElementById('modalCustBody').innerHTML = '<div class="text-center py-4"><div class="spinner-border text-warning" role="status"></div></div>';
     document.getElementById('customerModal').style.display = 'flex';
 
     try {
@@ -847,35 +722,32 @@ async function viewCustomerDetail(sessionId) {
         if (!res.ok) throw new Error('Unable to retrieve customer record');
         const c = await res.json();
 
-        document.getElementById('modalCustTitle').textContent = `Customer: ${c.name}`;
-        
         let historyHtml = '';
         if (c.order_history && c.order_history.length > 0) {
             historyHtml = c.order_history.map(h => `
-                <div class="p-3 mb-2 rounded border" style="background:#faf8f5; font-size:0.85rem;">
+                <div class="p-2 mb-2 rounded border" style="background:var(--cream); font-size:0.85rem;">
                     <div class="d-flex justify-content-between fw-bold">
                         <span>Order #${h.order_number} · Table ${h.table}</span>
-                        <span style="color:var(--deepest); font-weight:850;">₹${parseFloat(h.total).toFixed(2)}</span>
+                        <span style="color:var(--deep-espresso);">₹${parseFloat(h.total).toFixed(2)}</span>
                     </div>
-                    <div class="text-muted small mt-1">${h.date} at ${h.time} · ${h.payment_method} (${h.payment_status})</div>
-                    <div class="mt-1 text-dark">${escapeHtml(h.items_summary)}</div>
+                    <div class="text-muted small">${h.date} at ${h.time} · ${h.payment_method} (${h.payment_status})</div>
                 </div>
             `).join('');
         } else {
-            historyHtml = '<p class="text-muted">No orders found for this customer record.</p>';
+            historyHtml = '<p class="text-muted small">No order history found for this record.</p>';
         }
 
         document.getElementById('modalCustBody').innerHTML = `
-            <div class="d-flex align-items-center gap-3 p-3 rounded mb-3" style="background:var(--cream); border:1px solid var(--border);">
-                <div style="width:48px; height:48px; border-radius:50%; background:var(--dark-brown); color:#fff; display:flex; align-items:center; justify-content:center; font-size:1.4rem; font-weight:800;">
-                    ${c.name.charAt(0).toUpperCase()}
+            <div class="d-flex align-items-center gap-3 p-3 rounded mb-3" style="background:var(--cream); border:1px solid var(--tan-accent);">
+                <div style="width:48px; height:48px; border-radius:50%; background:var(--deep-espresso); color:#fff; display:flex; align-items:center; justify-content:center; font-size:1.4rem; font-weight:800;">
+                    ${(c.name || 'G').charAt(0).toUpperCase()}
                 </div>
                 <div>
-                    <h4 style="font-family:var(--font-heading); font-weight:850; margin:0; font-size:1.15rem; color:var(--deepest);">${escapeHtml(c.name)}</h4>
-                    <div style="font-size:0.82rem; color:var(--text-muted);">📞 ${c.phone_full} · 📦 ${c.total_orders} Orders (₹${parseFloat(c.total_spent).toFixed(2)})</div>
+                    <h4 style="font-family:var(--font-heading); font-weight:850; margin:0; font-size:1.15rem; color:var(--deep-espresso);">${c.name || 'Guest'}</h4>
+                    <div style="font-size:0.82rem; color:var(--roasted-walnut);">📞 ${c.phone_full || c.phone || 'N/A'} · 📦 ${c.total_orders || 1} Orders (₹${parseFloat(c.total_spent || 0).toFixed(2)})</div>
                 </div>
             </div>
-            <h5 style="font-size:0.9rem; font-weight:800; color:var(--dark-brown); margin-bottom:0.5rem;">Chronological Order History</h5>
+            <h5 style="font-size:0.9rem; font-weight:800; color:var(--roasted-walnut); margin-bottom:0.5rem;">Dining Session History</h5>
             <div>${historyHtml}</div>
         `;
     } catch (e) {
@@ -887,41 +759,12 @@ function closeCustomerModal() {
     document.getElementById('customerModal').style.display = 'none';
 }
 
-function renderPagination(containerId, current, totalPages, callback) {
-    const el = document.getElementById(containerId);
-    if (!el || totalPages <= 1) {
-        if (el) el.innerHTML = '';
-        return;
-    }
-
-    let html = `
-        <button class="btn-premium-secondary py-1 px-3" ${current === 1 ? 'disabled' : ''} onclick="${callback.name}(${current - 1})" style="font-size:0.8rem;">
-            <i class="bi bi-chevron-left"></i> Prev
-        </button>
-        <span class="text-muted mx-2" style="font-size:0.84rem; font-weight:700;">Page ${current} of ${totalPages}</span>
-        <button class="btn-premium-secondary py-1 px-3" ${current >= totalPages ? 'disabled' : ''} onclick="${callback.name}(${current + 1})" style="font-size:0.8rem;">
-            Next <i class="bi bi-chevron-right"></i>
-        </button>
-    `;
-    el.innerHTML = html;
-}
-
 function showToast(type, msg) {
     const toast = document.getElementById(type === 'error' ? 'errorToast' : 'successToast');
+    if (!toast) return;
     toast.textContent = msg;
     toast.classList.add('show');
     setTimeout(() => toast.classList.remove('show'), 3500);
-}
-
-function escapeHtml(text) {
-    if (!text) return '';
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-}
-
-function boolValue(val) {
-    return val === true || val === 'true' || val === 1 || val === '1';
 }
 </script>
 {% endblock %}
