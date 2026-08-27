@@ -365,6 +365,15 @@
 
 <script>
 const CSRF_TOKEN = "{{ csrf_token }}";
+function getCookie(name) {
+    let v = null;
+    document.cookie.split(';').forEach(c => {
+        c = c.trim();
+        if (c.startsWith(name + '=')) v = decodeURIComponent(c.substring(name.length + 1));
+    });
+    return v;
+}
+function getCSRF() { return getCookie('csrftoken') || CSRF_TOKEN; }
 let activeTab = 'live-orders';
 let allMenuItems = [];
 let allMenuCategories = [];
@@ -575,7 +584,7 @@ async function toggleDishStock(itemId, isAvailable) {
             method: 'PATCH',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRFToken': CSRF_TOKEN
+                'X-CSRFToken': getCSRF()
             },
             body: JSON.stringify({ available: isAvailable })
         });
@@ -595,7 +604,7 @@ async function deleteDish(itemId, name) {
     try {
         const res = await fetch(`/dashboard/api/menu-items/${itemId}/`, {
             method: 'DELETE',
-            headers: { 'X-CSRFToken': CSRF_TOKEN }
+            headers: { 'X-CSRFToken': getCSRF() }
         });
         if (res.ok) {
             showToast('info', `Removed '${name}' from menu.`);
@@ -632,7 +641,7 @@ async function submitNewDish(e) {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRFToken': CSRF_TOKEN
+                'X-CSRFToken': getCSRF()
             },
             body: JSON.stringify(payload)
         });

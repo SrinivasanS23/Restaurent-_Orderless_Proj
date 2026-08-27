@@ -226,15 +226,22 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 # Session Security & Cookie Protection
+# Use signed-cookie sessions on serverless (Vercel) to avoid losing sessions
+# when /tmp/db.sqlite3 is re-copied on cold starts across different workers.
+if os.getenv('VERCEL') or os.getenv('AWS_LAMBDA_FUNCTION_NAME'):
+    SESSION_ENGINE = 'django.contrib.sessions.backends.signed_cookies'
+else:
+    SESSION_ENGINE = 'django.contrib.sessions.backends.db'
+
 SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SAMESITE = 'Lax'
 SESSION_COOKIE_AGE = 28800  # 8 hours for staff sessions
-SESSION_EXPIRE_AT_BROWSER_CLOSE = True
+SESSION_EXPIRE_AT_BROWSER_CLOSE = False  # Keep session across browser restarts on serverless
 SESSION_SAVE_EVERY_REQUEST = True
 SESSION_COOKIE_SECURE = not DEBUG  # Enforces HTTPS cookie in production
 
 # CSRF Cookie Protection
-CSRF_COOKIE_HTTPONLY = True
+CSRF_COOKIE_HTTPONLY = False  # JS needs to read CSRF cookie for fetch() headers
 CSRF_COOKIE_SAMESITE = 'Lax'
 CSRF_COOKIE_SECURE = not DEBUG
 

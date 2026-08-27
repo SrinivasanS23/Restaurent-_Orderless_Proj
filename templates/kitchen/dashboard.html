@@ -125,6 +125,15 @@
      ========================================================================= -->
 <script>
 const CSRF_TOKEN = "{{ csrf_token }}";
+function getCookie(name) {
+    let v = null;
+    document.cookie.split(';').forEach(c => {
+        c = c.trim();
+        if (c.startsWith(name + '=')) v = decodeURIComponent(c.substring(name.length + 1));
+    });
+    return v;
+}
+function getCSRF() { return getCookie('csrftoken') || CSRF_TOKEN; }
 
 /* --- WebAudio Kitchen Alarm Manager --- */
 const KitchenAlertManager = (() => {
@@ -450,7 +459,7 @@ async function transitionOrderStatus(orderId, orderNumber, targetStatus, btn) {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRFToken': CSRF_TOKEN
+                'X-CSRFToken': getCSRF()
             },
             body: JSON.stringify({ status: targetStatus })
         });
@@ -492,7 +501,7 @@ async function cancelOrder(orderId, orderNumber, btn) {
             method: 'PATCH',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRFToken': CSRF_TOKEN
+                'X-CSRFToken': getCSRF()
             },
             body: JSON.stringify({ status: 'CANCELLED' })
         });
