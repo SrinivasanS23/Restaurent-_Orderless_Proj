@@ -112,6 +112,12 @@ class OrderService:
         OrderService._notify_kitchen_new_order(order)
         OrderService._notify_customer_order_update(order)
 
+        try:
+            from utils.cloud_db import sync_order_to_cloud
+            sync_order_to_cloud(order)
+        except Exception:
+            pass
+
         return order
 
     @staticmethod
@@ -151,6 +157,12 @@ class OrderService:
 
         # Notify via WebSocket
         OrderService._notify_order_update(order)
+
+        try:
+            from utils.cloud_db import sync_order_to_cloud
+            sync_order_to_cloud(order)
+        except Exception:
+            pass
 
         return order
 

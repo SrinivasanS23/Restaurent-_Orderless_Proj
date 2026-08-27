@@ -170,6 +170,12 @@ def customer_checkin(request):
         started_at=timezone.now()
     )
 
+    try:
+        from utils.cloud_db import sync_session_to_cloud
+        sync_session_to_cloud(customer_session)
+    except Exception:
+        pass
+
     return Response({
         'session_id': str(customer_session.session_id),
         'session_token': str(customer_session.session_id),

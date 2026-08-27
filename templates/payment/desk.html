@@ -296,13 +296,25 @@ function renderOrderQueue() {
     }).join('');
 }
 
-function selectOrder(orderNumber) {
+async function selectOrder(orderNumber) {
+    if (!orderNumber) return;
     const cleanNum = orderNumber.trim().toUpperCase().replace('#', '');
-    const found = allOrders.find(o => o.order_number === cleanNum);
+    let found = allOrders.find(o => o.order_number === cleanNum);
     if (found) {
         selectedOrder = found;
         renderOrderQueue();
         renderBill();
+    } else {
+        try {
+            const res = await fetch(`/api/payments/desk/order/${encodeURIComponent(cleanNum)}/`);
+            if (res.ok) {
+                selectedOrder = await res.json();
+                renderOrderQueue();
+                renderBill();
+            }
+        } catch (e) {
+            console.debug('selectOrder fetch err:', e);
+        }
     }
 }
 

@@ -83,6 +83,12 @@ class PaymentService:
 
         OrderService._notify_order_update(order)
 
+        try:
+            from utils.cloud_db import sync_order_to_cloud
+            sync_order_to_cloud(order)
+        except Exception:
+            pass
+
         return {
             'payment': payment,
             'order_completed': True,

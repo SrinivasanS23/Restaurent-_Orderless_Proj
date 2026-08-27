@@ -24,6 +24,11 @@ def process_desk_payment(request):
     Process physical counter payment by cashier (Cash, UPI, Card).
     Strictly restricted to authenticated staff with audit logging.
     """
+    try:
+        from utils.cloud_db import pull_and_sync_all_orders_from_cloud
+        pull_and_sync_all_orders_from_cloud()
+    except Exception:
+        pass
     serializer = ProcessDeskPaymentSerializer(data=request.data)
     if not serializer.is_valid():
         return Response({'error': 'Invalid payment data.', 'details': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
@@ -78,6 +83,11 @@ def get_order_for_payment_desk(request, order_number=None):
     Accepts both URL path param or query params (?order_number=, ?search=, ?q=).
     Strictly staff-only.
     """
+    try:
+        from utils.cloud_db import pull_and_sync_all_orders_from_cloud
+        pull_and_sync_all_orders_from_cloud()
+    except Exception:
+        pass
     raw_input = (
         order_number or 
         request.GET.get('order_number') or 
@@ -94,25 +104,37 @@ def get_order_for_payment_desk(request, order_number=None):
     if not clean_id.startswith('ORD-'):
         clean_id = f"ORD-{clean_id}"
 
-    try:
-        order = Order.objects.prefetch_related('items__menu_item').select_related('table', 'customer_session').get(
-            order_number=clean_id
-        )
-    except Order.DoesNotExist:
-        # Also try searching without ORD- prefix in case order_number is stored differently
-        alt_order = Order.objects.filter(order_number__iexact=raw_input.lstrip('#')).first()
-        if alt_order:
-            order = alt_order
-        else:
-            return Response({'error': f'Order #{clean_id} not found in the system.'}, status=status.HTTP_404_NOT_FOUND)
+    from django.db.models import Q
+    order = None
+
+    # 1. Try exact order number
+    order = Order.objects.prefetch_related('items__menu_item').select_related('table', 'customer_session').filter(
+        Q(order_number__iexact=clean_id) | Q(order_number__iexact=raw_input.lstrip('#'))
+    ).first()
+
+    # 2. Try Table Number search (e.g. T01, T1, 01, 1)
+    if not order:
+        tbl_candidates = [raw_input, f"T{raw_input.zfill(2)}", raw_input.lstrip('T')]
+        order = Order.objects.prefetch_related('items__menu_item').select_related('table', 'customer_session').filter(
+            table__table_number__in=tbl_candidates,
+            payment_status=Order.PaymentStatus.PENDING
+        ).exclude(order_status='CANCELLED').order_by('-created_at').first()
+
+    # 3. Try Customer Name or Phone search
+    if not order:
+        order = Order.objects.prefetch_related('items__menu_item').select_related('table', 'customer_session').filter(
+            Q(customer_session__customer_name__icontains=raw_input) |
+            Q(customer_session__customer_phone__icontains=raw_input)
+        ).exclude(order_status='CANCELLED').order_by('-created_at').first()
+
+    if not order:
+        return Response({'error': f"Order or Table '{raw_input}' not found."}, status=status.HTTP_404_NOT_FOUND)
 
     data = OrderSerializer(order).data
-    data['is_payable'] = (order.order_status == Order.OrderStatus.SERVED and order.payment_status == Order.PaymentStatus.PENDING)
+    data['is_payable'] = (order.payment_status == Order.PaymentStatus.PENDING)
 
     if order.payment_status == Order.PaymentStatus.PAID:
         data['payment_block_reason'] = "This order has already been paid and completed."
-    elif order.order_status != Order.OrderStatus.SERVED:
-        data['payment_block_reason'] = f"Food has not been served yet (Status: {order.get_order_status_display()})."
     else:
         data['payment_block_reason'] = None
 

@@ -38,6 +38,11 @@ def dashboard_view(request):
 @permission_classes([IsStaffOrCashierPermission])
 def dashboard_stats_api(request):
     """Get live key operational metrics including Today, Monthly, and Yearly Revenue (Staff only)."""
+    try:
+        from utils.cloud_db import pull_and_sync_all_orders_from_cloud
+        pull_and_sync_all_orders_from_cloud()
+    except Exception:
+        pass
     now = timezone.now()
     today = now.date()
     
@@ -164,6 +169,11 @@ def _filter_orders_queryset(request):
 @permission_classes([IsStaffOrCashierPermission])
 def orders_list_api(request):
     """List orders with search, filter, date sort, and pagination (Staff only)."""
+    try:
+        from utils.cloud_db import pull_and_sync_all_orders_from_cloud
+        pull_and_sync_all_orders_from_cloud()
+    except Exception:
+        pass
     queryset = _filter_orders_queryset(request)
     
     # Safe pagination limits
@@ -567,6 +577,11 @@ def menu_categories_api(request):
 @permission_classes([IsStaffOrCashierPermission])
 def tables_matrix_api(request):
     """List 10 physical tables with live status, seated guest, and active order."""
+    try:
+        from utils.cloud_db import pull_and_sync_all_orders_from_cloud
+        pull_and_sync_all_orders_from_cloud()
+    except Exception:
+        pass
     tables = RestaurantTable.objects.filter(active=True).order_by('table_number')
     data = []
     for t in tables:

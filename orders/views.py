@@ -86,6 +86,11 @@ def create_order(request):
 @permission_classes([AllowAny])
 def get_order(request, order_number):
     """Get order details by order number with IDOR ownership validation."""
+    try:
+        from utils.cloud_db import pull_and_sync_all_orders_from_cloud
+        pull_and_sync_all_orders_from_cloud()
+    except Exception:
+        pass
     clean_num = order_number.strip().upper()
     if not ORDER_NUM_REGEX.match(clean_num):
         return Response({'error': 'Invalid order number format.'}, status=status.HTTP_400_BAD_REQUEST)
@@ -115,6 +120,11 @@ def update_order_status(request, order_id):
     Accepts integer ID or ORD-XXXX string.
     Idempotent and atomic.
     """
+    try:
+        from utils.cloud_db import pull_and_sync_all_orders_from_cloud
+        pull_and_sync_all_orders_from_cloud()
+    except Exception:
+        pass
     serializer = OrderStatusUpdateSerializer(data=request.data)
     if not serializer.is_valid():
         return Response({'error': 'Invalid status.', 'details': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
@@ -143,6 +153,11 @@ def update_order_status(request, order_id):
 @permission_classes([IsStaffOrCashierPermission])
 def get_kitchen_orders(request):
     """Get orders for kitchen display and POS desk (Staff only)."""
+    try:
+        from utils.cloud_db import pull_and_sync_all_orders_from_cloud
+        pull_and_sync_all_orders_from_cloud()
+    except Exception:
+        pass
     include_paid = request.GET.get('include_all', '').lower() in ('true', '1', 'yes') or request.GET.get('include_paid', '').lower() in ('true', '1', 'yes')
     if include_paid:
         orders = Order.objects.prefetch_related('items__menu_item', 'payments').select_related('table', 'customer_session').order_by('-created_at')[:60]
@@ -165,6 +180,11 @@ def get_kitchen_orders(request):
 @permission_classes([AllowAny])
 def get_order_receipt(request, order_number):
     """Get JSON receipt summary with IDOR session verification."""
+    try:
+        from utils.cloud_db import pull_and_sync_all_orders_from_cloud
+        pull_and_sync_all_orders_from_cloud()
+    except Exception:
+        pass
     clean_num = order_number.strip().upper()
     if not ORDER_NUM_REGEX.match(clean_num):
         return Response({'error': 'Invalid order number format.'}, status=status.HTTP_400_BAD_REQUEST)
