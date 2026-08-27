@@ -40,7 +40,7 @@
         <div class="d-flex align-items-center gap-2 flex-grow-1" style="max-width: 480px;">
             <div class="input-group">
                 <span class="input-group-text" style="background: var(--bg-cream); border-color: var(--tan-accent); color: var(--roasted-walnut);"><i class="bi bi-search"></i></span>
-                <input type="text" id="posSearchInput" class="form-control" placeholder="Search by Order # (e.g. ORD-ERPP) or Table (T01-T10)..." onkeyup="if(event.key==='Enter') searchOrder()" style="border-color: var(--tan-accent); font-weight: 600;">
+                <input type="text" id="posSearchInput" class="form-control" placeholder="Search by Order # (e.g. ORD-BEK3) or Table (T01-T10)..." onkeyup="if(event.key==='Enter') searchOrder()" style="border-color: var(--tan-accent); font-weight: 600;">
                 <button class="btn-premium btn-premium-primary" onclick="searchOrder()" style="padding: 0.45rem 1.25rem;">
                     Search
                 </button>
@@ -116,21 +116,57 @@
 <div id="successToast" class="toast-custom success"></div>
 <div id="errorToast" class="toast-custom error"></div>
 
-<!-- Receipt Modal -->
-<div id="receiptModal" style="display:none; position:fixed; inset:0; background:rgba(61,41,35,0.75); backdrop-filter:blur(8px); z-index:1060; align-items:center; justify-content:center; padding:1rem;">
-    <div class="glass-panel p-4" style="background:#ffffff; max-width:460px; width:100%; border-radius:24px; border:2px solid var(--tan-accent); box-shadow:0 25px 60px rgba(0,0,0,0.35);">
-        <div class="d-flex align-items-center justify-content-between mb-3 border-bottom pb-2">
-            <h4 style="font-family:var(--font-heading); font-weight:800; color:var(--deep-espresso); margin:0;"><i class="bi bi-patch-check-fill text-success"></i> Settlement Receipt</h4>
-            <button class="btn btn-sm text-muted" onclick="closeReceiptModal()"><i class="bi bi-x-lg"></i></button>
+<!-- =========================================================================
+     COMPREHENSIVE SETTLEMENT RECEIPT & WHATSAPP MODAL
+     ========================================================================= -->
+<div id="receiptModal" style="display:none; position:fixed; inset:0; background:rgba(61,41,35,0.78); backdrop-filter:blur(8px); z-index:1060; align-items:center; justify-content:center; padding:1rem; overflow-y:auto;">
+    <div class="glass-panel p-4" style="background:#ffffff; max-width:540px; width:100%; border-radius:24px; border:2px solid var(--tan-accent); box-shadow:0 25px 60px rgba(0,0,0,0.35); max-height:92vh; overflow-y:auto;">
+        
+        <!-- Modal Top Bar -->
+        <div class="d-flex align-items-center justify-content-between mb-3 border-bottom pb-2 no-print">
+            <div class="d-flex align-items-center gap-2">
+                <i class="bi bi-patch-check-fill text-success" style="font-size:1.4rem;"></i>
+                <h4 style="font-family:var(--font-heading); font-weight:800; color:var(--deep-espresso); margin:0;">Settlement Receipt</h4>
+            </div>
+            <button class="btn btn-sm text-muted" onclick="closeReceiptModal()"><i class="bi bi-x-lg" style="font-size:1.1rem;"></i></button>
         </div>
-        <div id="receiptModalBody">
-            <!-- Receipt rendered here -->
+
+        <!-- Printable Receipt Body -->
+        <div id="receiptModalBody" class="p-3 rounded" style="background:#faf8f5; border:1px solid var(--tan-accent);">
+            <!-- Populated dynamically by openReceiptModal() -->
         </div>
-        <div class="d-flex gap-2 mt-4">
-            <button class="btn btn-outline-dark flex-fill" onclick="printReceipt()"><i class="bi bi-printer-fill"></i> Print Bill</button>
-            <button class="btn btn-success flex-fill" id="receiptWhatsAppBtn" onclick="shareWhatsApp()"><i class="bi bi-whatsapp"></i> WhatsApp</button>
-            <button class="btn-premium btn-premium-primary flex-fill" onclick="closeReceiptModal()">Done</button>
+
+        <!-- Dedicated WhatsApp Delivery Section -->
+        <div id="receiptWhatsAppSection" class="mt-3 p-3 rounded no-print" style="background:rgba(22, 163, 74, 0.08); border:1.5px dashed #16a34a;">
+            <div class="d-flex align-items-center gap-2 mb-2">
+                <i class="bi bi-whatsapp text-success fs-5"></i>
+                <strong style="color:var(--deep-espresso); font-size:0.92rem;">Send Official Tax Receipt to WhatsApp</strong>
+            </div>
+            <div class="input-group mb-2">
+                <span class="input-group-text bg-white fw-bold text-success" style="border-color:#16a34a;">+91</span>
+                <input type="tel" id="receiptWhatsAppNumber" class="form-control fw-bold" placeholder="10-digit WhatsApp number" pattern="[0-9]{10}" maxlength="10" style="border-color:#16a34a;">
+                <button class="btn btn-success fw-bold px-3" onclick="sendReceiptToWhatsApp()">
+                    <i class="bi bi-send-fill"></i> Send WhatsApp
+                </button>
+            </div>
+            <div class="small text-muted" style="font-size:0.78rem;">
+                Includes itemized breakdown and direct link to download the <strong>Official PDF Tax Invoice</strong>.
+            </div>
         </div>
+
+        <!-- Receipt Action Toolbar -->
+        <div class="d-flex gap-2 mt-3 no-print" id="receiptActionButtons">
+            <a id="receiptPdfBtn" href="#" target="_blank" class="btn btn-outline-danger flex-fill py-2">
+                <i class="bi bi-file-earmark-pdf-fill"></i> Download PDF
+            </a>
+            <button class="btn btn-outline-dark flex-fill py-2" onclick="printReceipt()">
+                <i class="bi bi-printer-fill"></i> Print Bill
+            </button>
+            <button class="btn-premium btn-premium-primary flex-fill py-2" onclick="closeReceiptModal()">
+                Done
+            </button>
+        </div>
+
     </div>
 </div>
 
@@ -291,7 +327,7 @@ function renderBill() {
     const isPayable = (o.order_status === 'SERVED' && !isPaid);
 
     const subtotal = parseFloat(o.subtotal || 0);
-    const tax = parseFloat(o.tax_amount || 0);
+    const tax = parseFloat(o.tax_amount || (parseFloat(o.cgst_amount || 0) + parseFloat(o.sgst_amount || 0)));
     const total = parseFloat(o.total_amount || 0);
 
     container.innerHTML = `
@@ -304,7 +340,7 @@ function renderBill() {
                 <span class="table-indicator-badge">TABLE ${o.table_display || o.table_number}</span>
             </div>
             <div class="small text-muted mt-1">
-                👤 Guest: <strong>${o.customer_name || 'Walk-in Guest'}</strong> · 📱 Phone: ${o.customer_phone_masked || 'N/A'}
+                👤 Guest: <strong>${o.customer_name || 'Walk-in Guest'}</strong> · 📱 Phone: ${o.customer_phone_masked || o.customer_phone || 'N/A'}
             </div>
         </div>
         <div class="text-end">
@@ -337,8 +373,8 @@ function renderBill() {
                             ${i.special_instructions ? `<div class="small text-muted fst-italic">Note: ${i.special_instructions}</div>` : ''}
                         </td>
                         <td class="text-center fw-bold">×${i.quantity}</td>
-                        <td class="text-end">₹${parseFloat(i.unit_price).toFixed(2)}</td>
-                        <td class="text-end fw-bold">₹${parseFloat(i.subtotal).toFixed(2)}</td>
+                        <td class="text-end">₹${parseFloat(i.unit_price || 0).toFixed(2)}</td>
+                        <td class="text-end fw-bold">₹${parseFloat(i.subtotal || (parseFloat(i.unit_price || 0) * i.quantity)).toFixed(2)}</td>
                     </tr>
                 `).join('')}
             </tbody>
@@ -428,8 +464,9 @@ function renderBill() {
         <i class="bi bi-patch-check-fill text-success" style="font-size:3rem;"></i>
         <h4 class="mt-2 fw-bold text-success">Bill Paid &amp; Completed</h4>
         <p class="small text-muted mb-3">Table session closed and fresh for next guest.</p>
-        <button class="btn btn-outline-dark me-2" onclick="printReceipt()"><i class="bi bi-printer"></i> Re-print Bill</button>
-        <button class="btn btn-success" onclick="shareWhatsApp()"><i class="bi bi-whatsapp"></i> Share WhatsApp Receipt</button>
+        <button class="btn btn-outline-danger me-2" onclick="downloadPdfInvoice('${o.order_number}')"><i class="bi bi-file-earmark-pdf"></i> Download PDF</button>
+        <button class="btn btn-outline-dark me-2" onclick="printReceipt()"><i class="bi bi-printer"></i> Print Bill</button>
+        <button class="btn btn-success" onclick="openReceiptModal({receipt_number:'RCP-${o.order_number.replace('ORD-', '')}'})"><i class="bi bi-whatsapp"></i> WhatsApp Receipt</button>
     </div>
     `}
     `;
@@ -483,7 +520,7 @@ async function processPayment(orderNumber, totalAmount) {
     btn.disabled = true;
     btn.innerHTML = '<span class="spinner"></span> Settling...';
 
-    // 1. Instant Optimistic Visual Response (0ms latency feel)
+    // 1. Instant Optimistic Visual Response
     const prevOrderState = selectedOrder ? { ...selectedOrder } : null;
     const calcChange = (activePaymentMode === 'CASH' && cashReceived) ? Math.max(0, cashReceived - totalAmount) : 0;
     
@@ -499,7 +536,7 @@ async function processPayment(orderNumber, totalAmount) {
 
     showToast('success', `⚡ Settled Order #${orderNumber}!`);
 
-    // 2. Background API Settlement Execution
+    // 2. Background API Settlement
     try {
         const res = await fetch('/api/payments/desk/', {
             method: 'POST',
@@ -519,12 +556,10 @@ async function processPayment(orderNumber, totalAmount) {
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Payment failed on server');
 
-        // Smoothly update receipt number & details from server
         openReceiptModal(data);
         loadAllOrders();
 
     } catch (err) {
-        // Revert in the rare event of server failure
         if (prevOrderState) {
             selectedOrder = prevOrderState;
             renderBill();
@@ -537,26 +572,91 @@ async function processPayment(orderNumber, totalAmount) {
 function openReceiptModal(data) {
     const modal = document.getElementById('receiptModal');
     const body = document.getElementById('receiptModalBody');
+    const pdfBtn = document.getElementById('receiptPdfBtn');
+    const waInput = document.getElementById('receiptWhatsAppNumber');
     if (!modal || !body || !selectedOrder) return;
 
     const o = selectedOrder;
+    const rcpNum = (data && data.receipt_number) || `RCP-${o.order_number.replace('ORD-', '')}`;
+    const subtotal = parseFloat(o.subtotal || 0).toFixed(2);
+    const tax = parseFloat(o.tax_amount || (parseFloat(o.cgst_amount || 0) + parseFloat(o.sgst_amount || 0))).toFixed(2);
+    const total = parseFloat(o.total_amount || 0).toFixed(2);
+    const cashChange = (data && data.cash_change) ? parseFloat(data.cash_change).toFixed(2) : '0.00';
+
+    // Populate WhatsApp phone input with clean 10-digit number
+    let rawPhone = (o.customer_phone || (o.customer_session && o.customer_session.customer_phone) || '').replace(/[^0-9]/g, '');
+    if (rawPhone.length > 10) rawPhone = rawPhone.slice(-10);
+    if (waInput) waInput.value = rawPhone;
+
+    // Set PDF Download Link
+    if (pdfBtn) {
+        pdfBtn.href = `/api/orders/${o.order_number}/receipt/pdf/`;
+    }
+
+    // Build Proper Full Itemized Bill Receipt
     body.innerHTML = `
-        <div class="text-center pb-3 border-bottom">
-            <h4 class="fw-bold mb-0" style="color:var(--deep-espresso);">${o.restaurant_name || 'OrderLess'}</h4>
-            <div class="small text-muted">GST Tax Invoice · ${data.receipt_number || 'RCP-PAID'}</div>
+        <div class="text-center pb-2 mb-2 border-bottom">
+            <h3 class="fw-bold mb-0" style="font-family:var(--font-heading); color:var(--deep-espresso); letter-spacing:0.5px;">${o.restaurant_name || 'OrderLess'}</h3>
+            <div class="small text-muted" style="font-size:0.8rem;">OFFICIAL GST TAX INVOICE</div>
+            <div class="badge bg-light text-dark border mt-1" style="font-size:0.75rem;">INVOICE: ${rcpNum}</div>
         </div>
-        <div class="py-2 border-bottom small">
-            <div class="d-flex justify-content-between"><span>Order:</span> <strong>#${o.order_number}</strong></div>
-            <div class="d-flex justify-content-between"><span>Table:</span> <strong>TABLE ${o.table_display || o.table_number}</strong></div>
-            <div class="d-flex justify-content-between"><span>Customer:</span> <strong>${o.customer_name || 'Guest'}</strong></div>
-            <div class="d-flex justify-content-between"><span>Payment Mode:</span> <strong>${activePaymentMode}</strong></div>
+
+        <div class="py-2 border-bottom small" style="font-size:0.82rem; line-height:1.4;">
+            <div class="d-flex justify-content-between"><span>Date &amp; Time:</span> <strong>${new Date().toLocaleString()}</strong></div>
+            <div class="d-flex justify-content-between"><span>Order Number:</span> <strong>#${o.order_number}</strong></div>
+            <div class="d-flex justify-content-between"><span>Dining Table:</span> <strong>TABLE ${o.table_display || o.table_number}</strong></div>
+            <div class="d-flex justify-content-between"><span>Customer Name:</span> <strong>${o.customer_name || 'Guest'}</strong></div>
+            <div class="d-flex justify-content-between"><span>Payment Method:</span> <strong>${activePaymentMode}</strong></div>
         </div>
+
+        <!-- Itemized Table -->
         <div class="py-2 border-bottom">
-            <div class="d-flex justify-content-between fs-5 fw-bold" style="color:var(--deep-espresso);">
-                <span>Total Settled:</span>
-                <span>₹${parseFloat(o.total_amount).toFixed(2)}</span>
+            <div class="fw-bold small mb-1 text-muted text-uppercase" style="font-size:0.72rem; letter-spacing:0.5px;">Itemized Particulars</div>
+            <table class="w-100 small" style="font-size:0.84rem;">
+                <tbody>
+                    ${o.items ? o.items.map(i => `
+                        <tr>
+                            <td class="py-1">
+                                <strong>${i.emoji || '🍽️'} ${i.item_name_snapshot || i.name}</strong>
+                                <span class="text-muted"> × ${i.quantity}</span>
+                            </td>
+                            <td class="text-end py-1 fw-bold">
+                                ₹${parseFloat(i.subtotal || (parseFloat(i.unit_price || 0) * i.quantity)).toFixed(2)}
+                            </td>
+                        </tr>
+                    `).join('') : '<tr><td>—</td></tr>'}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Financial Summary -->
+        <div class="py-2 border-bottom small" style="font-size:0.82rem; line-height:1.4;">
+            <div class="d-flex justify-content-between text-muted">
+                <span>Subtotal:</span>
+                <span>₹${subtotal}</span>
             </div>
-            ${data.cash_change ? `<div class="d-flex justify-content-between text-success small fw-bold"><span>Cash Change Given:</span> <span>₹${parseFloat(data.cash_change).toFixed(2)}</span></div>` : ''}
+            <div class="d-flex justify-content-between text-muted">
+                <span>CGST (2.5%):</span>
+                <span>₹${(parseFloat(tax) / 2).toFixed(2)}</span>
+            </div>
+            <div class="d-flex justify-content-between text-muted">
+                <span>SGST (2.5%):</span>
+                <span>₹${(parseFloat(tax) / 2).toFixed(2)}</span>
+            </div>
+            <div class="d-flex justify-content-between fs-5 fw-bold pt-2 mt-1 border-top" style="color:var(--deep-espresso);">
+                <span>Total Amount Paid:</span>
+                <span>₹${total}</span>
+            </div>
+            ${(activePaymentMode === 'CASH' && parseFloat(cashChange) > 0) ? `
+                <div class="d-flex justify-content-between text-success fw-bold pt-1">
+                    <span>Cash Change Returned:</span>
+                    <span>₹${cashChange}</span>
+                </div>
+            ` : ''}
+        </div>
+
+        <div class="text-center pt-2 text-muted" style="font-size:0.75rem;">
+            Thank you for dining with us! Please visit again. ✨
         </div>
     `;
 
@@ -571,12 +671,54 @@ function printReceipt() {
     window.print();
 }
 
-function shareWhatsApp() {
+function downloadPdfInvoice(orderNumber) {
+    const num = orderNumber || (selectedOrder ? selectedOrder.order_number : '');
+    if (num) {
+        window.open(`/api/orders/${num}/receipt/pdf/`, '_blank');
+    }
+}
+
+function sendReceiptToWhatsApp() {
     if (!selectedOrder) return;
-    const phone = (selectedOrder.customer_phone || '').replace(/[^0-9]/g, '');
-    const text = encodeURIComponent(`Thank you for dining with us at OrderLess! Your bill of ₹${parseFloat(selectedOrder.total_amount).toFixed(2)} for Order #${selectedOrder.order_number} has been settled.`);
-    const waUrl = phone ? `https://wa.me/${phone}?text=${text}` : `https://wa.me/?text=${text}`;
+    const input = document.getElementById('receiptWhatsAppNumber');
+    let phone = input ? input.value.trim().replace(/[^0-9]/g, '') : '';
+    
+    if (!phone || phone.length < 10) {
+        showToast('error', 'Please enter a valid 10-digit WhatsApp number.');
+        return;
+    }
+    if (phone.length === 10) phone = `91${phone}`;
+
+    const o = selectedOrder;
+    const domain = window.location.origin;
+    const pdfUrl = `${domain}/api/orders/${o.order_number}/receipt/pdf/`;
+    const itemsSummary = o.items ? o.items.map(i => `• ${i.emoji || '🍽️'} ${i.item_name_snapshot || i.name} × ${i.quantity} (₹${parseFloat(i.subtotal || (parseFloat(i.unit_price || 0) * i.quantity)).toFixed(2)})`).join('
+') : '';
+
+    const text = 
+`🍽️ *${o.restaurant_name || 'OrderLess'} — Official Tax Invoice*
+━━━━━━━━━━━━━━━━━━━━
+👤 *Customer*: ${o.customer_name || 'Guest'}
+🪑 *Table*: TABLE ${o.table_display || o.table_number}
+📋 *Order #*: ${o.order_number}
+💳 *Payment Mode*: ${activePaymentMode}
+
+*Items Summary:*
+${itemsSummary}
+
+━━━━━━━━━━━━━━━━━━━━
+💰 *Subtotal*: ₹${parseFloat(o.subtotal || 0).toFixed(2)}
+🧾 *GST (5%)*: ₹${parseFloat(o.tax_amount || (parseFloat(o.cgst_amount || 0) + parseFloat(o.sgst_amount || 0))).toFixed(2)}
+⭐ *Total Paid*: ₹${parseFloat(o.total_amount || 0).toFixed(2)}
+
+📄 *Download Official PDF Tax Invoice:*
+${pdfUrl}
+
+Thank you for dining with us! Please visit again. ✨`;
+
+    const waUrl = `https://api.whatsapp.com/send?phone=${phone}&text=${encodeURIComponent(text)}`;
     window.open(waUrl, '_blank');
+    showToast('success', `Opening WhatsApp for +${phone}...`);
 }
 
 function showToast(type, msg) {
