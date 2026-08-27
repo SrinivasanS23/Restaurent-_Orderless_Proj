@@ -257,11 +257,12 @@ const KitchenAlertManager = (() => {
 /* --- State & Order Map --- */
 let orders = {}; // Map of order_number -> order object
 let isTransitioning = {}; // Map of orderId -> boolean lock
+let lastOrdersFingerprint = ''; // Hash of current state to avoid clobbering DOM needlessly
 
 document.addEventListener('DOMContentLoaded', () => {
     KitchenAlertManager.checkAutoplayStatus();
     loadKitchenOrders();
-    // Short polling every 3 seconds
+    // Short polling every 3 seconds for serverless real-time sync
     setInterval(loadKitchenOrders, 3000);
 });
 
@@ -272,13 +273,27 @@ async function loadKitchenOrders() {
 
         const orderList = await res.json();
         
-        // Merge updates without clobbering cards currently mid-transition
+        // Compute fingerprint of server state
+        const serverFingerprint = orderList.map(o => `${o.order_number}:${o.order_status}:${o.payment_status}`).join('|');
+        
+        // If nothing changed on server and no active transition, skip DOM rewrite
+        if (serverFingerprint === lastOrdersFingerprint && Object.keys(isTransitioning).length === 0) {
+            return;
+        }
+
+        // Build new orders map preserving any in-flight transitions
+        const newOrders = {};
         orderList.forEach(order => {
-            if (!isTransitioning[order.id]) {
-                orders[order.order_number] = order;
+            if (isTransitioning[order.id]) {
+                // Keep local optimistic status if mid-flight
+                newOrders[order.order_number] = orders[order.order_number] || order;
+            } else {
+                newOrders[order.order_number] = order;
             }
         });
 
+        orders = newOrders;
+        lastOrdersFingerprint = serverFingerprint;
         renderAllColumns();
 
     } catch (e) {
@@ -338,6 +353,7 @@ function renderColumn(containerId, orderList) {
     container.innerHTML = orderList.map(order => {
         const timeAgo = getTimeAgo(order.created_at);
         const isUnaccepted = (order.order_status === 'ORDER_CREATED');
+        const locked = isTransitioning[order.id];
         let actionBtn = '';
 
         // ONE-CLICK Transitions:
@@ -348,10 +364,10 @@ function renderColumn(containerId, orderList) {
             case 'ORDER_CREATED':
                 actionBtn = `
                 <div class="d-flex gap-2">
-                    <button class="kds-action-btn kds-btn-accept flex-fill" onclick="transitionOrderStatus(${order.id}, 'PREPARING', this)">
-                        <i class="bi bi-check-lg"></i> Accept Order
+                    <button class="kds-action-btn kds-btn-accept flex-fill" ${locked ? 'disabled' : ''} onclick="transitionOrderStatus(${order.id}, '${order.order_number}', 'PREPARING', this)">
+                        ${locked ? '<span class="spinner"></span> Updating...' : '<i class="bi bi-check-lg"></i> Accept Order'}
                     </button>
-                    <button class="btn btn-outline-danger btn-sm px-2" onclick="cancelOrder(${order.id}, '${order.order_number}', this)" title="Cancel Order">
+                    <button class="btn btn-outline-danger btn-sm px-2" ${locked ? 'disabled' : ''} onclick="cancelOrder(${order.id}, '${order.order_number}', this)" title="Cancel Order">
                         <i class="bi bi-x-lg"></i>
                     </button>
                 </div>`;
@@ -359,14 +375,14 @@ function renderColumn(containerId, orderList) {
             case 'ACCEPTED':
             case 'PREPARING':
                 actionBtn = `
-                <button class="kds-action-btn kds-btn-ready w-100" onclick="transitionOrderStatus(${order.id}, 'READY', this)">
-                    <i class="bi bi-check-circle-fill"></i> Mark Ready to Serve
+                <button class="kds-action-btn kds-btn-ready w-100" ${locked ? 'disabled' : ''} onclick="transitionOrderStatus(${order.id}, '${order.order_number}', 'READY', this)">
+                    ${locked ? '<span class="spinner"></span> Updating...' : '<i class="bi bi-check-circle-fill"></i> Mark Ready to Serve'}
                 </button>`;
                 break;
             case 'READY':
                 actionBtn = `
-                <button class="kds-action-btn kds-btn-served w-100" onclick="transitionOrderStatus(${order.id}, 'SERVED', this)">
-                    <i class="bi bi-check-all"></i> Mark Served at Table
+                <button class="kds-action-btn kds-btn-served w-100" ${locked ? 'disabled' : ''} onclick="transitionOrderStatus(${order.id}, '${order.order_number}', 'SERVED', this)">
+                    ${locked ? '<span class="spinner"></span> Updating...' : '<i class="bi bi-check-all"></i> Mark Served at Table'}
                 </button>`;
                 break;
             case 'SERVED':
@@ -414,15 +430,19 @@ function renderColumn(containerId, orderList) {
     }).join('');
 }
 
-/* --- ONE-CLICK Request-Locked State Transition --- */
-async function transitionOrderStatus(orderId, targetStatus, btn) {
+/* --- ONE-CLICK Request-Locked State Transition with Instant Optimistic Update --- */
+async function transitionOrderStatus(orderId, orderNumber, targetStatus, btn) {
     if (isTransitioning[orderId]) return;
     isTransitioning[orderId] = true;
 
-    if (btn) {
-        btn.disabled = true;
-        btn.innerHTML = '<span class="spinner"></span> Updating...';
+    // Save previous status for rollback if error
+    const previousStatus = orders[orderNumber] ? orders[orderNumber].order_status : 'ORDER_CREATED';
+
+    // 1. Optimistic instant visual movement
+    if (orders[orderNumber]) {
+        orders[orderNumber].order_status = targetStatus;
     }
+    renderAllColumns();
 
     try {
         const res = await fetch(`/api/orders/${orderId}/status/`, {
@@ -437,36 +457,33 @@ async function transitionOrderStatus(orderId, targetStatus, btn) {
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Failed to update order status');
 
-        // Optimistically update memory and re-render
-        if (data.order_number && orders[data.order_number]) {
-            orders[data.order_number].order_status = data.order_status || targetStatus;
-        } else if (data.order && data.order.order_number) {
-            orders[data.order.order_number] = data.order;
+        // Confirm server data
+        if (orders[orderNumber]) {
+            orders[orderNumber].order_status = data.order_status || targetStatus;
         }
 
-        renderAllColumns();
-        showToast('success', `Order status updated to ${targetStatus}`);
+        showToast('success', `Order #${orderNumber} is now ${targetStatus}!`);
 
     } catch (err) {
-        showToast('error', err.message);
-        if (btn) {
-            btn.disabled = false;
-            btn.textContent = 'Retry';
+        // Rollback on failure
+        if (orders[orderNumber]) {
+            orders[orderNumber].order_status = previousStatus;
         }
+        renderAllColumns();
+        showToast('error', err.message || 'Unable to update this order. Please retry.');
     } finally {
-        setTimeout(() => {
-            isTransitioning[orderId] = false;
-        }, 500);
+        delete isTransitioning[orderId];
+        renderAllColumns();
     }
 }
 
 async function cancelOrder(orderId, orderNumber, btn) {
     if (!confirm(`Cancel Order #${orderNumber}?`)) return;
 
-    if (btn) {
-        btn.disabled = true;
-        btn.innerHTML = '<span class="spinner"></span>';
-    }
+    isTransitioning[orderId] = true;
+    const previousOrder = orders[orderNumber];
+    delete orders[orderNumber];
+    renderAllColumns();
 
     try {
         const res = await fetch(`/api/orders/${orderId}/status/`, {
@@ -481,16 +498,14 @@ async function cancelOrder(orderId, orderNumber, btn) {
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Failed to cancel order');
 
-        delete orders[orderNumber];
-        renderAllColumns();
         showToast('info', `Order #${orderNumber} cancelled.`);
 
     } catch (err) {
+        if (previousOrder) orders[orderNumber] = previousOrder;
+        renderAllColumns();
         showToast('error', err.message);
-        if (btn) {
-            btn.disabled = false;
-            btn.innerHTML = '<i class="bi bi-x-lg"></i>';
-        }
+    } finally {
+        delete isTransitioning[orderId];
     }
 }
 
