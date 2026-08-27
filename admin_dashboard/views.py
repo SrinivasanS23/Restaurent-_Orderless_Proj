@@ -89,7 +89,8 @@ def dashboard_stats_api(request):
     paid_orders = Order.objects.filter(payment_status='PAID').count()
     pending_payments = Order.objects.filter(payment_status='PENDING').exclude(order_status='CANCELLED').count()
     active_tables = RestaurantTable.objects.filter(
-        orders__order_status__in=['ORDER_CREATED', 'ACCEPTED', 'PREPARING', 'READY', 'SERVED']
+        Q(customer_sessions__active=True, customer_sessions__status=CustomerSession.SessionStatus.ACTIVE) |
+        Q(orders__order_status__in=['ORDER_CREATED', 'ACCEPTED', 'PREPARING', 'READY', 'SERVED'], orders__payment_status='PENDING')
     ).distinct().count()
 
     unique_customers = CustomerSession.objects.values('customer_phone').distinct().count()
@@ -263,9 +264,12 @@ def customers_list_api(request):
             'id': session.id,
             'name': session.customer_name,
             'phone_masked': session.masked_phone,
+            'phone': session.masked_phone,
             'phone_full': session.customer_phone,
             'order_count': order_count,
+            'total_orders': order_count,
             'total_spent': str(total_spent),
+            'total_spend': str(total_spent),
             'last_visit': session.created_at.isoformat(),
         })
     
@@ -570,20 +574,26 @@ def tables_matrix_api(request):
             table=t,
             status=CustomerSession.SessionStatus.ACTIVE,
             active=True
-        ).first()
+        ).order_by('-created_at').first()
 
-        status_str = 'OCCUPIED' if current_session else 'AVAILABLE'
         active_order = None
         if current_session:
-            ord_obj = Order.objects.filter(customer_session=current_session).exclude(order_status='CANCELLED').first()
+            ord_obj = Order.objects.filter(customer_session=current_session).exclude(order_status='CANCELLED').order_by('-created_at').first()
             if ord_obj:
                 active_order = ord_obj.order_number
+        else:
+            ord_obj = Order.objects.filter(table=t, payment_status='PENDING').exclude(order_status__in=['COMPLETED', 'CANCELLED']).order_by('-created_at').first()
+            if ord_obj:
+                active_order = ord_obj.order_number
+                current_session = ord_obj.customer_session
+
+        status_str = 'OCCUPIED' if (current_session or active_order) else 'AVAILABLE'
 
         data.append({
             'table_number': t.table_number,
             'display_number': t.display_number,
             'status': status_str,
-            'current_customer': current_session.customer_name if current_session else None,
+            'current_customer': current_session.customer_name if current_session else ('Seated Guest' if active_order else None),
             'active_order_number': active_order
         })
     return Response(data)

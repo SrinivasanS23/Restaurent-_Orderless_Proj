@@ -703,8 +703,10 @@ async function loadCustomerDirectory() {
     try {
         const res = await fetch('/dashboard/api/customers/');
         if (!res.ok) return;
-        const customers = await res.json();
+        const data = await res.json();
+        const customers = Array.isArray(data) ? data : (data.customers || []);
         const tbody = document.getElementById('customerTableBody');
+        if (!tbody) return;
 
         if (customers.length === 0) {
             tbody.innerHTML = `<tr><td colspan="5" class="text-center py-4 text-muted">No guest records yet.</td></tr>`;
@@ -713,14 +715,16 @@ async function loadCustomerDirectory() {
 
         tbody.innerHTML = customers.map(c => `
             <tr>
-                <td><strong>👤 ${c.name}</strong></td>
-                <td>📱 ${c.phone_masked || c.phone}</td>
-                <td><span class="badge bg-light text-dark border">${c.total_orders || 0} visits</span></td>
-                <td><strong class="text-success">₹${parseFloat(c.total_spend || 0).toFixed(2)}</strong></td>
-                <td class="small text-muted">${c.last_visit ? new Date(c.last_visit).toLocaleDateString() : 'N/A'}</td>
+                <td><strong style="color:var(--deep-espresso);">👤 ${c.name || 'Guest'}</strong></td>
+                <td>📱 ${c.phone_masked || c.phone || c.phone_full || '—'}</td>
+                <td><span class="badge bg-light text-dark border">${c.order_count || c.total_orders || 0} orders</span></td>
+                <td><strong class="text-success">₹${parseFloat(c.total_spent || c.total_spend || 0).toFixed(2)}</strong></td>
+                <td class="small text-muted">${c.last_visit ? new Date(c.last_visit).toLocaleDateString() : '—'}</td>
             </tr>
         `).join('');
-    } catch (e) {}
+    } catch (e) {
+        console.debug('Customer directory fetch error:', e);
+    }
 }
 
 /* =========================================================================
