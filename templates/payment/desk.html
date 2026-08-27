@@ -719,8 +719,7 @@ function sendReceiptToWhatsApp() {
     const o = selectedOrder;
     const domain = window.location.origin;
     const pdfUrl = `${domain}/api/orders/${o.order_number}/receipt/pdf/`;
-    const itemsSummary = o.items ? o.items.map(i => `• ${i.emoji || '🍽️'} ${i.item_name_snapshot || i.name} × ${i.quantity} (₹${parseFloat(i.subtotal || (parseFloat(i.unit_price || 0) * i.quantity)).toFixed(2)})`).join('
-') : '';
+    const itemsSummary = o.items ? o.items.map(i => `• ${i.emoji || '🍽️'} ${i.item_name_snapshot || i.name} × ${i.quantity} (₹${parseFloat(i.subtotal || (parseFloat(i.unit_price || 0) * i.quantity)).toFixed(2)})`).join('\n') : '';
 
     const text = 
 `🍽️ *${o.restaurant_name || 'OrderLess'} — Official Tax Invoice*
