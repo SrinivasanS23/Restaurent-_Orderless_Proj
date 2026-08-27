@@ -139,13 +139,13 @@ DATABASES = {
     }
 }
 
-# Auto-parse DATABASE_URL if a valid external database URL is provided
+# Auto-parse DATABASE_URL if a valid external database URL is provided (ignore expired aivencloud.com)
 database_url = os.getenv('DATABASE_URL')
-if database_url and database_url.startswith(('mysql://', 'mysql2://', 'postgres://', 'postgresql://')):
+if database_url and database_url.startswith(('mysql://', 'mysql2://', 'postgres://', 'postgresql://')) and 'aivencloud.com' not in database_url:
     try:
         parsed_url = urllib.parse.urlparse(database_url)
         db_host = parsed_url.hostname
-        if db_host and db_host != 'None' and '[SENSITIVE]' not in database_url:
+        if db_host and db_host != 'None' and '[SENSITIVE]' not in database_url and 'aivencloud.com' not in db_host:
             if database_url.startswith(('postgres://', 'postgresql://')):
                 DATABASES['default'] = {
                     'ENGINE': 'django.db.backends.postgresql',
