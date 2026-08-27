@@ -546,3 +546,34 @@ def menu_categories_api(request):
     """List all categories for Add/Edit dropdown selector."""
     categories = MenuCategory.objects.filter(active=True).order_by('display_order', 'name')
     return Response(MenuCategorySerializer(categories, many=True).data)
+
+
+@api_view(['GET'])
+@authentication_classes([SessionAuthentication])
+@permission_classes([IsStaffOrCashierPermission])
+def tables_matrix_api(request):
+    """List 10 physical tables with live status, seated guest, and active order."""
+    tables = RestaurantTable.objects.filter(active=True).order_by('table_number')
+    data = []
+    for t in tables:
+        current_session = CustomerSession.objects.filter(
+            table=t,
+            status=CustomerSession.SessionStatus.ACTIVE,
+            active=True
+        ).first()
+
+        status_str = 'OCCUPIED' if current_session else 'AVAILABLE'
+        active_order = None
+        if current_session:
+            ord_obj = Order.objects.filter(customer_session=current_session).exclude(order_status='CANCELLED').first()
+            if ord_obj:
+                active_order = ord_obj.order_number
+
+        data.append({
+            'table_number': t.table_number,
+            'display_number': t.display_number,
+            'status': status_str,
+            'current_customer': current_session.customer_name if current_session else None,
+            'active_order_number': active_order
+        })
+    return Response(data)

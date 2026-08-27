@@ -47,134 +47,142 @@
 <!-- =========================================================================
      MAIN MENU CONTENT
      ========================================================================= -->
-<main class="container-xl py-3 px-3" style="max-width: 1200px; margin: 0 auto;">
-    <!-- Search Bar -->
-    <div class="my-3">
-        <div class="glass-panel p-2 d-flex align-items-center gap-2" style="border-radius: var(--radius-full);">
-            <i class="bi bi-search ms-2 text-muted" style="font-size: 1.1rem;"></i>
-            <input type="text" id="foodSearchInput" class="form-control border-0 bg-transparent shadow-none" placeholder="Search dishes, drinks, desserts..." style="color: var(--deep-espresso); font-weight: 600;" oninput="handleSearch(this.value)">
-            <button class="btn btn-sm btn-link text-muted p-0 me-2" id="clearSearchBtn" onclick="clearSearch()" style="display:none;">
-                <i class="bi bi-x-circle-fill"></i>
-            </button>
-        </div>
+<main class="container-xl py-3 px-3" style="max-width: 1200px; margin: 0 auto; padding-bottom: 90px;">
+    
+    <!-- Instant Food Search Bar -->
+    <div class="search-bar-wrap mb-3">
+        <i class="bi bi-search search-icon"></i>
+        <input 
+            type="search" 
+            id="foodSearchInput" 
+            class="search-input" 
+            placeholder="Search our chef specials, burgers, desserts..."
+            oninput="handleSearch(this.value)"
+            autocomplete="off"
+        >
+        <button id="clearSearchBtn" class="btn btn-sm btn-link text-muted" style="display:none; position:absolute; right:12px; top:50%; transform:translateY(-50%); text-decoration:none;" onclick="clearSearch()">
+            <i class="bi bi-x-circle-fill"></i>
+        </button>
     </div>
 
-    <!-- Category Pills -->
-    <div class="category-nav-wrap">
-        <div class="category-pills" id="categoryPillsContainer">
-            <button class="category-pill active" onclick="selectCategory('all', this)">✨ All Dishes</button>
-        </div>
+    <!-- Category Filter Pills -->
+    <div class="category-pills-bar" id="categoryPillsContainer">
+        <!-- Rendered dynamically via renderCategories() -->
     </div>
 
-    <!-- Dish Grid -->
-    <div id="dishGrid" class="dish-grid">
-        <!-- Rendered dynamically by JavaScript -->
+    <!-- Dish Cards Grid -->
+    <div class="dish-grid" id="dishGrid">
+        <!-- Rendered dynamically via renderDishes() -->
     </div>
+
 </main>
 
 <!-- =========================================================================
-     FLOATING STICKY MOBILE CART BAR
+     FLOATING MOBILE CART BAR (STICKY BOTTOM)
      ========================================================================= -->
-<div id="floatingCartBar" class="floating-cart-bar">
-    <div class="floating-cart-info">
-        <span id="floatingCartCount" class="floating-cart-count">0 Items Added</span>
-        <span id="floatingCartTotal" class="floating-cart-total">₹0.00</span>
+<div class="floating-cart-bar" id="floatingCartBar">
+    <div class="floating-cart-inner">
+        <div>
+            <div class="floating-cart-count" id="floatingCartCount">0 Items Added</div>
+            <div class="floating-cart-total" id="floatingCartTotal">₹0.00</div>
+        </div>
+        <button class="btn-premium btn-premium-primary" onclick="toggleCartDrawer()" style="padding: 0.55rem 1.25rem;">
+            <i class="bi bi-bag-check-fill"></i> View Cart
+        </button>
     </div>
-    <button class="floating-cart-btn" onclick="toggleCartDrawer()">
-        <span>View Cart</span>
-        <i class="bi bi-arrow-right"></i>
-    </button>
 </div>
 
 <!-- =========================================================================
-     SLIDING CART DRAWER (BOTTOM SHEET)
+     SLIDING CART DRAWER & CHECKOUT
      ========================================================================= -->
-<div id="cartDrawerOverlay" class="cart-drawer-overlay" onclick="toggleCartDrawer()"></div>
+<div class="cart-drawer-overlay" id="cartDrawerOverlay" onclick="toggleCartDrawer()"></div>
 
-<aside id="cartDrawer" class="cart-drawer">
-    <div class="drawer-header">
-        <div>
-            <h3 class="m-0" style="font-size: 1.25rem;">Your Order</h3>
-            <span class="small text-muted">Table {{ table_display }} · Dining Session</span>
+<div class="cart-drawer" id="cartDrawer">
+    <div class="cart-drawer-header">
+        <div class="d-flex align-items-center gap-2">
+            <span style="font-size: 1.3rem;">🛒</span>
+            <h3 style="font-family: var(--font-heading); font-size: 1.2rem; margin:0; color:var(--deep-espresso);">Your Order (Table {{ table_display }})</h3>
         </div>
-        <button class="btn btn-sm btn-light rounded-circle p-2" onclick="toggleCartDrawer()" style="width:36px; height:36px;">
-            <i class="bi bi-x-lg"></i>
-        </button>
+        <button class="btn btn-sm text-muted p-1" onclick="toggleCartDrawer()"><i class="bi bi-x-lg" style="font-size:1.2rem;"></i></button>
     </div>
 
-    <div class="drawer-body" id="cartItemsContainer">
-        <!-- Cart item rows dynamically populated -->
+    <div class="cart-drawer-body" id="cartItemsContainer">
+        <!-- Cart rows rendered dynamically -->
     </div>
 
-    <div class="drawer-footer" id="cartFooter" style="display:none;">
+    <div class="cart-drawer-footer" id="cartFooter" style="display:none;">
+        <!-- Cooking Notes / Special Instructions -->
         <div class="mb-3">
-            <label class="form-label small fw-bold text-muted mb-1">Special Cooking Instructions (Optional)</label>
-            <textarea id="specialInstructions" class="form-control form-control-sm" rows="2" placeholder="e.g. Less spicy, extra sauce, allergy info..." maxlength="300" style="border-radius: var(--radius-sm); border: 1px solid var(--glass-border);"></textarea>
+            <label class="form-label small fw-bold text-muted mb-1"><i class="bi bi-pencil-square"></i> Cooking Instructions / Notes (Optional)</label>
+            <textarea id="specialInstructions" class="form-control" rows="2" placeholder="e.g. Less spicy, dressing on the side..." maxlength="250" style="font-size:0.85rem; border-color:var(--tan-accent);"></textarea>
         </div>
 
-        <div class="bill-row">
-            <span>Subtotal</span>
-            <span id="drawerSubtotal" class="fw-bold">₹0.00</span>
-        </div>
-        <div class="bill-row">
-            <span>GST (CGST 2.5% + SGST 2.5%)</span>
-            <span id="drawerGst">₹0.00</span>
-        </div>
-        <div class="bill-row total">
-            <span>Grand Total</span>
-            <span id="drawerTotal">₹0.00</span>
-        </div>
-
-        <div class="desk-payment-notice">
-            <i class="bi bi-credit-card-2-front-fill text-warning" style="font-size: 1.3rem;"></i>
-            <div>
-                <strong>Payment Method: PAY AT PAYMENT DESK</strong>
-                <div class="small" style="opacity:0.85;">Submit your order to kitchen now. Settle bill at counter after dining.</div>
+        <!-- Bill Calculation Breakdown -->
+        <div class="cart-summary-card">
+            <div class="cart-summary-line">
+                <span>Items Subtotal</span>
+                <span id="drawerSubtotal" class="fw-semibold">₹0.00</span>
+            </div>
+            <div class="cart-summary-line">
+                <span>GST (5% — 2.5% CGST + 2.5% SGST)</span>
+                <span id="drawerGst" class="fw-semibold">₹0.00</span>
+            </div>
+            <div class="cart-summary-line total">
+                <span>Grand Total (Payable at Counter)</span>
+                <span id="drawerTotal" class="total-val">₹0.00</span>
             </div>
         </div>
 
-        <button id="sendOrderBtn" class="btn-premium btn-premium-primary w-100" onclick="submitOrder()">
+        <!-- Payment Notice -->
+        <div class="p-2 mb-3 rounded small text-center" style="background: rgba(180, 83, 9, 0.1); color: var(--deep-espresso); border: 1px dashed var(--tan-accent);">
+            <i class="bi bi-info-circle-fill text-warning"></i> Payment Policy: <strong>PAY AT PAYMENT DESK</strong> after your meal.
+        </div>
+
+        <!-- Submit Button -->
+        <button id="sendOrderBtn" class="btn-premium btn-premium-primary w-100" onclick="submitOrder()" style="padding: 0.85rem; font-size: 1rem;">
             <i class="bi bi-fire"></i> Send Order to Kitchen
         </button>
     </div>
-</aside>
+</div>
 
 <!-- =========================================================================
-     WELCOME & CHECK-IN MODAL
+     CUSTOMER CHECK-IN MODAL (FIRST STEP)
      ========================================================================= -->
-<div id="checkinModal" class="cart-drawer-overlay" style="display:flex; align-items:center; justify-content:center; padding:1.25rem;">
-    <div class="glass-panel p-4" style="background:#ffffff; max-width:440px; width:100%; border-radius:24px; box-shadow: var(--glass-shadow-lg);">
-        <div class="text-center mb-4">
-            <div style="font-size:2.8rem; line-height:1; margin-bottom:0.5rem;">🍽️</div>
-            <h2 style="font-size:1.6rem; color:var(--deep-espresso); margin-bottom:0.25rem;">Welcome to {{ restaurant_name }}</h2>
-            <div class="table-indicator-badge my-1">
-                <i class="bi bi-geo-alt-fill text-warning"></i> Table {{ table_display }}
+<div id="checkinModal" class="checkin-modal-overlay">
+    <div class="checkin-card">
+        <div class="checkin-card-header">
+            <div style="font-size: 3rem; margin-bottom: 0.25rem;">🍽️</div>
+            <h2 style="font-size: 1.65rem; font-weight: 800; margin-bottom: 0.35rem; color: #ffffff;">Welcome to {{ restaurant_name }}</h2>
+            <div class="table-indicator-badge" style="background: var(--cognac-gold); color: #fff; font-size: 0.85rem; padding: 0.35rem 0.9rem;">
+                <i class="bi bi-geo-alt-fill"></i> Table {{ table_display }}
             </div>
-            <p class="text-muted small mt-2 mb-0">Please enter your details to start your dining session and receive your GST tax receipt.</p>
+            <p class="small mt-2 mb-0" style="color: var(--tan-accent); opacity: 0.95;">Please enter your details to start your dining session.</p>
         </div>
 
-        <form id="checkinForm" onsubmit="handleCheckin(event)">
-            <div class="mb-3">
-                <label class="form-label fw-bold small" style="color:var(--deep-espresso);">Full Name <span class="text-danger">*</span></label>
-                <div class="input-group">
-                    <span class="input-group-text bg-light border-end-0"><i class="bi bi-person"></i></span>
-                    <input type="text" id="custName" class="form-control border-start-0" placeholder="e.g. Priya Sharma" minlength="2" maxlength="100" required>
+        <div class="checkin-card-body">
+            <form id="checkinForm" onsubmit="handleCheckin(event)">
+                <div class="mb-3">
+                    <label class="form-label fw-bold small" style="color: var(--deep-espresso);">Full Name <span class="text-danger">*</span></label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-white border-end-0" style="border-color: var(--tan-accent); color: var(--roasted-walnut);"><i class="bi bi-person-fill"></i></span>
+                        <input type="text" id="custName" class="form-control border-start-0" placeholder="e.g. Priya Sharma" minlength="2" maxlength="100" style="border-color: var(--tan-accent); font-weight: 600;" required>
+                    </div>
                 </div>
-            </div>
 
-            <div class="mb-4">
-                <label class="form-label fw-bold small" style="color:var(--deep-espresso);">Mobile Phone Number <span class="text-danger">*</span></label>
-                <div class="input-group">
-                    <span class="input-group-text bg-light border-end-0 fw-bold">+91</span>
-                    <input type="tel" id="custPhone" class="form-control border-start-0" placeholder="10-digit mobile number" pattern="[0-9]{10}" maxlength="10" required>
+                <div class="mb-4">
+                    <label class="form-label fw-bold small" style="color: var(--deep-espresso);">Mobile Phone Number <span class="text-danger">*</span></label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-white border-end-0 fw-bold" style="border-color: var(--tan-accent); color: var(--roasted-walnut);">+91</span>
+                        <input type="tel" id="custPhone" class="form-control border-start-0" placeholder="10-digit mobile number" pattern="[0-9]{10}" maxlength="10" style="border-color: var(--tan-accent); font-weight: 600;" required>
+                    </div>
+                    <div class="form-text small mt-1" style="font-size: 0.75rem; color: var(--roasted-walnut);">Used for counter billing and WhatsApp digital tax receipt.</div>
                 </div>
-                <div class="form-text small" style="font-size:0.75rem;">Used exclusively for counter settlement and digital WhatsApp invoice.</div>
-            </div>
 
-            <button type="submit" id="checkinBtn" class="btn-premium btn-premium-primary w-100" style="padding:0.85rem;">
-                <i class="bi bi-check-circle-fill"></i> Start Ordering
-            </button>
-        </form>
+                <button type="submit" id="checkinBtn" class="btn-premium btn-premium-primary w-100" style="padding: 0.85rem; font-size: 1rem;">
+                    <i class="bi bi-check-circle-fill"></i> Start Ordering
+                </button>
+            </form>
+        </div>
     </div>
 </div>
 
@@ -191,7 +199,7 @@ const TABLE_DISPLAY = "{{ table_display }}";
 const CSRF_TOKEN = "{{ csrf_token }}";
 const STORAGE_PREFIX = `orderless_${TABLE_NUMBER}_`;
 
-// Initial embedded menu data for instantaneous 0ms display
+// Initial embedded menu data
 let ALL_CATEGORIES = [];
 try {
     ALL_CATEGORIES = JSON.parse('{{ categories_json|escapejs }}');
@@ -218,22 +226,22 @@ document.addEventListener('DOMContentLoaded', () => {
    SESSION & ISOLATION MANAGEMENT
    ========================================================================= */
 async function initCustomerSession() {
-    // 1. Read table-scoped session storage
     const savedToken = sessionStorage.getItem(`${STORAGE_PREFIX}session_token`);
     const savedName = sessionStorage.getItem(`${STORAGE_PREFIX}customer_name`);
     const savedPhone = sessionStorage.getItem(`${STORAGE_PREFIX}customer_phone`);
 
-    // 2. Validate with backend
+    if (!savedToken) {
+        showCheckinModal();
+        return;
+    }
+
     try {
-        const url = savedToken 
-            ? `/api/tables/${TABLE_NUMBER}/session-status/?session_id=${encodeURIComponent(savedToken)}`
-            : `/api/tables/${TABLE_NUMBER}/session-status/`;
-        
+        const url = `/api/tables/${TABLE_NUMBER}/session-status/?session_id=${encodeURIComponent(savedToken)}`;
         const res = await fetch(url);
         if (res.ok) {
             const data = await res.json();
             
-            if (data.is_active_session && savedToken && data.session_id === savedToken) {
+            if (data.is_active_session && data.session_id === savedToken) {
                 customerSessionId = savedToken;
                 customerName = data.customer_name || savedName;
                 customerPhone = savedPhone;
@@ -244,7 +252,6 @@ async function initCustomerSession() {
                     showActiveOrderBanner(data.active_order_number, data.order_status_display || data.order_status);
                 }
             } else {
-                // Table is fresh or session was settled/closed -> wipe old state
                 clearLocalSession();
                 showCheckinModal();
             }
@@ -260,11 +267,19 @@ async function initCustomerSession() {
 }
 
 function showCheckinModal() {
-    document.getElementById('checkinModal').style.display = 'flex';
+    const modal = document.getElementById('checkinModal');
+    if (modal) {
+        modal.classList.add('active');
+        modal.style.display = 'flex';
+    }
 }
 
 function hideCheckinModal() {
-    document.getElementById('checkinModal').style.display = 'none';
+    const modal = document.getElementById('checkinModal');
+    if (modal) {
+        modal.classList.remove('active');
+        modal.style.display = 'none';
+    }
 }
 
 function clearLocalSession() {
@@ -274,8 +289,10 @@ function clearLocalSession() {
     sessionStorage.removeItem(`${STORAGE_PREFIX}session_token`);
     sessionStorage.removeItem(`${STORAGE_PREFIX}customer_name`);
     sessionStorage.removeItem(`${STORAGE_PREFIX}customer_phone`);
-    document.getElementById('custName').value = '';
-    document.getElementById('custPhone').value = '';
+    const nameInput = document.getElementById('custName');
+    const phoneInput = document.getElementById('custPhone');
+    if (nameInput) nameInput.value = '';
+    if (phoneInput) phoneInput.value = '';
     const nameChip = document.getElementById('headerCustName');
     if (nameChip) nameChip.style.display = 'none';
 }
@@ -411,7 +428,7 @@ function renderDishes() {
 
     if (allItems.length === 0) {
         grid.innerHTML = `
-            <div class="glass-panel text-center py-5 px-3" style="grid-column: 1 / -1;">
+            <div class="glass-panel text-center py-5 px-3" style="grid-column: 1 / -1; background:#ffffff;">
                 <div style="font-size:2.5rem; opacity:0.4;">🍽️</div>
                 <h4 class="mt-2" style="color:var(--deep-espresso);">No Dishes Found</h4>
                 <p class="text-muted small">Try searching with a different keyword or selecting another category.</p>
@@ -477,6 +494,12 @@ function findMenuItem(itemId) {
 }
 
 function addToCart(itemId) {
+    if (!customerSessionId) {
+        showCheckinModal();
+        showToast('error', 'Please enter your name & phone to start ordering.');
+        return;
+    }
+
     const numId = Number(itemId);
     const item = findMenuItem(numId);
     if (!item) {
@@ -534,21 +557,26 @@ function updateCartUI() {
     const grandTotal = subtotal + gstAmount;
 
     // 1. Header Cart Badge
-    document.getElementById('headerCartCount').textContent = totalCount;
+    const headerBadge = document.getElementById('headerCartCount');
+    if (headerBadge) headerBadge.textContent = totalCount;
 
     // 2. Floating Mobile Bar
     const floatingBar = document.getElementById('floatingCartBar');
-    if (totalCount > 0) {
-        floatingBar.classList.add('active');
-        document.getElementById('floatingCartCount').textContent = `${totalCount} Item${totalCount > 1 ? 's' : ''} Added`;
-        document.getElementById('floatingCartTotal').textContent = `₹${grandTotal.toFixed(2)}`;
-    } else {
-        floatingBar.classList.remove('active');
+    if (floatingBar) {
+        if (totalCount > 0) {
+            floatingBar.classList.add('active');
+            document.getElementById('floatingCartCount').textContent = `${totalCount} Item${totalCount > 1 ? 's' : ''} Added`;
+            document.getElementById('floatingCartTotal').textContent = `₹${grandTotal.toFixed(2)}`;
+        } else {
+            floatingBar.classList.remove('active');
+        }
     }
 
     // 3. Cart Drawer Items & Summary
     const container = document.getElementById('cartItemsContainer');
     const footer = document.getElementById('cartFooter');
+
+    if (!container || !footer) return;
 
     if (items.length === 0) {
         container.innerHTML = `
@@ -586,8 +614,9 @@ function updateCartUI() {
 function toggleCartDrawer() {
     const overlay = document.getElementById('cartDrawerOverlay');
     const drawer = document.getElementById('cartDrawer');
-    const isActive = drawer.classList.contains('active');
+    if (!overlay || !drawer) return;
 
+    const isActive = drawer.classList.contains('active');
     if (isActive) {
         overlay.classList.remove('active');
         drawer.classList.remove('active');
@@ -605,11 +634,7 @@ function loadCartFromStorage() {
     try {
         const saved = sessionStorage.getItem(`${STORAGE_PREFIX}cart`);
         if (saved) {
-            const parsed = JSON.parse(saved);
-            cart = {};
-            for (const [k, v] of Object.entries(parsed)) {
-                cart[Number(k)] = v;
-            }
+            cart = JSON.parse(saved);
             updateCartUI();
             renderDishes();
         }
@@ -631,6 +656,7 @@ async function submitOrder() {
     if (!customerSessionId) {
         toggleCartDrawer();
         showCheckinModal();
+        showToast('error', 'Please enter your name & phone to place the order.');
         return;
     }
 
@@ -638,7 +664,6 @@ async function submitOrder() {
     btn.disabled = true;
     btn.innerHTML = '<span class="spinner"></span> Sending to Kitchen...';
 
-    // Generate unique client idempotency key for this submission
     const idempotencyKey = `idem_${TABLE_NUMBER}_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
     const instructions = document.getElementById('specialInstructions').value.trim();
 
@@ -674,7 +699,6 @@ async function submitOrder() {
 
         showToast('success', `Order #${data.order_number} received by kitchen!`);
 
-        // Smooth redirect to tracking page
         setTimeout(() => {
             window.location.href = `/order/track/${data.order_number}/`;
         }, 700);
