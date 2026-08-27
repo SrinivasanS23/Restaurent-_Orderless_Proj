@@ -136,6 +136,12 @@ if database_url and database_url.startswith(('mysql://', 'mysql2://')):
         DATABASES['default']['PASSWORD'] = urllib.parse.unquote(parsed_url.password or '')
         DATABASES['default']['HOST'] = parsed_url.hostname or '127.0.0.1'
         DATABASES['default']['PORT'] = str(parsed_url.port or 3306)
+        
+        # Auto-configure SSL for cloud providers (Aiven, PlanetScale, etc.)
+        if 'ssl-mode=REQUIRED' in database_url or 'aivencloud.com' in (parsed_url.hostname or '') or 'ssl' in parsed_url.query:
+            if 'OPTIONS' not in DATABASES['default']:
+                DATABASES['default']['OPTIONS'] = {}
+            DATABASES['default']['OPTIONS']['ssl'] = {'ssl_mode': 'REQUIRED'}
     except Exception as err:
         pass
 
