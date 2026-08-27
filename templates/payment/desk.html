@@ -463,8 +463,7 @@ function calculateChange(total) {
 
 async function processPayment(orderNumber, totalAmount) {
     const btn = document.getElementById('processPayBtn');
-    btn.disabled = true;
-    btn.innerHTML = '<span class="spinner"></span> Processing Settlement...';
+    if (!btn || btn.disabled) return;
 
     let cashReceived = null;
     let txnRef = '';
@@ -474,8 +473,6 @@ async function processPayment(orderNumber, totalAmount) {
         cashReceived = cashInput ? parseFloat(cashInput.value) : totalAmount;
         if (cashReceived < totalAmount) {
             showToast('error', `Received cash (₹${cashReceived}) is less than total bill (₹${totalAmount})`);
-            btn.disabled = false;
-            btn.innerHTML = '<i class="bi bi-check-circle-fill"></i> Complete Settlement &amp; Close Session';
             return;
         }
     } else {
@@ -483,6 +480,26 @@ async function processPayment(orderNumber, totalAmount) {
         txnRef = refInput ? refInput.value.trim() : '';
     }
 
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> Settling...';
+
+    // 1. Instant Optimistic Visual Response (0ms latency feel)
+    const prevOrderState = selectedOrder ? { ...selectedOrder } : null;
+    const calcChange = (activePaymentMode === 'CASH' && cashReceived) ? Math.max(0, cashReceived - totalAmount) : 0;
+    
+    if (selectedOrder) {
+        selectedOrder.payment_status = 'PAID';
+        selectedOrder.order_status = 'COMPLETED';
+        renderBill();
+        openReceiptModal({
+            receipt_number: `RCP-${orderNumber.replace('ORD-', '')}`,
+            cash_change: calcChange.toFixed(2)
+        });
+    }
+
+    showToast('success', `⚡ Settled Order #${orderNumber}!`);
+
+    // 2. Background API Settlement Execution
     try {
         const res = await fetch('/api/payments/desk/', {
             method: 'POST',
@@ -500,16 +517,20 @@ async function processPayment(orderNumber, totalAmount) {
         });
 
         const data = await res.json();
-        if (!res.ok) throw new Error(data.error || 'Failed to complete payment');
+        if (!res.ok) throw new Error(data.error || 'Payment failed on server');
 
-        showToast('success', `Payment completed for #${orderNumber}!`);
+        // Smoothly update receipt number & details from server
         openReceiptModal(data);
         loadAllOrders();
 
     } catch (err) {
+        // Revert in the rare event of server failure
+        if (prevOrderState) {
+            selectedOrder = prevOrderState;
+            renderBill();
+        }
+        closeReceiptModal();
         showToast('error', err.message);
-        btn.disabled = false;
-        btn.innerHTML = '<i class="bi bi-check-circle-fill"></i> Complete Settlement &amp; Close Session';
     }
 }
 

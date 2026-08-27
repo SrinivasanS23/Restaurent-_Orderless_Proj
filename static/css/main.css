@@ -1003,3 +1003,45 @@ h1, h2, h3, h4, h5, h6 {
     background: linear-gradient(135deg, #ffffff 0%, rgba(22, 163, 74, 0.05) 100%);
     border-top: 5px solid #16a34a;
 }
+
+/* =========================================================================
+   LIVE ORDER TRACKING PIPELINE STYLES
+   ========================================================================= */
+.tracker-step {
+    padding: 0.85rem 1rem;
+    border-radius: 16px;
+    background: var(--bg-cream);
+    border: 1px solid rgba(214, 184, 154, 0.4);
+    transition: all 0.25s ease;
+}
+
+.tracker-icon-circle {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    flex-shrink: 0;
+    transition: all 0.3s ease;
+}
+
+.tracker-title {
+    font-family: var(--font-heading);
+    color: var(--deep-espresso);
+    font-size: 0.98rem;
+    margin-bottom: 2px;
+}
+
+.tracker-desc {
+    font-size: 0.82rem;
+    line-height: 1.3;
+}
+
+.tracker-status-pill {
+    font-size: 0.72rem;
+    padding: 0.35rem 0.65rem;
+    border-radius: 12px;
+    align-self: center;
+}

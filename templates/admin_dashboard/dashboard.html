@@ -436,7 +436,8 @@ async function loadLiveOrders() {
     try {
         const res = await fetch('/dashboard/api/live-orders/');
         if (!res.ok) return;
-        const orders = await res.json();
+        const data = await res.json();
+        const orders = Array.isArray(data) ? data : (data.orders || []);
         const tbody = document.getElementById('liveOrdersTableBody');
 
         if (orders.length === 0) {
@@ -444,18 +445,33 @@ async function loadLiveOrders() {
             return;
         }
 
-        tbody.innerHTML = orders.map(o => `
+        tbody.innerHTML = orders.map(o => {
+            const tableDisp = o.table_display || o.table_number || (o.table && (o.table.display_number || o.table.table_number)) || '—';
+            const custName = o.customer_name || (o.customer_session && o.customer_session.customer_name) || 'Walk-in Guest';
+            const itemsStr = o.items_summary || (o.items ? o.items.map(i => `${i.emoji || '🍽️'} ${i.item_name_snapshot || i.name} (×${i.quantity})`).join(', ') : '—');
+            const total = parseFloat(o.total_amount || 0).toFixed(2);
+            const stage = o.order_status_display || o.order_status || 'CREATED';
+            const payStatus = o.payment_status || 'PENDING';
+            const timeStr = o.created_at ? new Date(o.created_at).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : '—';
+
+            let stageBadge = 'bg-secondary';
+            if (o.order_status === 'PREPARING') stageBadge = 'bg-warning text-dark';
+            else if (o.order_status === 'READY') stageBadge = 'bg-info text-dark';
+            else if (o.order_status === 'SERVED') stageBadge = 'bg-primary';
+            else if (o.order_status === 'COMPLETED') stageBadge = 'bg-success';
+
+            return `
             <tr>
-                <td><strong>#${o.order_number}</strong></td>
-                <td><span class="table-indicator-badge" style="font-size:0.75rem; padding:0.2rem 0.5rem;">TABLE ${o.table_display || o.table_number}</span></td>
-                <td>👤 ${o.customer_name || 'Guest'}</td>
-                <td><span class="small">${o.items_summary || (o.items ? o.items.map(i=>`${i.emoji||'🍽️'} ${i.name} (×${i.quantity})`).join(', ') : 'N/A')}</span></td>
-                <td><strong>₹${parseFloat(o.total_amount).toFixed(2)}</strong></td>
-                <td><span class="badge ${o.order_status === 'SERVED' ? 'bg-primary' : (o.order_status === 'PREPARING' ? 'bg-warning text-dark' : 'bg-secondary')}">${o.order_status_display || o.order_status}</span></td>
-                <td><span class="badge ${o.payment_status === 'PAID' ? 'bg-success' : 'bg-warning text-dark'}">${o.payment_status}</span></td>
-                <td class="small text-muted">${new Date(o.created_at).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</td>
-            </tr>
-        `).join('');
+                <td><strong style="color:var(--deep-espresso);">#${o.order_number}</strong></td>
+                <td><span class="table-indicator-badge" style="font-size:0.75rem; padding:0.2rem 0.5rem;">TABLE ${tableDisp}</span></td>
+                <td>👤 <strong>${custName}</strong></td>
+                <td><span class="small text-muted" style="max-width:280px; display:inline-block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${itemsStr}</span></td>
+                <td><strong style="color:var(--deep-espresso);">₹${total}</strong></td>
+                <td><span class="badge ${stageBadge}">${stage}</span></td>
+                <td><span class="badge ${payStatus === 'PAID' ? 'bg-success' : 'bg-warning text-dark'}">${payStatus}</span></td>
+                <td class="small text-muted">${timeStr}</td>
+            </tr>`;
+        }).join('');
     } catch (e) {
         console.debug('Live orders fetch error:', e);
     }
@@ -640,10 +656,11 @@ async function loadOrderLedger() {
     const pay = document.getElementById('ledgerPaymentFilter') ? document.getElementById('ledgerPaymentFilter').value : '';
 
     try {
-        let url = `/dashboard/api/orders/?search=${encodeURIComponent(search)}&status=${encodeURIComponent(status)}&payment_status=${encodeURIComponent(pay)}`;
+        let url = `/dashboard/api/orders/?search=${encodeURIComponent(search)}&order_status=${encodeURIComponent(status)}&payment_status=${encodeURIComponent(pay)}`;
         const res = await fetch(url);
         if (!res.ok) return;
-        const orders = await res.json();
+        const data = await res.json();
+        const orders = Array.isArray(data) ? data : (data.orders || []);
         const tbody = document.getElementById('ledgerTableBody');
 
         if (orders.length === 0) {
@@ -651,20 +668,32 @@ async function loadOrderLedger() {
             return;
         }
 
-        tbody.innerHTML = orders.map(o => `
+        tbody.innerHTML = orders.map(o => {
+            const tableDisp = o.table_display || o.table_number || (o.table && (o.table.display_number || o.table.table_number)) || '—';
+            const custName = o.customer_name || (o.customer_session && o.customer_session.customer_name) || 'Guest';
+            const subtotal = parseFloat(o.subtotal || 0).toFixed(2);
+            const tax = parseFloat(o.tax_amount || (parseFloat(o.cgst_amount || 0) + parseFloat(o.sgst_amount || 0))).toFixed(2);
+            const total = parseFloat(o.total_amount || 0).toFixed(2);
+            const stage = o.order_status_display || o.order_status || 'CREATED';
+            const payStatus = o.payment_status || 'PENDING';
+            const timeStr = o.created_at ? new Date(o.created_at).toLocaleString() : '—';
+
+            return `
             <tr>
-                <td><strong>#${o.order_number}</strong></td>
-                <td><span class="table-indicator-badge" style="font-size:0.75rem; padding:0.2rem 0.5rem;">TABLE ${o.table_display || o.table_number}</span></td>
-                <td>👤 ${o.customer_name || 'Guest'}</td>
-                <td>₹${parseFloat(o.subtotal || 0).toFixed(2)}</td>
-                <td>₹${parseFloat(o.tax_amount || 0).toFixed(2)}</td>
-                <td><strong>₹${parseFloat(o.total_amount || 0).toFixed(2)}</strong></td>
-                <td><span class="badge bg-secondary">${o.order_status_display || o.order_status}</span></td>
-                <td><span class="badge ${o.payment_status === 'PAID' ? 'bg-success' : 'bg-warning text-dark'}">${o.payment_status}</span></td>
-                <td class="small text-muted">${new Date(o.created_at).toLocaleString()}</td>
-            </tr>
-        `).join('');
-    } catch (e) {}
+                <td><strong style="color:var(--deep-espresso);">#${o.order_number}</strong></td>
+                <td><span class="table-indicator-badge" style="font-size:0.75rem; padding:0.2rem 0.5rem;">TABLE ${tableDisp}</span></td>
+                <td>👤 <strong>${custName}</strong></td>
+                <td>₹${subtotal}</td>
+                <td>₹${tax}</td>
+                <td><strong style="color:var(--deep-espresso);">₹${total}</strong></td>
+                <td><span class="badge bg-secondary">${stage}</span></td>
+                <td><span class="badge ${payStatus === 'PAID' ? 'bg-success' : 'bg-warning text-dark'}">${payStatus}</span></td>
+                <td class="small text-muted">${timeStr}</td>
+            </tr>`;
+        }).join('');
+    } catch (e) {
+        console.debug('Ledger fetch error:', e);
+    }
 }
 
 /* =========================================================================

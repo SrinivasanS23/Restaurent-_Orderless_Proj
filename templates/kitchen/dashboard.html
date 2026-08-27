@@ -263,7 +263,7 @@ document.addEventListener('DOMContentLoaded', () => {
     KitchenAlertManager.checkAutoplayStatus();
     loadKitchenOrders();
     // Short polling every 3 seconds for serverless real-time sync
-    setInterval(loadKitchenOrders, 3000);
+    setInterval(loadKitchenOrders, 2000);
 });
 
 async function loadKitchenOrders() {

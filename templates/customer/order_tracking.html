@@ -1,354 +1,363 @@
 {% extends "base.html" %}
 {% load static %}
-{% block title %}Tracking Order {{ order_number }} — {{ restaurant_name }}{% endblock %}
-{% block meta_description %}Live tracking for Order {{ order_number }} at {{ restaurant_name }}{% endblock %}
+
+{% block title %}Order #{{ order_number }} Live Status — {{ restaurant_name }}{% endblock %}
+{% block meta_description %}Live interactive order tracking and status for Order #{{ order_number }} at {{ restaurant_name }}{% endblock %}
 {% block body_class %}tracking-page{% endblock %}
 
 {% block body %}
-<!-- Header -->
-<header class="tracking-header">
-    <div style="font-size:1.1rem; font-weight:750; margin-bottom:0.25rem; opacity:0.95;">🍽️ {{ restaurant_name }}</div>
-    <div class="order-number">#{{ order_number }}</div>
-    <div style="opacity:0.9; font-size:0.85rem; margin-top:0.35rem;" id="tableInfo">Connecting to live order status...</div>
+<!-- App Header -->
+<header class="app-header" style="background: var(--deep-espresso); color: var(--bg-cream); border-bottom: 2px solid var(--tan-accent);">
+    <div class="header-inner" style="max-width: 900px;">
+        <a href="/" class="brand-logo text-white">
+            <span class="logo-icon">🍽️</span>
+            <span class="logo-text text-white">{{ restaurant_name }}</span>
+        </a>
+        <div class="d-flex align-items-center gap-2">
+            <span id="headerTableBadge" class="table-indicator-badge" style="background: var(--cognac-gold); color: #fff;">
+                <i class="bi bi-geo-alt-fill"></i> Table --
+            </span>
+            <button id="orderMoreBtn" class="btn btn-sm btn-outline-light rounded-pill px-3" onclick="goToMenu()">
+                <i class="bi bi-plus-lg"></i> Order More
+            </button>
+        </div>
+    </div>
 </header>
 
-<div class="tracking-content">
-    <!-- Loading State -->
-    <div id="loadingState" class="text-center py-5">
-        <div class="spinner dark"></div>
-        <p class="mt-2 text-muted" style="font-size:0.85rem; font-weight:600;">Retrieving your order details...</p>
-    </div>
+<!-- Main Tracking Container -->
+<main class="container py-4 px-3" style="max-width: 800px; margin: 0 auto; min-height: 80vh;">
 
-    <!-- Error State -->
-    <div id="errorState" style="display:none;" class="text-center py-5 px-3">
-        <div style="font-size:3rem; color:var(--error); margin-bottom:0.5rem;">🔒</div>
-        <h3 style="font-weight:850; color:var(--deepest); font-family:var(--font-heading);">Order Inaccessible</h3>
-        <p class="text-muted" style="font-size:0.88rem;" id="errorMsg">Unable to retrieve details for order {{ order_number }}.</p>
-        <button onclick="startNewSession()" class="btn-premium-secondary mt-2">Return to Menu</button>
-    </div>
-
-    <!-- Main Order Content -->
-    <div id="orderContent" style="display:none;" class="animate-fade-in">
+    <!-- Top Status Hero Card -->
+    <div class="glass-panel p-4 mb-4 text-center" style="background: #ffffff; border: 2px solid var(--tan-accent); border-radius: 24px; box-shadow: 0 12px 36px rgba(61, 41, 35, 0.08);">
+        <div class="d-flex align-items-center justify-content-center gap-2 mb-2">
+            <span class="badge" id="livePillBadge" style="background: rgba(180, 83, 9, 0.15); color: var(--roasted-walnut); font-size: 0.82rem; padding: 0.4rem 0.8rem; border-radius: 20px; font-weight: 800;">
+                <i class="bi bi-broadcast text-danger animate-pulse"></i> LIVE STATUS
+            </span>
+        </div>
         
-        <!-- Live Status Tracker Sequential Pipeline -->
-        <div class="status-tracker" id="statusTracker"></div>
+        <h1 style="font-family: var(--font-heading); font-size: 2rem; font-weight: 900; color: var(--deep-espresso); margin-bottom: 0.25rem;">
+            Order #{{ order_number }}
+        </h1>
+        <p id="guestGreeting" class="text-muted small mb-3">Connecting to live kitchen status...</p>
 
-        <!-- Pay at Desk Notice (Shown when food is served) -->
-        <div class="payment-notice" id="deskPayNotice" style="display:none;">
-            <div class="notice-icon">🍽️</div>
-            <h3>Enjoy Your Meal!</h3>
-            <p style="color:#78350f; font-size:0.92rem; margin-bottom:0.4rem;">
-                Please settle your bill at the counter after eating.
-            </p>
-            <div class="d-inline-block px-3 py-1 mt-1 rounded" style="background:rgba(255,255,255,0.7); border:1px solid #f59e0b; font-weight:800; color:#92400e; font-size:1.05rem;">
-                Share Order ID: #{{ order_number }}
-            </div>
+        <!-- Current Stage Big Banner -->
+        <div id="currentStageCard" class="p-3 rounded-4 mb-2" style="background: var(--bg-cream); border: 1.5px solid var(--tan-accent);">
+            <div id="stageHeroEmoji" style="font-size: 3.5rem; margin-bottom: 0.25rem;">⏳</div>
+            <h3 id="stageHeroTitle" style="font-family: var(--font-heading); font-weight: 900; color: var(--deep-espresso); margin-bottom: 0.25rem;">
+                Fetching Order...
+            </h3>
+            <p id="stageHeroDesc" class="text-muted small m-0">Please hold on while we retrieve the latest updates from the kitchen.</p>
         </div>
-
-        <!-- Completion Card (Shown when order is paid & completed) -->
-        <div class="completion-card" id="completionCard" style="display:none;">
-            <div style="font-size:3.5rem; margin-bottom:0.4rem;">🎉</div>
-            <h3 style="font-family:var(--font-heading); font-weight:900; font-size:1.35rem; color:var(--success); margin-bottom:0.3rem;">Order Paid &amp; Completed</h3>
-            <p style="font-size:0.9rem; color:var(--text); margin-bottom:0.25rem;">Thank you for dining with us at {{ restaurant_name }}.</p>
-            <p class="text-muted" style="font-size:0.84rem; margin-bottom:1.5rem;">Table <span id="compTableNum" class="fw-bold"></span> session is now completed.</p>
-
-            <!-- Actions -->
-            <div class="d-flex flex-column gap-2">
-                <a id="pdfDownloadLink" href="#" target="_blank" class="btn-premium-success w-100" style="padding:0.9rem;">
-                    <i class="bi bi-file-earmark-pdf"></i> Download Official Tax Invoice (PDF)
-                </a>
-                <button class="btn-premium-primary w-100" id="whatsappBtn" onclick="triggerWhatsAppSend()" style="padding:0.9rem; background:#15803d; border-color:#15803d;">
-                    <i class="bi bi-whatsapp"></i> <span id="whatsappBtnText">Send Invoice to WhatsApp</span>
-                </button>
-                <button class="btn-premium-secondary w-100 mt-2" onclick="startNewSession()" style="padding:0.85rem;">
-                    <i class="bi bi-plus-circle"></i> Start New Order
-                </button>
-            </div>
-        </div>
-
-        <!-- Order Items & GST Breakdown Card -->
-        <div class="order-items-card" id="orderItemsCard"></div>
     </div>
-</div>
 
-<div class="error-toast" id="errorToast"></div>
-<div class="success-toast" id="successToast"></div>
+    <!-- Sequential Stepper Pipeline -->
+    <div class="glass-panel p-4 mb-4" style="background: #ffffff; border: 1.5px solid var(--tan-accent); border-radius: 24px;">
+        <h4 style="font-family: var(--font-heading); font-weight: 800; color: var(--deep-espresso); margin-bottom: 1.25rem; font-size: 1.15rem;">
+            <i class="bi bi-clock-history text-warning"></i> Preparation Progress
+        </h4>
+
+        <div id="stepsContainer" class="d-flex flex-column gap-3">
+            <!-- Step 1: Order Placed -->
+            <div class="d-flex align-items-start gap-3 tracker-step" id="step_ORDER_CREATED">
+                <div class="tracker-icon-circle">📋</div>
+                <div class="flex-grow-1">
+                    <div class="fw-bold tracker-title">1. Order Placed &amp; Received</div>
+                    <div class="small text-muted tracker-desc">Order has been sent directly to the kitchen queue.</div>
+                </div>
+                <span class="tracker-status-pill badge bg-secondary">Pending</span>
+            </div>
+
+            <!-- Step 2: Cooking & Preparing -->
+            <div class="d-flex align-items-start gap-3 tracker-step" id="step_PREPARING">
+                <div class="tracker-icon-circle">🔥</div>
+                <div class="flex-grow-1">
+                    <div class="fw-bold tracker-title">2. Cooking in Kitchen</div>
+                    <div class="small text-muted tracker-desc">Our chef is actively preparing and seasoning your food.</div>
+                </div>
+                <span class="tracker-status-pill badge bg-secondary">Waiting</span>
+            </div>
+
+            <!-- Step 3: Food Ready -->
+            <div class="d-flex align-items-start gap-3 tracker-step" id="step_READY">
+                <div class="tracker-icon-circle">✨</div>
+                <div class="flex-grow-1">
+                    <div class="fw-bold tracker-title">3. Food Ready &amp; Plated</div>
+                    <div class="small text-muted tracker-desc">Dishes are plated and queued for delivery to your table.</div>
+                </div>
+                <span class="tracker-status-pill badge bg-secondary">Waiting</span>
+            </div>
+
+            <!-- Step 4: Served at Table -->
+            <div class="d-flex align-items-start gap-3 tracker-step" id="step_SERVED">
+                <div class="tracker-icon-circle">🍽️</div>
+                <div class="flex-grow-1">
+                    <div class="fw-bold tracker-title">4. Served at Your Table</div>
+                    <div class="small text-muted tracker-desc">Enjoy your meal! Please pay at the counter when finished.</div>
+                </div>
+                <span class="tracker-status-pill badge bg-secondary">Waiting</span>
+            </div>
+
+            <!-- Step 5: Completed & Settled -->
+            <div class="d-flex align-items-start gap-3 tracker-step" id="step_COMPLETED">
+                <div class="tracker-icon-circle">✅</div>
+                <div class="flex-grow-1">
+                    <div class="fw-bold tracker-title">5. Payment Completed</div>
+                    <div class="small text-muted tracker-desc">Bill settled at counter. Thank you for dining with us!</div>
+                </div>
+                <span class="tracker-status-pill badge bg-secondary">Waiting</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Payment Notice Card (Shown when SERVED) -->
+    <div id="servedPaymentNotice" class="glass-panel p-4 mb-4 text-center" style="display:none; background: linear-gradient(135deg, rgba(246, 238, 227, 0.95) 0%, rgba(214, 184, 154, 0.25) 100%); border: 2px dashed var(--cognac-gold); border-radius: 24px;">
+        <div style="font-size: 2.75rem; margin-bottom: 0.25rem;">💳</div>
+        <h3 style="font-family: var(--font-heading); font-weight: 900; color: var(--deep-espresso); margin-bottom: 0.35rem;">
+            Enjoy Your Meal!
+        </h3>
+        <p class="text-muted small mb-3">When you are finished, kindly proceed to the <strong>Payment Counter</strong> to settle your bill.</p>
+        <div class="d-inline-block px-4 py-2 rounded-pill fw-bold" style="background: var(--deep-espresso); color: var(--bg-cream); font-size: 1.1rem; letter-spacing: 0.5px;">
+            Share Order ID: #{{ order_number }}
+        </div>
+    </div>
+
+    <!-- Completed Bill Settled Card (Shown when PAID) -->
+    <div id="completedSuccessCard" class="glass-panel p-4 mb-4 text-center" style="display:none; background: #ffffff; border: 2px solid #16a34a; border-radius: 24px;">
+        <div style="font-size: 3rem; margin-bottom: 0.25rem;">🎉</div>
+        <h3 style="font-family: var(--font-heading); font-weight: 900; color: #16a34a; margin-bottom: 0.25rem;">
+            Order Settled &amp; Completed!
+        </h3>
+        <p class="text-muted small mb-4">Thank you for dining with us at {{ restaurant_name }}. We hope you enjoyed your meal!</p>
+        
+        <div class="d-flex flex-column gap-2" style="max-width: 400px; margin: 0 auto;">
+            <button id="whatsappShareBtn" class="btn btn-success rounded-pill py-2 fw-bold" onclick="shareWhatsAppReceipt()">
+                <i class="bi bi-whatsapp"></i> Share WhatsApp Receipt
+            </button>
+            <button class="btn-premium btn-premium-primary rounded-pill py-2" onclick="startFreshSession()">
+                <i class="bi bi-arrow-repeat"></i> Start New Order
+            </button>
+        </div>
+    </div>
+
+    <!-- Itemized Order Breakdown Card -->
+    <div class="glass-panel p-4 mb-4" style="background: #ffffff; border: 1.5px solid var(--tan-accent); border-radius: 24px;">
+        <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
+            <h4 style="font-family: var(--font-heading); font-weight: 800; color: var(--deep-espresso); margin: 0; font-size: 1.15rem;">
+                <i class="bi bi-receipt text-warning"></i> Order Breakdown
+            </h4>
+            <span id="orderPaymentBadge" class="badge bg-warning text-dark">PAY AT COUNTER</span>
+        </div>
+
+        <div id="itemsBreakdownList" class="mb-3">
+            <div class="text-center py-3 text-muted small">Loading item details...</div>
+        </div>
+
+        <!-- Bill Calculation Summary -->
+        <div class="p-3 rounded-3" style="background: var(--bg-cream); border: 1px solid var(--tan-accent);">
+            <div class="d-flex justify-content-between mb-1 small text-muted">
+                <span>Items Subtotal</span>
+                <span id="breakdownSubtotal" class="fw-bold">₹0.00</span>
+            </div>
+            <div class="d-flex justify-content-between mb-1 small text-muted">
+                <span>GST (5% — 2.5% CGST + 2.5% SGST)</span>
+                <span id="breakdownTax" class="fw-bold">₹0.00</span>
+            </div>
+            <div class="d-flex justify-content-between pt-2 border-top" style="font-size: 1.25rem; font-weight: 900; color: var(--deep-espresso);">
+                <span>Total Amount</span>
+                <span id="breakdownTotal">₹0.00</span>
+            </div>
+        </div>
+    </div>
+
+</main>
 
 <script>
-const ORDER_NUMBER = '{{ order_number }}';
-const CSRF_TOKEN = '{{ csrf_token }}';
+const ORDER_NUMBER = "{{ order_number }}";
 let orderData = null;
-let ws = null;
-let reconnectAttempts = 0;
+let pollTimer = null;
 
-const STATUS_CONFIG = {
-    'ORDER_CREATED': { label: '1. Order Placed', icon: '📋', desc: 'Order received by the kitchen queue' },
-    'ACCEPTED': { label: '2. Kitchen Accepted', icon: '👍', desc: 'Chef accepted and scheduled preparation' },
-    'PREPARING': { label: '3. Cooking & Preparing', icon: '🔥', desc: 'Chefs are actively cooking your dishes' },
-    'READY': { label: '4. Ready to Serve', icon: '✨', desc: 'Food is prepared and plated' },
-    'SERVED': { label: '5. Served at Table', icon: '🍽️', desc: 'Dishes delivered to your table' },
-    'COMPLETED': { label: '6. Payment Settled', icon: '✅', desc: 'Bill paid at payment counter' },
+const STAGE_MAP = {
+    'ORDER_CREATED': 1,
+    'ACCEPTED': 1,
+    'PREPARING': 2,
+    'READY': 3,
+    'SERVED': 4,
+    'COMPLETED': 5
 };
 
-const STATUS_SEQUENCE = ['ORDER_CREATED', 'ACCEPTED', 'PREPARING', 'READY', 'SERVED', 'COMPLETED'];
+const STAGE_HERO = {
+    'ORDER_CREATED': { emoji: '📋', title: 'Order Received', desc: 'Your order is in the kitchen queue. Chefs will start cooking shortly.' },
+    'ACCEPTED': { emoji: '👍', title: 'Kitchen Accepted', desc: 'The kitchen has accepted your order and scheduled preparation.' },
+    'PREPARING': { emoji: '🔥', title: 'Cooking & Preparing', desc: 'Our chef is actively preparing your dishes fresh on the stove.' },
+    'READY': { emoji: '✨', title: 'Food Ready', desc: 'Your dishes are freshly cooked and plated for serving.' },
+    'SERVED': { emoji: '🍽️', title: 'Served at Table', desc: 'Dishes delivered! Enjoy your meal. Kindly settle your bill at the counter when done.' },
+    'COMPLETED': { emoji: '✅', title: 'Payment Completed', desc: 'Thank you for dining with us! Your bill has been paid and completed.' }
+};
 
 document.addEventListener('DOMContentLoaded', () => {
-    loadOrder();
-    connectWebSocket();
-    // 10s fallback polling
-    setInterval(loadOrder, 3500);
+    fetchLiveStatus();
+    // Fast 2.5s polling for instant live tracking updates
+    pollTimer = setInterval(fetchLiveStatus, 2500);
 });
 
-function getSessionToken() {
-    return sessionStorage.getItem('orderless_session_token') || '';
-}
-
-async function loadOrder() {
-    const token = getSessionToken();
+async function fetchLiveStatus() {
     try {
-        const res = await fetch(`/api/orders/${ORDER_NUMBER}/receipt/?session_id=${encodeURIComponent(token)}`, {
-            headers: {
-                'X-Session-ID': token
-            }
-        });
-        
-        if (!res.ok) {
-            const data = await res.json().catch(() => ({}));
-            throw new Error(data.error || 'Unable to retrieve order details.');
-        }
+        const res = await fetch(`/api/orders/${ORDER_NUMBER}/receipt/`);
+        if (!res.ok) return;
+
         orderData = await res.json();
-        renderOrder();
-    } catch (err) {
-        if (!orderData) {
-            document.getElementById('loadingState').style.display = 'none';
-            document.getElementById('errorState').style.display = 'block';
-            document.getElementById('errorMsg').textContent = err.message || 'Unable to retrieve order details.';
-        }
+        renderTrackingView();
+    } catch (e) {
+        console.debug('Tracking fetch error:', e);
     }
 }
 
-function renderOrder() {
-    document.getElementById('loadingState').style.display = 'none';
-    document.getElementById('errorState').style.display = 'none';
-    document.getElementById('orderContent').style.display = 'block';
+function renderTrackingView() {
+    if (!orderData) return;
 
-    const tDisplay = orderData.table_display || orderData.table_number;
-    document.getElementById('compTableNum').textContent = tDisplay;
+    const tDisplay = orderData.table_display || orderData.table_number || (orderData.table && orderData.table.display_number) || '01';
+    const tNum = orderData.table_number || (orderData.table && orderData.table.table_number) || `T${tDisplay}`;
+    const custName = orderData.customer_name || (orderData.customer_session && orderData.customer_session.customer_name) || 'Guest';
 
-    // Set PDF link with session token for security
-    const token = getSessionToken();
-    document.getElementById('pdfDownloadLink').href = `/api/orders/${ORDER_NUMBER}/receipt/pdf/?session_id=${encodeURIComponent(token)}`;
+    // Header badge & greeting
+    document.getElementById('headerTableBadge').innerHTML = `<i class="bi bi-geo-alt-fill"></i> Table ${tDisplay}`;
+    document.getElementById('guestGreeting').textContent = `Dining as 👤 ${custName} · Table ${tDisplay}`;
 
-    // Header info
-    const infoContainer = document.getElementById('tableInfo');
-    infoContainer.innerHTML = `
-        <span class="table-badge" style="background:rgba(255,255,255,0.2); color:#fff; border-color:rgba(255,255,255,0.3);">
-            <i class="bi bi-geo-alt-fill text-warning"></i> Table ${tDisplay}
-        </span>
-        <span class="ms-2">👤 ${orderData.customer_name || 'Guest'}</span>
-    `;
+    // Current stage
+    const currentStatus = (orderData.payment_status === 'PAID' || orderData.order_status === 'COMPLETED') ? 'COMPLETED' : (orderData.order_status || 'ORDER_CREATED');
+    const heroInfo = STAGE_HERO[currentStatus] || STAGE_HERO['ORDER_CREATED'];
 
-    renderStatusTracker();
-    renderPaymentNoticeAndCompletion();
-    renderItemsCard();
+    document.getElementById('stageHeroEmoji').textContent = heroInfo.emoji;
+    document.getElementById('stageHeroTitle').textContent = heroInfo.title;
+    document.getElementById('stageHeroDesc').textContent = heroInfo.desc;
 
-    // If order is completed & paid, clear table session storage
-    if (orderData.payment_status === 'PAID' || orderData.order_status === 'COMPLETED') {
-        clearLocalSessionStorage(orderData.table_number);
-    }
-}
+    // Update Stepper Pipeline
+    const currentStageNum = STAGE_MAP[currentStatus] || 1;
 
-function renderStatusTracker() {
-    const tracker = document.getElementById('statusTracker');
-    const currentStatus = (orderData.payment_status === 'PAID' || orderData.order_status === 'COMPLETED') ? 'COMPLETED' : orderData.order_status;
-    const currentIndex = STATUS_SEQUENCE.indexOf(currentStatus);
+    updateStepUI('step_ORDER_CREATED', 1, currentStageNum);
+    updateStepUI('step_PREPARING', 2, currentStageNum);
+    updateStepUI('step_READY', 3, currentStageNum);
+    updateStepUI('step_SERVED', 4, currentStageNum);
+    updateStepUI('step_COMPLETED', 5, currentStageNum);
 
-    let html = '';
-    STATUS_SEQUENCE.forEach((st, idx) => {
-        const conf = STATUS_CONFIG[st];
-        let stateClass = '';
-        if (idx < currentIndex) stateClass = 'completed';
-        else if (idx === currentIndex) stateClass = 'active';
+    // Notices visibility
+    const isPaid = (orderData.payment_status === 'PAID' || orderData.order_status === 'COMPLETED');
+    const isServed = (orderData.order_status === 'SERVED' && !isPaid);
 
-        html += `
-        <div class="status-step ${stateClass}">
-            <div class="status-icon-box">${idx < currentIndex ? '✓' : conf.icon}</div>
-            <div class="status-info">
-                <h4>${conf.label}</h4>
-                <p>${conf.desc}</p>
-            </div>
-        </div>`;
-    });
+    document.getElementById('servedPaymentNotice').style.display = isServed ? 'block' : 'none';
+    document.getElementById('completedSuccessCard').style.display = isPaid ? 'block' : 'none';
 
-    tracker.innerHTML = html;
-}
-
-function renderPaymentNoticeAndCompletion() {
-    const deskNotice = document.getElementById('deskPayNotice');
-    const compCard = document.getElementById('completionCard');
-
-    if (orderData.payment_status === 'PAID' || orderData.order_status === 'COMPLETED') {
-        deskNotice.style.display = 'none';
-        compCard.style.display = 'block';
-    } else if (orderData.order_status === 'SERVED') {
-        deskNotice.style.display = 'block';
-        compCard.style.display = 'none';
+    // Order payment badge
+    const payBadge = document.getElementById('orderPaymentBadge');
+    if (isPaid) {
+        payBadge.className = 'badge bg-success';
+        payBadge.textContent = '✓ PAID & SETTLED';
     } else {
-        deskNotice.style.display = 'none';
-        compCard.style.display = 'none';
+        payBadge.className = 'badge bg-warning text-dark';
+        payBadge.textContent = 'PAY AT COUNTER';
     }
-}
 
-function renderItemsCard() {
-    const container = document.getElementById('orderItemsCard');
-    if (!orderData.items) return;
-
-    let subtotal = parseFloat(orderData.subtotal || 0);
-    let cgst = parseFloat(orderData.cgst_amount || 0);
-    let sgst = parseFloat(orderData.sgst_amount || 0);
-    let total = parseFloat(orderData.total_amount || 0);
-
-    let isPaid = (orderData.payment_status === 'PAID' || orderData.order_status === 'COMPLETED');
-    let payBadge = isPaid ? 
-        '<span class="status-badge badge-paid">✓ PAID</span>' : 
-        '<span class="status-badge badge-unpaid">⏳ PAY AT COUNTER</span>';
-
-    let html = `
-    <div class="d-flex align-items-center justify-content-between mb-3">
-        <h3 style="margin:0; font-family:var(--font-heading); font-size:1.15rem; font-weight:850; color:var(--deepest);">Order Summary</h3>
-        ${payBadge}
-    </div>
-    
-    <div class="mb-3">
-        ${orderData.items.map(item => `
-            <div class="order-item-row">
+    // Items list
+    const itemsList = document.getElementById('itemsBreakdownList');
+    if (orderData.items && orderData.items.length > 0) {
+        itemsList.innerHTML = orderData.items.map(i => `
+            <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
                 <div>
-                    <span style="font-weight:750; color:var(--deepest);">${item.emoji || '🍽️'} ${escapeHtml(item.item_name_snapshot || item.name)}</span>
-                    <span class="text-muted ms-1" style="font-weight:700;">×${item.quantity}</span>
-                    ${item.special_instructions ? `<div style="font-size:0.75rem; color:var(--cognac); font-style:italic;">Note: ${escapeHtml(item.special_instructions)}</div>` : ''}
+                    <div class="fw-bold" style="color:var(--deep-espresso);">
+                        ${i.emoji || '🍽️'} ${i.item_name_snapshot || i.name} <span class="text-muted small">×${i.quantity}</span>
+                    </div>
+                    ${i.special_instructions ? `<div class="small text-muted fst-italic">Note: ${i.special_instructions}</div>` : ''}
                 </div>
-                <div style="font-weight:800; color:var(--dark-brown);">₹${parseFloat(item.subtotal).toFixed(2)}</div>
+                <div class="fw-bold" style="color:var(--deep-espresso);">
+                    ₹${parseFloat(i.subtotal).toFixed(2)}
+                </div>
             </div>
-        `).join('')}
-    </div>
+        `).join('');
+    }
 
-    <div class="pt-2 border-top">
-        <div class="d-flex justify-content-between text-muted" style="font-size:0.85rem; padding:2px 0;">
-            <span>Item Subtotal</span>
-            <span>₹${subtotal.toFixed(2)}</span>
-        </div>
-        <div class="d-flex justify-content-between text-muted" style="font-size:0.85rem; padding:2px 0;">
-            <span>CGST (2.5%)</span>
-            <span>₹${cgst.toFixed(2)}</span>
-        </div>
-        <div class="d-flex justify-content-between text-muted" style="font-size:0.85rem; padding:2px 0;">
-            <span>SGST (2.5%)</span>
-            <span>₹${sgst.toFixed(2)}</span>
-        </div>
-        <div class="order-total-row">
-            <span>Grand Total</span>
-            <span>₹${total.toFixed(2)}</span>
-        </div>
-    </div>`;
+    const subtotal = parseFloat(orderData.subtotal || 0);
+    const tax = parseFloat(orderData.tax_amount || (parseFloat(orderData.cgst_amount || 0) + parseFloat(orderData.sgst_amount || 0)));
+    const total = parseFloat(orderData.total_amount || 0);
 
-    container.innerHTML = html;
+    document.getElementById('breakdownSubtotal').textContent = `₹${subtotal.toFixed(2)}`;
+    document.getElementById('breakdownTax').textContent = `₹${tax.toFixed(2)}`;
+    document.getElementById('breakdownTotal').textContent = `₹${total.toFixed(2)}`;
 }
 
-function connectWebSocket() {
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    ws = new WebSocket(`${protocol}//${window.location.host}/ws/order/${ORDER_NUMBER}/`);
+function updateStepUI(elemId, stepNum, currentStageNum) {
+    const el = document.getElementById(elemId);
+    if (!el) return;
 
-    ws.onopen = () => {
-        reconnectAttempts = 0;
-    };
+    const pill = el.querySelector('.tracker-status-pill');
+    const icon = el.querySelector('.tracker-icon-circle');
 
-    ws.onmessage = (event) => {
-        try {
-            const data = JSON.parse(event.data);
-            if (data.type === 'order_status_update' || data.type === 'order_update') {
-                const updated = data.order;
-                if (updated.order_number === ORDER_NUMBER) {
-                    orderData.order_status = updated.order_status;
-                    orderData.payment_status = updated.payment_status;
-                    orderData.payment_method = updated.payment_method;
-                    renderOrder();
-                    showToast('success', `Status updated: ${updated.order_status_display || updated.order_status}`);
-                }
-            }
-        } catch (e) {
-            console.warn('WS parse error:', e);
+    if (stepNum < currentStageNum) {
+        // Completed
+        el.style.opacity = '1';
+        if (pill) {
+            pill.className = 'tracker-status-pill badge bg-success';
+            pill.textContent = 'Done ✓';
         }
-    };
-
-    ws.onclose = () => {
-        reconnectAttempts++;
-        const delay = Math.min(1000 * Math.pow(2, reconnectAttempts), 15000);
-        setTimeout(connectWebSocket, delay);
-    };
-
-    ws.onerror = () => ws.close();
-}
-
-async function triggerWhatsAppSend() {
-    const btn = document.getElementById('whatsappBtn');
-    btn.disabled = true;
-    btn.innerHTML = '<span class="spinner"></span> Preparing WhatsApp Link...';
-
-    const token = getSessionToken();
-
-    try {
-        const res = await fetch(`/api/orders/${ORDER_NUMBER}/receipt/send/`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-Session-ID': token
-            }
-        });
-        const data = await res.json();
-
-        if (!res.ok) throw new Error(data.error || 'Unable to generate WhatsApp link.');
-
-        if (data.whatsapp_share_url) {
-            window.open(data.whatsapp_share_url, '_blank');
+        if (icon) {
+            icon.style.background = '#16a34a';
+            icon.style.color = '#ffffff';
         }
-        showToast('success', 'Opening WhatsApp with your receipt link!');
-    } catch (err) {
-        showToast('error', err.message || 'Unable to open WhatsApp.');
-    } finally {
-        btn.disabled = false;
-        btn.innerHTML = '<i class="bi bi-whatsapp"></i> Send Invoice to WhatsApp';
+    } else if (stepNum === currentStageNum) {
+        // Active
+        el.style.opacity = '1';
+        if (pill) {
+            pill.className = 'tracker-status-pill badge bg-warning text-dark fw-bold animate-pulse';
+            pill.textContent = 'In Progress';
+        }
+        if (icon) {
+            icon.style.background = 'var(--cognac-gold)';
+            icon.style.color = '#ffffff';
+        }
+    } else {
+        // Upcoming
+        el.style.opacity = '0.45';
+        if (pill) {
+            pill.className = 'tracker-status-pill badge bg-secondary';
+            pill.textContent = 'Waiting';
+        }
+        if (icon) {
+            icon.style.background = 'rgba(214, 184, 154, 0.3)';
+            icon.style.color = 'var(--deep-espresso)';
+        }
     }
 }
 
-function clearLocalSessionStorage(tableNum) {
-    const t = tableNum || (orderData && orderData.table_number ? orderData.table_number : 'T01');
-    sessionStorage.removeItem('orderless_session_token');
-    sessionStorage.removeItem('orderless_customer_name');
-    sessionStorage.removeItem(`orderless_cart_${t}`);
-    localStorage.removeItem('orderless_customer_session');
-    localStorage.removeItem('orderless_customer_name');
-    localStorage.removeItem('orderless_customer_phone');
-    localStorage.removeItem(`orderless_cart_${t}`);
+function goToMenu() {
+    if (orderData) {
+        const tNum = orderData.table_number || (orderData.table && orderData.table.table_number) || 'T01';
+        window.location.href = `/order/${tNum}/`;
+    } else {
+        window.location.href = '/';
+    }
 }
 
-function startNewSession() {
-    const tableNum = (orderData && orderData.table_number) ? orderData.table_number : 'T01';
-    clearLocalSessionStorage(tableNum);
-    window.location.href = `/order/${tableNum}/`;
+function startFreshSession() {
+    if (orderData) {
+        const tNum = orderData.table_number || (orderData.table && orderData.table.table_number) || 'T01';
+        sessionStorage.removeItem(`orderless_${tNum}_session_token`);
+        sessionStorage.removeItem(`orderless_${tNum}_customer_name`);
+        sessionStorage.removeItem(`orderless_${tNum}_customer_phone`);
+        sessionStorage.removeItem(`orderless_${tNum}_cart`);
+        window.location.href = `/order/${tNum}/`;
+    } else {
+        window.location.href = '/';
+    }
 }
 
-function showToast(type, msg) {
-    const toast = document.getElementById(type === 'error' ? 'errorToast' : 'successToast');
-    toast.textContent = msg;
-    toast.classList.add('show');
-    setTimeout(() => toast.classList.remove('show'), 3500);
-}
-
-function escapeHtml(text) {
-    if (!text) return '';
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
+function shareWhatsAppReceipt() {
+    if (!orderData) return;
+    const phone = (orderData.customer_phone || (orderData.customer_session && orderData.customer_session.customer_phone) || '').replace(/[^0-9]/g, '');
+    const text = encodeURIComponent(`🍽️ OrderLess Tax Receipt
+Order #${orderData.order_number}
+Total Settled: ₹${parseFloat(orderData.total_amount).toFixed(2)}
+Thank you for dining with us!`);
+    const waUrl = phone ? `https://wa.me/${phone}?text=${text}` : `https://wa.me/?text=${text}`;
+    window.open(waUrl, '_blank');
 }
 </script>
 {% endblock %}

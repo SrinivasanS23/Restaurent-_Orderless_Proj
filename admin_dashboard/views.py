@@ -91,16 +91,26 @@ def dashboard_stats_api(request):
     active_tables = RestaurantTable.objects.filter(
         orders__order_status__in=['ORDER_CREATED', 'ACCEPTED', 'PREPARING', 'READY', 'SERVED']
     ).distinct().count()
+
+    unique_customers = CustomerSession.objects.values('customer_phone').distinct().count()
+    avg_ticket = (float(today_sales) / paid_orders) if paid_orders > 0 else 0.0
     
     return Response({
         'total_orders': total_orders,
+        'total_orders_count': total_orders,
         'today_sales': str(today_sales),
+        'total_revenue': str(today_sales),
         'today_order_count': today_order_count,
         'month_sales': str(month_sales),
         'year_sales': str(year_sales),
         'paid_orders': paid_orders,
+        'paid_orders_count': paid_orders,
         'pending_payments': pending_payments,
+        'active_orders_count': pending_payments,
         'active_tables': active_tables,
+        'occupied_tables': active_tables,
+        'average_ticket': f"{avg_ticket:.2f}",
+        'unique_customers_count': unique_customers,
     })
 
 
