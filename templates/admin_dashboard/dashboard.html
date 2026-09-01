@@ -761,7 +761,7 @@ function renderMenuItemsGrid() {
 
                 <div class="d-flex justify-content-between align-items-center pt-2 border-top mt-2">
                     <strong style="color:var(--deep-espresso); font-size:1.15rem;">₹${parseFloat(item.price).toFixed(2)}</strong>
-                    <button class="btn btn-sm btn-outline-danger p-1 px-2" style="border-radius:8px;" onclick="deleteDish(${item.id}, ${JSON.stringify(item.name)})" title="Remove Dish from Menu">
+                    <button class="btn btn-sm btn-outline-danger p-1 px-2" style="border-radius:8px;" onclick="deleteDish(${item.id}, this.dataset.dishName)" data-dish-name="${encodeURIComponent(item.name)}" title="Remove Dish from Menu">
                         <i class="bi bi-trash"></i>
                     </button>
                 </div>
@@ -864,8 +864,14 @@ function updateEmojiPreview(val) {
     }
 }
 
-async function deleteDish(itemId, name) {
-    name = name || 'this dish';
+async function deleteDish(itemId, encodedName) {
+    let name = 'this dish';
+    try {
+        name = decodeURIComponent(encodedName);
+    } catch (e) {
+        name = encodedName || 'this dish';
+    }
+
     if (!confirm(`Are you sure you want to remove '${name}' from the menu?`)) return;
     try {
         const res = await fetch(`/dashboard/api/menu-items/${itemId}/`, {
@@ -879,7 +885,7 @@ async function deleteDish(itemId, name) {
         if (!res.ok) throw new Error(data.error || 'Failed to remove dish');
 
         showToast('info', data.message || `Removed '${name}' from menu.`);
-        loadMenuItems();
+        await loadMenuItems();
     } catch (e) {
         showToast('error', e.message || 'Failed to delete dish.');
     }
