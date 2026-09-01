@@ -64,6 +64,11 @@ class CustomerSession(models.Model):
         if not self.ended_at:
             self.ended_at = timezone.now()
         self.save(update_fields=['status', 'active', 'ended_at', 'last_activity'])
+        try:
+            from utils.cloud_db import sync_session_to_cloud
+            sync_session_to_cloud(self)
+        except Exception:
+            pass
 
     @property
     def masked_phone(self):

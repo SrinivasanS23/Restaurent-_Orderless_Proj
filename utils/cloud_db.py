@@ -133,7 +133,7 @@ def sync_order_to_cloud(order):
 
 def pull_and_sync_all_orders_from_cloud():
     """
-    Download latest orders from Cloud DB and ensure they exist in local SQLite.
+    Download latest sessions & orders from Cloud DB and ensure they exist in local SQLite.
     Called before serving kitchen/POS/admin API requests.
     """
     from tables.models import RestaurantTable, CustomerSession
@@ -141,6 +141,36 @@ def pull_and_sync_all_orders_from_cloud():
     from orders.models import Order, OrderItem
     from payments.models import Payment, Receipt
 
+    # 1. Sync live customer sessions from cloud
+    try:
+        cloud_sessions = _make_cloud_request("/api/database/records/orderless_sessions?order=created_at.desc&limit=60")
+        if cloud_sessions and isinstance(cloud_sessions, list):
+            for csess in cloud_sessions:
+                s_id = csess.get('session_id')
+                if not s_id:
+                    continue
+                tbl_num = csess.get('table_number', 'T01')
+                table, _ = RestaurantTable.objects.get_or_create(
+                    table_number=tbl_num,
+                    defaults={'capacity': 4, 'qr_token': f'TBL-{tbl_num}'}
+                )
+                is_active = bool(csess.get('active', True))
+                status_val = csess.get('status', CustomerSession.SessionStatus.ACTIVE)
+                
+                CustomerSession.objects.update_or_create(
+                    session_id=s_id,
+                    defaults={
+                        'table': table,
+                        'customer_name': csess.get('customer_name', 'Guest'),
+                        'customer_phone': csess.get('customer_phone', '9876543210'),
+                        'status': status_val,
+                        'active': is_active
+                    }
+                )
+    except Exception as e:
+        logger.debug(f"[CLOUD_PULL_SESSIONS_ERR] {e}")
+
+    # 2. Sync orders from cloud
     cloud_orders = _make_cloud_request("/api/database/records/orderless_orders?order=created_at.desc&limit=80")
     if not cloud_orders or not isinstance(cloud_orders, list):
         return
@@ -162,14 +192,15 @@ def pull_and_sync_all_orders_from_cloud():
             sess_obj = None
             sess_id = cord.get('customer_session_id')
             if sess_id:
+                is_paid = (cord.get('payment_status') == Order.PaymentStatus.PAID)
                 sess_obj, _ = CustomerSession.objects.get_or_create(
                     session_id=sess_id,
                     defaults={
                         'table': table,
                         'customer_name': cord.get('customer_name', 'Guest'),
                         'customer_phone': cord.get('customer_phone', '9876543210'),
-                        'status': CustomerSession.SessionStatus.ACTIVE,
-                        'active': True
+                        'status': CustomerSession.SessionStatus.CLOSED if is_paid else CustomerSession.SessionStatus.ACTIVE,
+                        'active': not is_paid
                     }
                 )
 

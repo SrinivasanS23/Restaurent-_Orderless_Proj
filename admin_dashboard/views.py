@@ -101,10 +101,10 @@ def dashboard_stats_api(request):
     # Active orders count in restaurant (pending payment or cooking)
     pending_payments = Order.objects.filter(payment_status='PENDING').exclude(order_status='CANCELLED').count()
     
-    # Active occupied tables
+    # Active occupied tables: counted ONLY when a user is logged into the table with an active session
     active_tables = RestaurantTable.objects.filter(
-        Q(customer_sessions__active=True, customer_sessions__status=CustomerSession.SessionStatus.ACTIVE) |
-        Q(orders__payment_status='PENDING', orders__order_status__in=['ORDER_CREATED', 'ACCEPTED', 'PREPARING', 'READY', 'SERVED'])
+        customer_sessions__active=True,
+        customer_sessions__status=CustomerSession.SessionStatus.ACTIVE
     ).distinct().count()
 
     unique_customers = CustomerSession.objects.values('customer_phone').distinct().count()
@@ -622,13 +622,13 @@ def tables_matrix_api(request):
                 active_order = ord_obj.order_number
                 current_session = ord_obj.customer_session
 
-        status_str = 'OCCUPIED' if (current_session or active_order) else 'AVAILABLE'
+        status_str = 'OCCUPIED' if current_session else 'AVAILABLE'
 
         data.append({
             'table_number': t.table_number,
             'display_number': t.display_number,
             'status': status_str,
-            'current_customer': current_session.customer_name if current_session else ('Seated Guest' if active_order else None),
+            'current_customer': current_session.customer_name if current_session else None,
             'active_order_number': active_order
         })
     return Response(data)
