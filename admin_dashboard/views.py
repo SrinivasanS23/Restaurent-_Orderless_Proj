@@ -212,43 +212,78 @@ def orders_list_api(request):
 @authentication_classes([])
 @permission_classes([AllowAny])
 def order_detail_api(request, order_number):
-    """Get full order details for admin (Staff only)."""
-    clean_num = order_number.strip().upper()[:20]
+    """Get comprehensive order & customer details including all eaten items for admin."""
+    try:
+        from utils.cloud_db import pull_and_sync_all_orders_from_cloud
+        pull_and_sync_all_orders_from_cloud()
+    except Exception:
+        pass
+
+    clean_num = order_number.strip().upper().lstrip('#')
+    if not clean_num.startswith('ORD-'):
+        clean_num = f"ORD-{clean_num}"
+
     try:
         order = Order.objects.prefetch_related('items__menu_item', 'payments__cashier').select_related('table', 'customer_session').get(
             order_number=clean_num
         )
     except Order.DoesNotExist:
-        return Response({'error': 'Order not found.'}, status=404)
+        # Fallback partial search
+        order = Order.objects.prefetch_related('items__menu_item', 'payments__cashier').select_related('table', 'customer_session').filter(
+            order_number__icontains=clean_num.replace('ORD-', '')
+        ).first()
+        if not order:
+            return Response({'error': f'Order {order_number} not found.'}, status=404)
     
     data = OrderSerializer(order).data
     
-    if order.customer_session:
-        data['customer_phone_full'] = order.customer_session.customer_phone
+    # Customer Details
+    cust_name = order.customer_session.customer_name if order.customer_session else order.customer_name_display
+    cust_phone = order.customer_session.customer_phone if order.customer_session else ""
+    masked_phone = order.customer_session.masked_phone if order.customer_session else order.customer_phone_masked
     
+    data['customer_name'] = cust_name
+    data['customer_phone_full'] = cust_phone
+    data['customer_phone_masked'] = masked_phone
+    data['table_display'] = order.table.display_number if order.table else (order.table.table_number if order.table else '01')
+    
+    # Itemized dishes ordered & eaten
+    items_detail = []
+    for item in order.items.all():
+        item_name = item.item_name_snapshot or (item.menu_item.name if item.menu_item else 'Dish')
+        emoji = item.menu_item.emoji if item.menu_item else '🍽️'
+        items_detail.append({
+            'name': item_name,
+            'emoji': emoji,
+            'quantity': item.quantity,
+            'unit_price': str(item.unit_price),
+            'subtotal': str(item.subtotal),
+            'special_instructions': item.special_instructions or ''
+        })
+    data['items_detail'] = items_detail
+    
+    # Payments
     payments_detail = []
     for p in order.payments.all():
         payments_detail.append({
             'payment_id': str(p.payment_id),
             'payment_method': p.payment_method,
             'amount': str(p.amount),
-            'transaction_reference': p.transaction_reference,
-            'cashier': p.cashier.get_full_name() or p.cashier.username if p.cashier else '',
+            'transaction_reference': p.transaction_reference or '',
+            'cashier': (p.cashier.get_full_name() or p.cashier.username) if p.cashier else 'POS Terminal',
             'paid_at': p.paid_at.isoformat() if p.paid_at else None,
             'cash_received': str(p.cash_amount_received) if p.cash_amount_received else None,
             'cash_change': str(p.cash_change_given) if p.cash_change_given else None,
         })
     data['payments_detail'] = payments_detail
+    data['pdf_url'] = f"/api/orders/{order.order_number}/receipt/pdf/"
     
     receipt = getattr(order, 'receipt', None)
-    if receipt:
-        data['receipt_info'] = {
-            'receipt_number': receipt.receipt_number,
-            'pdf_url': f"/api/orders/{order.order_number}/receipt/pdf/",
-            'generated_at': receipt.generated_at.isoformat(),
-        }
-    else:
-        data['receipt_info'] = None
+    data['receipt_info'] = {
+        'receipt_number': receipt.receipt_number if receipt else f"RCP-{order.order_number.replace('ORD-', '')}",
+        'pdf_url': f"/api/orders/{order.order_number}/receipt/pdf/",
+        'generated_at': receipt.generated_at.isoformat() if (receipt and receipt.generated_at) else None,
+    }
     
     return Response(data)
 
@@ -318,40 +353,85 @@ def customers_list_api(request):
 @authentication_classes([])
 @permission_classes([AllowAny])
 def customer_detail_api(request, session_id):
-    """Get customer profile with order history (Staff only)."""
+    """Get customer profile with detailed eaten orders history for admin."""
     try:
-        session = CustomerSession.objects.get(id=session_id)
-    except (CustomerSession.DoesNotExist, ValueError):
-        return Response({'error': 'Customer not found.'}, status=404)
+        from utils.cloud_db import pull_and_sync_all_orders_from_cloud
+        pull_and_sync_all_orders_from_cloud()
+    except Exception:
+        pass
+
+    session = None
+    try:
+        # Check by numeric ID
+        session = CustomerSession.objects.filter(id=int(session_id)).first()
+    except (ValueError, TypeError):
+        pass
+
+    if not session:
+        # Check by UUID session_id or customer_phone
+        session = CustomerSession.objects.filter(
+            Q(session_id=str(session_id).strip()) |
+            Q(customer_phone=str(session_id).strip())
+        ).order_by('-created_at').first()
+
+    if not session:
+        # Check if customer exists in Order records by phone or name
+        order_match = Order.objects.filter(
+            Q(customer_session__customer_phone=str(session_id).strip()) |
+            Q(customer_name_display__icontains=str(session_id).strip())
+        ).select_related('customer_session', 'table').order_by('-created_at').first()
+        if order_match and order_match.customer_session:
+            session = order_match.customer_session
+
+    if not session:
+        return Response({'error': 'Customer record not found.'}, status=404)
     
     orders = Order.objects.filter(
-        customer_session__customer_phone=session.customer_phone
-    ).exclude(order_status='CANCELLED').prefetch_related('items__menu_item').select_related('table').order_by('-created_at')
+        Q(customer_session__customer_phone=session.customer_phone) |
+        Q(customer_session=session)
+    ).exclude(order_status='CANCELLED').prefetch_related('items__menu_item').select_related('table').order_by('-created_at').distinct()
     
     total_spent = orders.filter(payment_status='PAID').aggregate(total=Sum('total_amount'))['total'] or 0
     
     order_history = []
     for order in orders:
-        items_summary = ', '.join([f"{item.name} ×{item.quantity}" for item in order.items.all()])
+        items_detail = []
+        for item in order.items.all():
+            item_name = item.item_name_snapshot or (item.menu_item.name if item.menu_item else 'Dish')
+            emoji = item.menu_item.emoji if item.menu_item else '🍽️'
+            items_detail.append({
+                'name': item_name,
+                'emoji': emoji,
+                'quantity': item.quantity,
+                'unit_price': str(item.unit_price),
+                'subtotal': str(item.subtotal),
+                'special_instructions': item.special_instructions or ''
+            })
+        items_summary = ', '.join([f"{i['emoji']} {i['name']} ×{i['quantity']}" for i in items_detail])
         order_history.append({
             'order_number': order.order_number,
             'date': order.created_at.strftime('%d %b %Y'),
             'time': order.created_at.strftime('%H:%M'),
-            'table': order.table.display_number,
+            'table': order.table.display_number if order.table else '01',
             'items_summary': items_summary,
+            'items': items_detail,
+            'subtotal': str(order.subtotal),
+            'tax_amount': str(order.tax_amount),
             'total': str(order.total_amount),
-            'payment_method': order.payment_method or '-',
+            'payment_method': order.payment_method or 'CASH',
             'payment_status': order.payment_status,
             'order_status': order.order_status,
+            'pdf_url': f"/api/orders/{order.order_number}/receipt/pdf/",
         })
     
     return Response({
+        'id': session.id,
         'name': session.customer_name,
         'phone_masked': session.masked_phone,
         'phone_full': session.customer_phone,
         'total_orders': orders.count(),
         'total_spent': str(total_spent),
-        'last_visit': session.created_at.isoformat(),
+        'last_visit': session.created_at.isoformat() if session.created_at else None,
         'order_history': order_history,
     })
 

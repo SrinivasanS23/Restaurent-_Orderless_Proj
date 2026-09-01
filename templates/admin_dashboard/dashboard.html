@@ -141,6 +141,7 @@
                             <th>Kitchen Stage</th>
                             <th>Payment Status</th>
                             <th>Placed At</th>
+                            <th class="text-end">Action</th>
                         </tr>
                     </thead>
                     <tbody id="liveOrdersTableBody">
@@ -240,6 +241,7 @@
                             <th>Stage</th>
                             <th>Payment</th>
                             <th>Timestamp</th>
+                            <th class="text-end">Action</th>
                         </tr>
                     </thead>
                     <tbody id="ledgerTableBody">
@@ -275,6 +277,7 @@
                             <th>Total Visits / Orders</th>
                             <th>Lifetime Spend</th>
                             <th>Last Dining Visit</th>
+                            <th class="text-end">Action</th>
                         </tr>
                     </thead>
                     <tbody id="customerTableBody">
@@ -306,6 +309,164 @@
             </div>
         </div>
     </div>
+
+
+<!-- Admin Order Details Modal (with Customer Info & Itemized Eaten Dishes) -->
+<div id="adminOrderModal" style="display:none; position:fixed; inset:0; background:rgba(61,41,35,0.75); backdrop-filter:blur(8px); z-index:1070; align-items:center; justify-content:center; padding:1rem;">
+    <div class="glass-panel p-4" style="background:#ffffff; max-width:680px; width:100%; max-height:90vh; overflow-y:auto; border-radius:24px; border:2px solid var(--tan-accent); box-shadow:0 20px 40px rgba(61,41,35,0.2);">
+        <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
+            <div>
+                <span class="badge bg-dark me-2" id="modalOrderNumber" style="font-size:0.95rem; letter-spacing:1px;">#ORD-0000</span>
+                <span class="table-indicator-badge" id="modalOrderTable" style="font-size:0.8rem; padding:0.2rem 0.6rem;">TABLE 01</span>
+                <span class="badge ms-1" id="modalOrderStageBadge">PREPARING</span>
+                <span class="badge ms-1" id="modalOrderPayBadge">PAID</span>
+            </div>
+            <button class="btn btn-sm text-muted" onclick="closeAdminOrderModal()"><i class="bi bi-x-lg fs-5"></i></button>
+        </div>
+
+        <div id="modalOrderLoading" class="text-center py-5">
+            <div class="spinner-border text-warning mb-2" role="status"></div>
+            <p class="text-muted small m-0">Fetching complete order & customer details...</p>
+        </div>
+
+        <div id="modalOrderContent" style="display:none;">
+            <!-- Customer Card -->
+            <div class="p-3 mb-3" style="background:var(--cream-bg); border-radius:16px; border:1px solid var(--tan-accent);">
+                <div class="row g-2 align-items-center">
+                    <div class="col-sm-6">
+                        <div class="d-flex align-items-center">
+                            <div style="width:40px; height:40px; border-radius:12px; background:var(--warm-chestnut); color:#fff; display:flex; align-items:center; justify-content:center; font-size:1.2rem; margin-right:12px;">
+                                <i class="bi bi-person-fill"></i>
+                            </div>
+                            <div>
+                                <small class="text-muted d-block" style="font-size:0.75rem;">GUEST NAME</small>
+                                <strong id="modalCustName" style="color:var(--deep-espresso); font-size:1.05rem;">Guest</strong>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-sm-6">
+                        <div class="d-flex align-items-center">
+                            <div style="width:40px; height:40px; border-radius:12px; background:var(--caramel); color:#fff; display:flex; align-items:center; justify-content:center; font-size:1.2rem; margin-right:12px;">
+                                <i class="bi bi-telephone-fill"></i>
+                            </div>
+                            <div>
+                                <small class="text-muted d-block" style="font-size:0.75rem;">PHONE NUMBER</small>
+                                <strong id="modalCustPhone" style="color:var(--deep-espresso); font-size:1.05rem;">—</strong>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-12 mt-2 pt-2 border-top d-flex justify-content-between text-muted small">
+                        <span><i class="bi bi-clock me-1"></i> <span id="modalOrderTime">—</span></span>
+                        <span><i class="bi bi-credit-card me-1"></i> Payment: <strong id="modalOrderPayMethod" class="text-dark">—</strong></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Eaten Dishes / Items Ordered List -->
+            <div class="mb-3">
+                <h6 class="fw-bold mb-2" style="color:var(--deep-espresso); font-size:0.9rem;">
+                    <i class="bi bi-receipt me-1"></i> ORDERED & EATEN DISHES
+                </h6>
+                <div class="table-responsive" style="border:1px solid #e9ecef; border-radius:12px; overflow:hidden;">
+                    <table class="table table-sm table-borderless align-middle m-0" style="font-size:0.88rem;">
+                        <thead style="background:#f8f9fa; border-bottom:1px solid #e9ecef;">
+                            <tr>
+                                <th class="ps-3">Item Details</th>
+                                <th class="text-center">Qty</th>
+                                <th class="text-end">Price</th>
+                                <th class="text-end pe-3">Subtotal</th>
+                            </tr>
+                        </thead>
+                        <tbody id="modalOrderItemsBody">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Financial Summary -->
+            <div class="p-3 mb-3" style="background:#fafafa; border-radius:16px; border:1px solid #eee;">
+                <div class="d-flex justify-content-between py-1 text-muted small">
+                    <span>Items Subtotal</span>
+                    <strong id="modalSubtotal" class="text-dark">₹0.00</strong>
+                </div>
+                <div class="d-flex justify-content-between py-1 text-muted small">
+                    <span>GST (CGST 2.5% + SGST 2.5%)</span>
+                    <strong id="modalTax" class="text-dark">₹0.00</strong>
+                </div>
+                <div class="d-flex justify-content-between pt-2 mt-1 border-top" style="font-size:1.1rem;">
+                    <strong style="color:var(--deep-espresso);">Grand Total</strong>
+                    <strong id="modalTotal" style="color:var(--warm-chestnut);">₹0.00</strong>
+                </div>
+            </div>
+
+            <!-- Modal Footer Action Buttons -->
+            <div class="d-flex justify-content-between align-items-center gap-2">
+                <a id="modalPdfBtn" href="#" target="_blank" class="btn btn-outline-dark" style="border-radius:12px; font-weight:600;">
+                    <i class="bi bi-file-earmark-pdf me-1 text-danger"></i> Official GST Invoice PDF
+                </a>
+                <button type="button" class="btn btn-secondary px-4" style="border-radius:12px;" onclick="closeAdminOrderModal()">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Admin Guest CRM & Lifetime Eaten Orders Modal -->
+<div id="adminCustomerModal" style="display:none; position:fixed; inset:0; background:rgba(61,41,35,0.75); backdrop-filter:blur(8px); z-index:1070; align-items:center; justify-content:center; padding:1rem;">
+    <div class="glass-panel p-4" style="background:#ffffff; max-width:720px; width:100%; max-height:90vh; overflow-y:auto; border-radius:24px; border:2px solid var(--tan-accent); box-shadow:0 20px 40px rgba(61,41,35,0.2);">
+        <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
+            <div class="d-flex align-items-center gap-2">
+                <div style="width:42px; height:42px; border-radius:50%; background:var(--deep-espresso); color:#fff; display:flex; align-items:center; justify-content:center; font-size:1.3rem;">
+                    <i class="bi bi-person-badge"></i>
+                </div>
+                <div>
+                    <h5 class="fw-bold m-0" style="color:var(--deep-espresso);" id="crmModalCustName">Guest Profile</h5>
+                    <small class="text-muted" id="crmModalCustPhone">—</small>
+                </div>
+            </div>
+            <button class="btn btn-sm text-muted" onclick="closeAdminCustomerModal()"><i class="bi bi-x-lg fs-5"></i></button>
+        </div>
+
+        <div id="crmModalLoading" class="text-center py-5">
+            <div class="spinner-border text-warning mb-2" role="status"></div>
+            <p class="text-muted small m-0">Loading guest dining profile and eaten orders history...</p>
+        </div>
+
+        <div id="crmModalContent" style="display:none;">
+            <!-- Guest KPI Badges -->
+            <div class="row g-2 mb-3">
+                <div class="col-4">
+                    <div class="p-2 text-center" style="background:var(--cream-bg); border-radius:12px; border:1px solid var(--tan-accent);">
+                        <small class="text-muted d-block" style="font-size:0.72rem;">TOTAL VISITS</small>
+                        <strong id="crmModalTotalOrders" style="color:var(--deep-espresso); font-size:1.1rem;">0</strong>
+                    </div>
+                </div>
+                <div class="col-4">
+                    <div class="p-2 text-center" style="background:var(--cream-bg); border-radius:12px; border:1px solid var(--tan-accent);">
+                        <small class="text-muted d-block" style="font-size:0.72rem;">LIFETIME SPEND</small>
+                        <strong id="crmModalTotalSpent" class="text-success" style="font-size:1.1rem;">₹0.00</strong>
+                    </div>
+                </div>
+                <div class="col-4">
+                    <div class="p-2 text-center" style="background:var(--cream-bg); border-radius:12px; border:1px solid var(--tan-accent);">
+                        <small class="text-muted d-block" style="font-size:0.72rem;">LAST VISIT</small>
+                        <strong id="crmModalLastVisit" style="color:var(--deep-espresso); font-size:0.9rem;">—</strong>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Eaten Orders List -->
+            <h6 class="fw-bold mb-2" style="color:var(--deep-espresso); font-size:0.9rem;">
+                <i class="bi bi-clock-history me-1"></i> COMPLETE DINING & EATEN ORDERS HISTORY
+            </h6>
+            <div id="crmModalOrdersList" class="d-flex flex-column gap-3 mb-3">
+            </div>
+
+            <div class="text-end pt-2 border-top">
+                <button type="button" class="btn btn-secondary px-4" style="border-radius:12px;" onclick="closeAdminCustomerModal()">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
 
 </main>
 
@@ -470,15 +631,20 @@ async function loadLiveOrders() {
             else if (o.order_status === 'COMPLETED') stageBadge = 'bg-success';
 
             return `
-            <tr>
-                <td><strong style="color:var(--deep-espresso);">#${o.order_number}</strong></td>
+            <tr onclick="openAdminOrderModal('${o.order_number}')" style="cursor:pointer;" title="Click to view full order & customer details">
+                <td><strong style="color:var(--warm-chestnut);"><i class="bi bi-receipt me-1"></i>#${o.order_number}</strong></td>
                 <td><span class="table-indicator-badge" style="font-size:0.75rem; padding:0.2rem 0.5rem;">TABLE ${tableDisp}</span></td>
                 <td>👤 <strong>${custName}</strong></td>
-                <td><span class="small text-muted" style="max-width:280px; display:inline-block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${itemsStr}</span></td>
+                <td><span class="small text-muted" style="max-width:260px; display:inline-block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${itemsStr}</span></td>
                 <td><strong style="color:var(--deep-espresso);">₹${total}</strong></td>
                 <td><span class="badge ${stageBadge}">${stage}</span></td>
                 <td><span class="badge ${payStatus === 'PAID' ? 'bg-success' : 'bg-warning text-dark'}">${payStatus}</span></td>
                 <td class="small text-muted">${timeStr}</td>
+                <td class="text-end">
+                    <button class="btn btn-sm btn-outline-primary" style="font-size:0.75rem; padding:0.2rem 0.5rem; border-radius:8px;" onclick="event.stopPropagation(); openAdminOrderModal('${o.order_number}')">
+                        <i class="bi bi-eye"></i> Details
+                    </button>
+                </td>
             </tr>`;
         }).join('');
     } catch (e) {
@@ -685,11 +851,11 @@ async function loadOrderLedger() {
             const total = parseFloat(o.total_amount || 0).toFixed(2);
             const stage = o.order_status_display || o.order_status || 'CREATED';
             const payStatus = o.payment_status || 'PENDING';
-            const timeStr = o.created_at ? new Date(o.created_at).toLocaleString() : '—';
+            const timeStr = o.created_at ? new Date(o.created_at).toLocaleString([], {dateStyle:'short', timeStyle:'short'}) : '—';
 
             return `
-            <tr>
-                <td><strong style="color:var(--deep-espresso);">#${o.order_number}</strong></td>
+            <tr onclick="openAdminOrderModal('${o.order_number}')" style="cursor:pointer;" title="Click to view full order & customer details">
+                <td><strong style="color:var(--warm-chestnut);"><i class="bi bi-receipt me-1"></i>#${o.order_number}</strong></td>
                 <td><span class="table-indicator-badge" style="font-size:0.75rem; padding:0.2rem 0.5rem;">TABLE ${tableDisp}</span></td>
                 <td>👤 <strong>${custName}</strong></td>
                 <td>₹${subtotal}</td>
@@ -698,6 +864,11 @@ async function loadOrderLedger() {
                 <td><span class="badge bg-secondary">${stage}</span></td>
                 <td><span class="badge ${payStatus === 'PAID' ? 'bg-success' : 'bg-warning text-dark'}">${payStatus}</span></td>
                 <td class="small text-muted">${timeStr}</td>
+                <td class="text-end">
+                    <button class="btn btn-sm btn-outline-primary" style="font-size:0.75rem; padding:0.2rem 0.5rem; border-radius:8px;" onclick="event.stopPropagation(); openAdminOrderModal('${o.order_number}')">
+                        <i class="bi bi-eye"></i> Details
+                    </button>
+                </td>
             </tr>`;
         }).join('');
     } catch (e) {
@@ -723,12 +894,17 @@ async function loadCustomerDirectory() {
         }
 
         tbody.innerHTML = customers.map(c => `
-            <tr>
-                <td><strong style="color:var(--deep-espresso);">👤 ${c.name || 'Guest'}</strong></td>
+            <tr onclick="openAdminCustomerModal('${c.id || c.phone_full || c.phone}')" style="cursor:pointer;" title="Click to view dining profile & eaten orders history">
+                <td><strong style="color:var(--deep-espresso);"><i class="bi bi-person-circle me-1"></i>${c.name || 'Guest'}</strong></td>
                 <td>📱 ${c.phone_masked || c.phone || c.phone_full || '—'}</td>
-                <td><span class="badge bg-light text-dark border">${c.order_count || c.total_orders || 0} orders</span></td>
+                <td><span class="badge bg-light text-dark border">${c.order_count || c.total_orders || 0} visits</span></td>
                 <td><strong class="text-success">₹${parseFloat(c.total_spent || c.total_spend || 0).toFixed(2)}</strong></td>
                 <td class="small text-muted">${c.last_visit ? new Date(c.last_visit).toLocaleDateString() : '—'}</td>
+                <td class="text-end">
+                    <button class="btn btn-sm btn-outline-primary" style="font-size:0.75rem; padding:0.2rem 0.5rem; border-radius:8px;" onclick="event.stopPropagation(); openAdminCustomerModal('${c.id || c.phone_full || c.phone}')">
+                        <i class="bi bi-person-lines-fill"></i> View Orders
+                    </button>
+                </td>
             </tr>
         `).join('');
     } catch (e) {
@@ -776,5 +952,172 @@ function showToast(type, msg) {
     toast.classList.add('show');
     setTimeout(() => toast.classList.remove('show'), 3500);
 }
+
+/* =========================================================================
+   ORDER DETAILS MODAL & CUSTOMER EATEN PARTICULARS
+   ========================================================================= */
+async function openAdminOrderModal(orderNumber) {
+    if (!orderNumber) return;
+    const modal = document.getElementById('adminOrderModal');
+    const loading = document.getElementById('modalOrderLoading');
+    const content = document.getElementById('modalOrderContent');
+    
+    modal.style.display = 'flex';
+    loading.style.display = 'block';
+    content.style.display = 'none';
+
+    try {
+        const res = await fetch(`/dashboard/api/orders/${encodeURIComponent(orderNumber)}/`);
+        if (!res.ok) throw new Error('Order details not found');
+        const o = await res.json();
+
+        document.getElementById('modalOrderNumber').textContent = `#${o.order_number}`;
+        document.getElementById('modalOrderTable').textContent = `TABLE ${o.table_display || (o.table && o.table.display_number) || '01'}`;
+        
+        // Stage Badge
+        const stageBadge = document.getElementById('modalOrderStageBadge');
+        stageBadge.textContent = o.order_status_display || o.order_status || 'CREATED';
+        stageBadge.className = 'badge ms-1 ' + (
+            o.order_status === 'PREPARING' ? 'bg-warning text-dark' :
+            o.order_status === 'READY' ? 'bg-info text-dark' :
+            o.order_status === 'SERVED' ? 'bg-primary' :
+            o.order_status === 'COMPLETED' ? 'bg-success' : 'bg-secondary'
+        );
+
+        // Payment Badge
+        const payBadge = document.getElementById('modalOrderPayBadge');
+        payBadge.textContent = o.payment_status || 'PENDING';
+        payBadge.className = 'badge ms-1 ' + (o.payment_status === 'PAID' ? 'bg-success' : 'bg-warning text-dark');
+
+        // Customer Info
+        document.getElementById('modalCustName').textContent = o.customer_name || 'Walk-in Guest';
+        document.getElementById('modalCustPhone').textContent = o.customer_phone_full || o.customer_phone_masked || '—';
+        document.getElementById('modalOrderTime').textContent = o.created_at ? new Date(o.created_at).toLocaleString([], {dateStyle:'medium', timeStyle:'short'}) : '—';
+        document.getElementById('modalOrderPayMethod').textContent = o.payment_method || (o.payment_status === 'PAID' ? 'CASH' : 'Pending');
+
+        // Eaten Items Table
+        const items = o.items_detail || o.items || [];
+        const tbody = document.getElementById('modalOrderItemsBody');
+        if (items.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="4" class="text-center text-muted py-3">No dish items recorded.</td></tr>`;
+        } else {
+            tbody.innerHTML = items.map(item => `
+                <tr class="border-bottom">
+                    <td class="ps-3 py-2">
+                        <strong>${item.emoji || '🍽️'} ${item.name || item.item_name_snapshot || 'Dish'}</strong>
+                        ${item.special_instructions ? `<div class="small text-danger"><i class="bi bi-info-circle"></i> Note: ${item.special_instructions}</div>` : ''}
+                    </td>
+                    <td class="text-center py-2"><span class="badge bg-light text-dark border">×${item.quantity || 1}</span></td>
+                    <td class="text-end py-2 text-muted">₹${parseFloat(item.unit_price || 0).toFixed(2)}</td>
+                    <td class="text-end pe-3 py-2 fw-bold" style="color:var(--deep-espresso);">₹${parseFloat(item.subtotal || 0).toFixed(2)}</td>
+                </tr>
+            `).join('');
+        }
+
+        // Financials
+        document.getElementById('modalSubtotal').textContent = `₹${parseFloat(o.subtotal || 0).toFixed(2)}`;
+        const taxVal = parseFloat(o.tax_amount || (parseFloat(o.cgst_amount || 0) + parseFloat(o.sgst_amount || 0))).toFixed(2);
+        document.getElementById('modalTax').textContent = `₹${taxVal}`;
+        document.getElementById('modalTotal').textContent = `₹${parseFloat(o.total_amount || 0).toFixed(2)}`;
+        
+        // PDF Link
+        document.getElementById('modalPdfBtn').href = `/api/orders/${o.order_number}/receipt/pdf/`;
+
+        loading.style.display = 'none';
+        content.style.display = 'block';
+    } catch (e) {
+        loading.innerHTML = `<div class="text-danger py-4"><i class="bi bi-exclamation-triangle fs-3 d-block mb-2"></i> Failed to load order details.</div>`;
+    }
+}
+
+function closeAdminOrderModal() {
+    document.getElementById('adminOrderModal').style.display = 'none';
+}
+
+/* =========================================================================
+   GUEST CRM PROFILE & LIFETIME EATEN ORDERS MODAL
+   ========================================================================= */
+async function openAdminCustomerModal(sessionId) {
+    if (!sessionId) return;
+    const modal = document.getElementById('adminCustomerModal');
+    const loading = document.getElementById('crmModalLoading');
+    const content = document.getElementById('crmModalContent');
+
+    modal.style.display = 'flex';
+    loading.style.display = 'block';
+    content.style.display = 'none';
+
+    try {
+        const res = await fetch(`/dashboard/api/customers/${encodeURIComponent(sessionId)}/`);
+        if (!res.ok) throw new Error('Customer details not found');
+        const c = await res.json();
+
+        document.getElementById('crmModalCustName').textContent = `👤 ${c.name || 'Guest'}`;
+        document.getElementById('crmModalCustPhone').textContent = `📱 Contact: ${c.phone_full || c.phone_masked || '—'}`;
+        document.getElementById('crmModalTotalOrders').textContent = `${c.total_orders || 0} visits`;
+        document.getElementById('crmModalTotalSpent').textContent = `₹${parseFloat(c.total_spent || 0).toFixed(2)}`;
+        document.getElementById('crmModalLastVisit').textContent = c.last_visit ? new Date(c.last_visit).toLocaleDateString([], {dateStyle:'medium'}) : '—';
+
+        const listDiv = document.getElementById('crmModalOrdersList');
+        const orders = c.order_history || [];
+
+        if (orders.length === 0) {
+            listDiv.innerHTML = `<div class="text-center text-muted py-4">No past orders found for this guest.</div>`;
+        } else {
+            listDiv.innerHTML = orders.map(ord => {
+                const itemsList = (ord.items || []).map(it => `
+                    <div class="d-flex justify-content-between py-1 border-bottom small">
+                        <span>${it.emoji || '🍽️'} <strong>${it.name}</strong> × ${it.quantity}</span>
+                        <span class="text-muted">₹${parseFloat(it.subtotal || 0).toFixed(2)}</span>
+                    </div>
+                `).join('');
+
+                return `
+                <div class="p-3" style="background:#fafafa; border-radius:14px; border:1px solid #e2e8f0;">
+                    <div class="d-flex justify-content-between align-items-center mb-2 pb-1 border-bottom">
+                        <div>
+                            <strong style="color:var(--warm-chestnut); font-size:0.95rem;">#${ord.order_number}</strong>
+                            <span class="table-indicator-badge ms-2" style="font-size:0.75rem; padding:0.15rem 0.5rem;">TABLE ${ord.table || '01'}</span>
+                            <span class="badge ${ord.payment_status === 'PAID' ? 'bg-success' : 'bg-warning text-dark'} ms-1" style="font-size:0.7rem;">${ord.payment_status}</span>
+                        </div>
+                        <small class="text-muted">${ord.date} at ${ord.time}</small>
+                    </div>
+
+                    <div class="mb-2">
+                        <small class="text-muted fw-bold d-block mb-1" style="font-size:0.75rem;">EATEN DISHES:</small>
+                        <div class="bg-white p-2 rounded border">
+                            ${itemsList || `<div class="small text-muted">${ord.items_summary}</div>`}
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-center pt-2">
+                        <div>
+                            <small class="text-muted">Total (${ord.payment_method || 'CASH'}):</small>
+                            <strong class="ms-1" style="color:var(--deep-espresso); font-size:1rem;">₹${parseFloat(ord.total || 0).toFixed(2)}</strong>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <a href="${ord.pdf_url}" target="_blank" class="btn btn-sm btn-outline-dark" style="font-size:0.75rem; border-radius:8px;">
+                                <i class="bi bi-file-earmark-pdf text-danger"></i> PDF
+                            </a>
+                            <button class="btn btn-sm btn-primary" style="font-size:0.75rem; border-radius:8px;" onclick="closeAdminCustomerModal(); openAdminOrderModal('${ord.order_number}')">
+                                <i class="bi bi-receipt"></i> Full Details
+                            </button>
+                        </div>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        loading.style.display = 'none';
+        content.style.display = 'block';
+    } catch (e) {
+        loading.innerHTML = `<div class="text-danger py-4"><i class="bi bi-exclamation-triangle fs-3 d-block mb-2"></i> Failed to load customer profile.</div>`;
+    }
+}
+
+function closeAdminCustomerModal() {
+    document.getElementById('adminCustomerModal').style.display = 'none';
+}
+
 </script>
 {% endblock %}

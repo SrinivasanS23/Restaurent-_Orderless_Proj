@@ -16,7 +16,7 @@ urlpatterns = [
     
     # Customers
     path('api/customers/', views.customers_list_api, name='admin-dashboard-customers'),
-    path('api/customers/<int:session_id>/', views.customer_detail_api, name='admin-dashboard-customer-detail'),
+    path('api/customers/<str:session_id>/', views.customer_detail_api, name='admin-dashboard-customer-detail'),
     
     # CSV Exports
     path('export/orders/', views.export_orders_csv, name='admin-dashboard-export-orders'),
