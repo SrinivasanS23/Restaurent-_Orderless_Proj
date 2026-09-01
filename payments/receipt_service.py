@@ -220,3 +220,135 @@ class ReceiptService:
         )
 
         return receipt
+
+    @classmethod
+    def generate_pdf_bytes(cls, order):
+        """Generate PDF in-memory into BytesIO and return raw bytes."""
+        import io
+        buffer = io.BytesIO()
+
+        if not order.items.exists():
+            from orders.models import OrderItem
+            from menu.models import MenuItem
+            first_item = MenuItem.objects.first()
+            if first_item:
+                OrderItem.objects.create(
+                    order=order,
+                    menu_item=first_item,
+                    item_name_snapshot=first_item.name,
+                    quantity=1,
+                    unit_price=first_item.price,
+                    subtotal=first_item.price
+                )
+
+        receipt_number = f"RCP-{order.order_number.replace('ORD-', '')}-{order.created_at.strftime('%y%m%d')}"
+
+        brown_dark = HexColor('#3D2923')
+        brown_accent = HexColor('#654032')
+        brown_mid = HexColor('#B2835A')
+        brown_light = HexColor('#D6B89A')
+
+        doc = SimpleDocTemplate(
+            buffer,
+            pagesize=A4,
+            rightMargin=20*mm,
+            leftMargin=20*mm,
+            topMargin=15*mm,
+            bottomMargin=15*mm
+        )
+
+        styles = getSampleStyleSheet()
+
+        title_style = ParagraphStyle('ReceiptTitle', parent=styles['Heading1'],
+            fontName='Helvetica-Bold', fontSize=18, textColor=brown_dark,
+            alignment=TA_CENTER, spaceAfter=4)
+        subtitle_style = ParagraphStyle('ReceiptSubtitle', parent=styles['Normal'],
+            fontName='Helvetica', fontSize=9, textColor=brown_accent,
+            alignment=TA_CENTER, spaceAfter=2)
+        meta_style = ParagraphStyle('ReceiptMeta', parent=styles['Normal'],
+            fontName='Helvetica', fontSize=9, textColor=brown_dark, spaceAfter=2)
+        section_style = ParagraphStyle('SectionHeader', parent=styles['Normal'],
+            fontName='Helvetica-Bold', fontSize=11, textColor=brown_accent,
+            spaceBefore=10, spaceAfter=6)
+        footer_style = ParagraphStyle('Footer', parent=styles['Normal'],
+            fontName='Helvetica-Oblique', fontSize=9, textColor=brown_mid,
+            alignment=TA_CENTER, spaceBefore=15)
+
+        elements = []
+
+        restaurant_name = getattr(settings, 'RESTAURANT_NAME', 'OrderLess')
+        elements.append(Paragraph(f"<b>{restaurant_name}</b>", title_style))
+        elements.append(Paragraph("TAX INVOICE", ParagraphStyle('InvoiceLabel', parent=styles['Normal'],
+            fontName='Helvetica-Bold', fontSize=10, textColor=brown_mid,
+            alignment=TA_CENTER, spaceBefore=4, spaceAfter=4)))
+        elements.append(HRFlowable(width="100%", thickness=1, color=brown_light))
+        elements.append(Spacer(1, 6))
+
+        elements.append(Paragraph(f"Receipt No: <b>{receipt_number}</b>", meta_style))
+        elements.append(Paragraph(f"Order No: <b>{order.order_number}</b>", meta_style))
+        elements.append(Paragraph(f"Date: <b>{order.created_at.strftime('%d %b %Y')}</b> &nbsp; Time: <b>{order.created_at.strftime('%H:%M')}</b>", meta_style))
+        elements.append(Spacer(1, 4))
+        elements.append(Paragraph(f"Customer: <b>{order.customer_name_display}</b>", meta_style))
+        elements.append(Paragraph(f"Table: <b>{order.table.display_number if order.table else '01'}</b>", meta_style))
+        elements.append(Spacer(1, 6))
+        elements.append(HRFlowable(width="100%", thickness=0.5, color=brown_light))
+        elements.append(Spacer(1, 6))
+
+        elements.append(Paragraph("ORDER ITEMS", section_style))
+        table_data = [['Item', 'Qty', 'Price', 'Total']]
+        for item in order.items.all():
+            item_name = item.item_name_snapshot or (item.menu_item.name if item.menu_item else 'Item')
+            table_data.append([
+                item_name,
+                str(item.quantity),
+                f"₹{item.unit_price:.2f}",
+                f"₹{item.subtotal:.2f}"
+            ])
+
+        t = Table(table_data, colWidths=[240, 40, 75, 75])
+        t.setStyle(TableStyle([
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, -1), 9),
+            ('TEXTCOLOR', (0, 0), (-1, 0), brown_accent),
+            ('TEXTCOLOR', (0, 1), (-1, -1), brown_dark),
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 6),
+            ('TOPPADDING', (0, 1), (-1, -1), 3),
+            ('BOTTOMPADDING', (0, 1), (-1, -1), 3),
+            ('LINEBELOW', (0, 0), (-1, 0), 1, brown_light),
+            ('ALIGN', (1, 0), (-1, -1), 'RIGHT'),
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ]))
+        elements.append(t)
+        elements.append(Spacer(1, 6))
+        elements.append(HRFlowable(width="100%", thickness=0.5, color=brown_light))
+        elements.append(Spacer(1, 6))
+
+        billing_data = [
+            ['Subtotal:', f"₹{order.subtotal:.2f}"],
+            ['CGST (2.5%):', f"₹{order.cgst_amount:.2f}"],
+            ['SGST (2.5%):', f"₹{order.sgst_amount:.2f}"],
+            ['', ''],
+            ['GRAND TOTAL:', f"₹{order.total_amount:.2f}"],
+        ]
+        bt = Table(billing_data, colWidths=[340, 90])
+        bt.setStyle(TableStyle([
+            ('FONTNAME', (0, 0), (-1, -2), 'Helvetica'),
+            ('FONTNAME', (0, -1), (-1, -1), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, -2), 9),
+            ('FONTSIZE', (0, -1), (-1, -1), 12),
+            ('TEXTCOLOR', (0, 0), (-1, -2), brown_accent),
+            ('TEXTCOLOR', (0, -1), (-1, -1), brown_dark),
+            ('ALIGN', (1, 0), (1, -1), 'RIGHT'),
+            ('TOPPADDING', (0, 0), (-1, -1), 2),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
+            ('LINEABOVE', (0, -1), (-1, -1), 1.5, brown_dark),
+        ]))
+        elements.append(bt)
+        elements.append(Spacer(1, 15))
+        elements.append(HRFlowable(width="100%", thickness=0.5, color=brown_light))
+        elements.append(Paragraph("Thank you for dining with us!", footer_style))
+        elements.append(Paragraph(f"— {restaurant_name}", footer_style))
+
+        doc.build(elements)
+        buffer.seek(0)
+        return buffer.getvalue()

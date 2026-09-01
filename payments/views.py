@@ -37,7 +37,8 @@ def process_desk_payment(request):
         return Response({'error': 'Invalid payment data.', 'details': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
 
     data = serializer.validated_data
-    cashier = request.user
+    cashier = request.user if (request.user and request.user.is_authenticated) else None
+    cashier_name = cashier.username if cashier else 'POS Terminal'
     ip = get_client_ip(request)
 
     # Clean order number
@@ -55,11 +56,11 @@ def process_desk_payment(request):
             reference=data.get('transaction_reference', '')
         )
         logger.info(
-            f"[PAYMENT_SETTLED] Order='{raw_order_num}' Method='{data['payment_method']}' Amount=₹{data['amount']} Cashier='{cashier.username}' IP='{ip}'"
+            f"[PAYMENT_SETTLED] Order='{raw_order_num}' Method='{data['payment_method']}' Amount=₹{data['amount']} Cashier='{cashier_name}' IP='{ip}'"
         )
     except ValueError as e:
         logger.warning(
-            f"[PAYMENT_REJECTED] Order='{raw_order_num}' Reason='{str(e)}' Cashier='{cashier.username}' IP='{ip}'"
+            f"[PAYMENT_REJECTED] Order='{raw_order_num}' Reason='{str(e)}' Cashier='{cashier_name}' IP='{ip}'"
         )
         return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 

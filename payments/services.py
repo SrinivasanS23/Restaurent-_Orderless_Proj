@@ -47,6 +47,9 @@ class PaymentService:
                 raise ValueError(f"Received cash (₹{cash_rec}) is less than payable amount (₹{pay_amount}).")
             cash_change = cash_rec - pay_amount
 
+        # Guard against AnonymousUser instance
+        safe_cashier = cashier if (cashier and cashier.is_authenticated) else None
+
         payment = Payment.objects.create(
             order=order,
             payment_method=payment_method,
@@ -55,7 +58,7 @@ class PaymentService:
             transaction_reference=reference,
             cash_amount_received=cash_rec,
             cash_change_given=cash_change,
-            cashier=cashier
+            cashier=safe_cashier
         )
 
         # Mark order as paid and completed

@@ -123,6 +123,7 @@ class OrderService:
     @staticmethod
     @transaction.atomic
     def update_order_status(order_id, new_status, user=None):
+        safe_user = user if (user and user.is_authenticated) else None
         """
         Update kitchen order status with atomic concurrency protection and idempotency.
         ONE-CLICK state transitions:
