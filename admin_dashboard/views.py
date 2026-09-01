@@ -37,7 +37,6 @@ def dashboard_view(request):
 
 @api_view(['GET'])
 @csrf_exempt
-@api_view(['GET', 'POST', 'PATCH', 'DELETE'])
 @authentication_classes([])
 @permission_classes([AllowAny])
 def dashboard_stats_api(request):
@@ -95,21 +94,28 @@ def dashboard_stats_api(request):
     ).distinct()
     year_sales = year_paid.aggregate(total=Sum('total_amount'))['total'] or 0
 
-    paid_orders = Order.objects.filter(payment_status='PAID').count()
+    all_paid = Order.objects.filter(payment_status='PAID').distinct()
+    all_time_revenue = all_paid.aggregate(total=Sum('total_amount'))['total'] or 0
+    paid_orders = all_paid.count()
+    
+    # Active orders count in restaurant (pending payment or cooking)
     pending_payments = Order.objects.filter(payment_status='PENDING').exclude(order_status='CANCELLED').count()
+    
+    # Active occupied tables
     active_tables = RestaurantTable.objects.filter(
         Q(customer_sessions__active=True, customer_sessions__status=CustomerSession.SessionStatus.ACTIVE) |
-        Q(orders__order_status__in=['ORDER_CREATED', 'ACCEPTED', 'PREPARING', 'READY', 'SERVED'], orders__payment_status='PENDING')
+        Q(orders__payment_status='PENDING', orders__order_status__in=['ORDER_CREATED', 'ACCEPTED', 'PREPARING', 'READY', 'SERVED'])
     ).distinct().count()
 
     unique_customers = CustomerSession.objects.values('customer_phone').distinct().count()
-    avg_ticket = (float(today_sales) / paid_orders) if paid_orders > 0 else 0.0
+    display_revenue = all_time_revenue if float(all_time_revenue) > 0 else today_sales
+    avg_ticket = (float(display_revenue) / paid_orders) if paid_orders > 0 else 0.0
     
     return Response({
         'total_orders': total_orders,
         'total_orders_count': total_orders,
         'today_sales': str(today_sales),
-        'total_revenue': str(today_sales),
+        'total_revenue': str(display_revenue),
         'today_order_count': today_order_count,
         'month_sales': str(month_sales),
         'year_sales': str(year_sales),
@@ -170,7 +176,6 @@ def _filter_orders_queryset(request):
 
 @api_view(['GET'])
 @csrf_exempt
-@api_view(['GET', 'POST', 'PATCH', 'DELETE'])
 @authentication_classes([])
 @permission_classes([AllowAny])
 def orders_list_api(request):
@@ -204,7 +209,6 @@ def orders_list_api(request):
 
 @api_view(['GET'])
 @csrf_exempt
-@api_view(['GET', 'POST', 'PATCH', 'DELETE'])
 @authentication_classes([])
 @permission_classes([AllowAny])
 def order_detail_api(request, order_number):
@@ -251,7 +255,6 @@ def order_detail_api(request, order_number):
 
 @api_view(['GET'])
 @csrf_exempt
-@api_view(['GET', 'POST', 'PATCH', 'DELETE'])
 @authentication_classes([])
 @permission_classes([AllowAny])
 def customers_list_api(request):
@@ -312,7 +315,6 @@ def customers_list_api(request):
 
 @api_view(['GET'])
 @csrf_exempt
-@api_view(['GET', 'POST', 'PATCH', 'DELETE'])
 @authentication_classes([])
 @permission_classes([AllowAny])
 def customer_detail_api(request, session_id):
@@ -360,7 +362,6 @@ def customer_detail_api(request, session_id):
 
 @api_view(['GET'])
 @csrf_exempt
-@api_view(['GET', 'POST', 'PATCH', 'DELETE'])
 @authentication_classes([])
 @permission_classes([AllowAny])
 def export_orders_csv(request):
@@ -408,7 +409,6 @@ def export_orders_csv(request):
 
 @api_view(['GET'])
 @csrf_exempt
-@api_view(['GET', 'POST', 'PATCH', 'DELETE'])
 @authentication_classes([])
 @permission_classes([AllowAny])
 def export_customers_csv(request):
@@ -460,7 +460,6 @@ def export_customers_csv(request):
 
 @api_view(['GET', 'POST'])
 @csrf_exempt
-@api_view(['GET', 'POST', 'PATCH', 'DELETE'])
 @authentication_classes([])
 @permission_classes([AllowAny])
 def menu_items_api(request):
@@ -516,7 +515,6 @@ def menu_items_api(request):
 
 @api_view(['GET', 'PUT', 'PATCH', 'DELETE'])
 @csrf_exempt
-@api_view(['GET', 'POST', 'PATCH', 'DELETE'])
 @authentication_classes([])
 @permission_classes([AllowAny])
 def menu_item_detail_api(request, item_id):
@@ -585,7 +583,6 @@ def menu_item_detail_api(request, item_id):
 
 @api_view(['GET'])
 @csrf_exempt
-@api_view(['GET', 'POST', 'PATCH', 'DELETE'])
 @authentication_classes([])
 @permission_classes([AllowAny])
 def menu_categories_api(request):
@@ -596,7 +593,6 @@ def menu_categories_api(request):
 
 @api_view(['GET'])
 @csrf_exempt
-@api_view(['GET', 'POST', 'PATCH', 'DELETE'])
 @authentication_classes([])
 @permission_classes([AllowAny])
 def tables_matrix_api(request):

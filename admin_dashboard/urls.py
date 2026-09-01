@@ -27,6 +27,7 @@ urlpatterns = [
     # Add & Edit Menu Items CRUD
     path('api/menu-items/', views.menu_items_api, name='admin-dashboard-menu-items-short'),
     path('api/menu-items/<int:item_id>/', views.menu_item_detail_api, name='admin-dashboard-menu-item-detail-short'),
+    path('api/menu-categories/', views.menu_categories_api, name='admin-dashboard-menu-categories-alias'),
     path('api/categories/', views.menu_categories_api, name='admin-dashboard-categories-short'),
     path('api/menu/items/', views.menu_items_api, name='admin-dashboard-menu-items'),
     path('api/menu/items/<int:item_id>/', views.menu_item_detail_api, name='admin-dashboard-menu-item-detail'),
