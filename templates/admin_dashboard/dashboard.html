@@ -470,17 +470,41 @@
 
 </main>
 
-<!-- Add Dish Modal -->
+<!-- Add Dish Modal (with Device Image Upload + Emoji selector) -->
 <div id="addDishModal" style="display:none; position:fixed; inset:0; background:rgba(61,41,35,0.75); backdrop-filter:blur(8px); z-index:1060; align-items:center; justify-content:center; padding:1rem;">
-    <div class="glass-panel p-4" style="background:#ffffff; max-width:500px; width:100%; border-radius:24px; border:2px solid var(--tan-accent);">
+    <div class="glass-panel p-4" style="background:#ffffff; max-width:540px; width:100%; border-radius:24px; border:2px solid var(--tan-accent); box-shadow:0 20px 40px rgba(61,41,35,0.2);">
         <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
-            <h5 class="fw-bold m-0" style="color:var(--deep-espresso);">Add New Menu Item</h5>
-            <button class="btn btn-sm text-muted" onclick="closeAddDishModal()"><i class="bi bi-x-lg"></i></button>
+            <h5 class="fw-bold m-0" style="color:var(--deep-espresso);"><i class="bi bi-plus-circle-fill me-2 text-warning"></i>Add New Menu Item</h5>
+            <button class="btn btn-sm text-muted" onclick="closeAddDishModal()"><i class="bi bi-x-lg fs-5"></i></button>
         </div>
         <form onsubmit="submitNewDish(event)">
+            <!-- Image / Icon selector with direct device upload -->
+            <div class="mb-3">
+                <label class="form-label small fw-bold">Dish Image / Icon</label>
+                <div class="p-3" style="background:var(--cream-bg); border-radius:16px; border:1px solid var(--tan-accent);">
+                    <div class="d-flex gap-3 align-items-center">
+                        <div id="newDishImgPreviewBox" style="width:68px; height:68px; border-radius:16px; background:#ffffff; border:2px dashed #d6b89a; display:flex; align-items:center; justify-content:center; overflow:hidden; font-size:2.2rem; flex-shrink:0; position:relative; box-shadow:0 4px 10px rgba(0,0,0,0.05);">
+                            <span id="newDishEmojiPreview">🍽️</span>
+                            <img id="newDishImgPreview" src="" style="display:none; width:100%; height:100%; object-fit:cover;" />
+                        </div>
+                        <div class="flex-grow-1">
+                            <label class="btn btn-sm btn-outline-dark mb-1 w-100 d-flex align-items-center justify-content-center gap-2" style="border-radius:10px; cursor:pointer; font-weight:600;">
+                                <i class="bi bi-cloud-arrow-up-fill text-primary"></i> Upload Image from Device
+                                <input type="file" id="newDishImageFile" accept="image/*" style="display:none;" onchange="handleDishImageUpload(event)">
+                            </label>
+                            <div class="d-flex align-items-center gap-2 mt-1">
+                                <small class="text-muted" style="font-size:0.75rem;">Or Emoji:</small>
+                                <input type="text" id="newDishEmoji" class="form-control form-control-sm text-center" style="width:50px; border-radius:8px;" placeholder="🍛" maxlength="4" value="🍽️" oninput="updateEmojiPreview(this.value)">
+                                <button type="button" class="btn btn-sm btn-link text-danger p-0 ms-auto" id="removeImgBtn" style="display:none; font-size:0.75rem;" onclick="clearDishImage()">Remove Image</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <div class="mb-2">
                 <label class="form-label small fw-bold">Dish Name</label>
-                <input type="text" id="newDishName" class="form-control" placeholder="e.g. Butter Chicken" required>
+                <input type="text" id="newDishName" class="form-control" placeholder="e.g. Butter Chicken Deluxe" required>
             </div>
             <div class="row g-2 mb-2">
                 <div class="col-6">
@@ -493,28 +517,24 @@
                 </div>
             </div>
             <div class="row g-2 mb-2">
-                <div class="col-6">
-                    <label class="form-label small fw-bold">Emoji Icon</label>
-                    <input type="text" id="newDishEmoji" class="form-control" placeholder="🍛" maxlength="4">
-                </div>
-                <div class="col-6 d-flex align-items-end pb-2">
-                    <div class="form-check me-3">
+                <div class="col-12 d-flex align-items-center gap-4 py-1">
+                    <div class="form-check">
                         <input class="form-check-input" type="checkbox" id="newDishVeg">
-                        <label class="form-check-label small fw-bold" for="newDishVeg">Veg</label>
+                        <label class="form-check-label small fw-bold text-success" for="newDishVeg">Vegetarian</label>
                     </div>
                     <div class="form-check">
                         <input class="form-check-input" type="checkbox" id="newDishBestseller">
-                        <label class="form-check-label small fw-bold" for="newDishBestseller">Star</label>
+                        <label class="form-check-label small fw-bold text-warning" for="newDishBestseller">Chef Star / Bestseller</label>
                     </div>
                 </div>
             </div>
             <div class="mb-3">
                 <label class="form-label small fw-bold">Description</label>
-                <textarea id="newDishDesc" class="form-control" rows="2" placeholder="Fresh ingredients..."></textarea>
+                <textarea id="newDishDesc" class="form-control" rows="2" placeholder="Freshly prepared with aromatic spices and herbs..."></textarea>
             </div>
-            <div class="d-flex gap-2">
-                <button type="button" class="btn btn-outline-secondary flex-fill" onclick="closeAddDishModal()">Cancel</button>
-                <button type="submit" class="btn-premium btn-premium-primary flex-fill">Create Dish</button>
+            <div class="d-flex justify-content-end gap-2">
+                <button type="button" class="btn btn-outline-secondary rounded-pill px-4" onclick="closeAddDishModal()">Cancel</button>
+                <button type="submit" class="btn btn-primary rounded-pill px-4" id="saveDishBtn">Save Dish to Menu</button>
             </div>
         </form>
     </div>
@@ -712,18 +732,24 @@ function renderMenuItemsGrid() {
         return;
     }
 
-    grid.innerHTML = items.map(item => `
+    grid.innerHTML = items.map(item => {
+        const imgSrc = item.image_url || (item.image && typeof item.image === 'string' ? item.image : '');
+        const iconHtml = imgSrc 
+            ? `<img src="${imgSrc}" alt="${item.name}" style="width:48px; height:48px; border-radius:14px; object-fit:cover; box-shadow:0 4px 10px rgba(0,0,0,0.08);" />`
+            : `<span style="font-size: 2rem;">${item.emoji || '🍽️'}</span>`;
+
+        return `
         <div class="col-md-6 col-lg-4 col-xl-3">
-            <div class="glass-panel p-3 h-100 d-flex flex-column justify-content-between" style="background:#ffffff; border-color:var(--tan-accent); border-top: 4px solid ${item.available ? '#16a34a' : '#dc2626'};">
+            <div class="glass-panel p-3 h-100 d-flex flex-column justify-content-between" style="background:#ffffff; border-color:var(--tan-accent); border-top: 4px solid ${item.available ? '#16a34a' : '#dc2626'}; border-radius:18px;">
                 <div>
                     <div class="d-flex justify-content-between align-items-start mb-2">
-                        <span style="font-size: 2rem;">${item.emoji || '🍽️'}</span>
+                        ${iconHtml}
                         <div class="form-check form-switch">
                             <input class="form-check-input" type="checkbox" role="switch" ${item.available ? 'checked' : ''} onchange="toggleDishStock(${item.id}, this.checked)" title="Toggle In-Stock / Out-of-Stock">
                         </div>
                     </div>
                     <h5 class="fw-bold mb-1" style="color:var(--deep-espresso); font-size:1.05rem;">${item.name}</h5>
-                    <div class="d-flex gap-1 mb-2">
+                    <div class="d-flex gap-1 mb-2 flex-wrap">
                         ${item.is_vegetarian ? '<span class="badge bg-success" style="font-size:0.65rem;">VEG</span>' : '<span class="badge bg-danger" style="font-size:0.65rem;">NON-VEG</span>'}
                         ${item.is_bestseller ? '<span class="badge bg-warning text-dark" style="font-size:0.65rem;">BESTSELLER</span>' : ''}
                         <span class="badge ${item.available ? 'bg-success-subtle text-success' : 'bg-danger-subtle text-danger'}" style="font-size:0.65rem;">
@@ -735,13 +761,13 @@ function renderMenuItemsGrid() {
 
                 <div class="d-flex justify-content-between align-items-center pt-2 border-top mt-2">
                     <strong style="color:var(--deep-espresso); font-size:1.15rem;">₹${parseFloat(item.price).toFixed(2)}</strong>
-                    <button class="btn btn-sm btn-outline-danger p-1" onclick="deleteDish(${item.id}, '${item.name}')" title="Delete Dish">
+                    <button class="btn btn-sm btn-outline-danger p-1 px-2" style="border-radius:8px;" onclick="deleteDish(${item.id}, ${JSON.stringify(item.name)})" title="Remove Dish from Menu">
                         <i class="bi bi-trash"></i>
                     </button>
                 </div>
             </div>
-        </div>
-    `).join('');
+        </div>`;
+    }).join('');
 }
 
 async function toggleDishStock(itemId, isAvailable) {
@@ -765,37 +791,124 @@ async function toggleDishStock(itemId, isAvailable) {
     }
 }
 
+let uploadedDishImageData = '';
+
+function handleDishImageUpload(event) {
+    const file = event.target.files && event.target.files[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+        showToast('error', 'Image size should be less than 5MB');
+        return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const img = new Image();
+        img.onload = function() {
+            const canvas = document.createElement('canvas');
+            const maxDim = 400;
+            let width = img.width;
+            let height = img.height;
+            if (width > height) {
+                if (width > maxDim) {
+                    height = Math.round((height * maxDim) / width);
+                    width = maxDim;
+                }
+            } else {
+                if (height > maxDim) {
+                    width = Math.round((width * maxDim) / height);
+                    height = maxDim;
+                }
+            }
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, width, height);
+            
+            uploadedDishImageData = canvas.toDataURL('image/jpeg', 0.85);
+
+            const previewImg = document.getElementById('newDishImgPreview');
+            const previewEmoji = document.getElementById('newDishEmojiPreview');
+            const removeBtn = document.getElementById('removeImgBtn');
+
+            if (previewImg) {
+                previewImg.src = uploadedDishImageData;
+                previewImg.style.display = 'block';
+            }
+            if (previewEmoji) previewEmoji.style.display = 'none';
+            if (removeBtn) removeBtn.style.display = 'inline-block';
+        };
+        img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+}
+
+function clearDishImage() {
+    uploadedDishImageData = '';
+    const fileInput = document.getElementById('newDishImageFile');
+    if (fileInput) fileInput.value = '';
+    const previewImg = document.getElementById('newDishImgPreview');
+    const previewEmoji = document.getElementById('newDishEmojiPreview');
+    const removeBtn = document.getElementById('removeImgBtn');
+    
+    if (previewImg) previewImg.style.display = 'none';
+    if (previewEmoji) previewEmoji.style.display = 'inline';
+    if (removeBtn) removeBtn.style.display = 'none';
+}
+
+function updateEmojiPreview(val) {
+    if (!uploadedDishImageData) {
+        const previewEmoji = document.getElementById('newDishEmojiPreview');
+        if (previewEmoji) previewEmoji.textContent = val.trim() || '🍽️';
+    }
+}
+
 async function deleteDish(itemId, name) {
+    name = name || 'this dish';
     if (!confirm(`Are you sure you want to remove '${name}' from the menu?`)) return;
     try {
         const res = await fetch(`/dashboard/api/menu-items/${itemId}/`, {
             method: 'DELETE',
-            headers: { 'X-CSRFToken': getCSRF() }
+            headers: {
+                'X-CSRFToken': getCSRF(),
+                'Content-Type': 'application/json'
+            }
         });
-        if (res.ok) {
-            showToast('info', `Removed '${name}' from menu.`);
-            loadMenuItems();
-        }
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || 'Failed to remove dish');
+
+        showToast('info', data.message || `Removed '${name}' from menu.`);
+        loadMenuItems();
     } catch (e) {
-        showToast('error', 'Failed to delete dish.');
+        showToast('error', e.message || 'Failed to delete dish.');
     }
 }
 
 function openAddDishModal() {
+    clearDishImage();
     document.getElementById('addDishModal').style.display = 'flex';
 }
 
 function closeAddDishModal() {
     document.getElementById('addDishModal').style.display = 'none';
+    clearDishImage();
 }
 
 async function submitNewDish(e) {
     e.preventDefault();
+    const saveBtn = document.getElementById('saveDishBtn');
+    if (saveBtn) {
+        saveBtn.disabled = true;
+        saveBtn.textContent = 'Saving...';
+    }
+
     const payload = {
         name: document.getElementById('newDishName').value.trim(),
         category: document.getElementById('newDishCategory').value,
         price: document.getElementById('newDishPrice').value,
         emoji: document.getElementById('newDishEmoji').value.trim() || '🍽️',
+        image_url: uploadedDishImageData || '',
         description: document.getElementById('newDishDesc').value.trim(),
         is_vegetarian: document.getElementById('newDishVeg').checked,
         is_bestseller: document.getElementById('newDishBestseller').checked,
@@ -814,11 +927,21 @@ async function submitNewDish(e) {
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Failed to create dish.');
 
-        showToast('success', data.message || 'New dish created!');
+        showToast('success', data.message || 'New dish created successfully!');
         closeAddDishModal();
+        document.getElementById('newDishName').value = '';
+        document.getElementById('newDishPrice').value = '';
+        document.getElementById('newDishDesc').value = '';
+        document.getElementById('newDishVeg').checked = false;
+        document.getElementById('newDishBestseller').checked = false;
         loadMenuItems();
     } catch (err) {
         showToast('error', err.message);
+    } finally {
+        if (saveBtn) {
+            saveBtn.disabled = false;
+            saveBtn.textContent = 'Save Dish to Menu';
+        }
     }
 }
 

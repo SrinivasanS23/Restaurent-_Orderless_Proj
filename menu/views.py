@@ -8,11 +8,20 @@ from .models import MenuCategory, MenuItem
 from .serializers import MenuCategorySerializer, MenuItemSerializer
 
 
+from django.db.models import Prefetch
+
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def get_menu(request):
     """Get full menu with categories and items."""
-    categories = MenuCategory.objects.filter(active=True).prefetch_related('items')
+    try:
+        from utils.cloud_db import pull_and_sync_menu_from_cloud
+        pull_and_sync_menu_from_cloud()
+    except Exception:
+        pass
+    categories = MenuCategory.objects.filter(active=True).prefetch_related(
+        Prefetch('items', queryset=MenuItem.objects.filter(is_deleted=False))
+    )
     serializer = MenuCategorySerializer(categories, many=True)
     return Response(serializer.data)
 

@@ -26,6 +26,8 @@ class MenuItem(models.Model):
     description = models.TextField(blank=True, default='')
     price = models.DecimalField(max_digits=8, decimal_places=2)
     image = models.ImageField(upload_to='menu_images/', blank=True, null=True)
+    image_url = models.TextField(blank=True, default='', help_text='Image data URL or Cloud URL')
+    is_deleted = models.BooleanField(default=False)
     emoji = models.CharField(max_length=10, blank=True, default='🍽️', help_text="Emoji fallback when no image")
     available = models.BooleanField(default=True)
     is_vegetarian = models.BooleanField(default=False)

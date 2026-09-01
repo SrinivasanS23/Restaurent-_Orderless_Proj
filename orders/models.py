@@ -141,7 +141,7 @@ class OrderItem(models.Model):
     """Individual line item in an order."""
 
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='items')
-    menu_item = models.ForeignKey('menu.MenuItem', on_delete=models.PROTECT, related_name='order_items')
+    menu_item = models.ForeignKey('menu.MenuItem', on_delete=models.SET_NULL, null=True, blank=True, related_name='order_items')
     item_name_snapshot = models.CharField(
         max_length=200,
         blank=True,

@@ -544,11 +544,17 @@ def export_customers_csv(request):
 @permission_classes([AllowAny])
 def menu_items_api(request):
     """
-    GET: List all menu items for Add & Edit Items management.
-    POST: Create a new menu item.
+    GET: List all active menu items for Add & Edit Items management.
+    POST: Create a new menu item with direct image upload option.
     """
+    try:
+        from utils.cloud_db import pull_and_sync_menu_from_cloud
+        pull_and_sync_menu_from_cloud()
+    except Exception:
+        pass
+
     if request.method == 'GET':
-        items = MenuItem.objects.select_related('category').order_by('category__display_order', 'name')
+        items = MenuItem.objects.filter(is_deleted=False).select_related('category').order_by('category__display_order', 'name')
         return Response(MenuItemSerializer(items, many=True).data)
     
     elif request.method == 'POST':
@@ -571,6 +577,7 @@ def menu_items_api(request):
             return Response({'error': 'Please enter a valid price greater than ₹0.'}, status=status.HTTP_400_BAD_REQUEST)
         
         emoji = str(data.get('emoji', '🍽️')).strip() or '🍽️'
+        image_url = str(data.get('image_url', '')).strip()
         description = str(data.get('description', '')).strip()
         is_veg = bool(data.get('is_vegetarian', False))
         is_bestseller = bool(data.get('is_bestseller', False))
@@ -582,10 +589,18 @@ def menu_items_api(request):
             description=description,
             price=price,
             emoji=emoji,
+            image_url=image_url,
             is_vegetarian=is_veg,
             is_bestseller=is_bestseller,
-            available=available
+            available=available,
+            is_deleted=False
         )
+
+        try:
+            from utils.cloud_db import sync_menu_item_to_cloud
+            sync_menu_item_to_cloud(item)
+        except Exception:
+            pass
 
         return Response({
             'message': f"Menu item '{item.name}' created successfully.",
@@ -657,8 +672,25 @@ def menu_item_detail_api(request, item_id):
         
     elif request.method == 'DELETE':
         item_name = item.name
-        item.delete()
-        return Response({'message': f"Menu item '{item_name}' removed from menu."}, status=status.HTTP_200_OK)
+        item_id = item.id
+        item.is_deleted = True
+        item.available = False
+        item.save()
+
+        # Unlink past orders so deletion succeeds cleanly
+        try:
+            item.order_items.all().update(menu_item=None)
+            item.delete()
+        except Exception:
+            pass
+
+        try:
+            from utils.cloud_db import delete_menu_item_from_cloud
+            delete_menu_item_from_cloud(item_id)
+        except Exception:
+            pass
+
+        return Response({'message': f"Menu item '{item_name}' removed from menu successfully."}, status=status.HTTP_200_OK)
 
 
 @api_view(['GET'])

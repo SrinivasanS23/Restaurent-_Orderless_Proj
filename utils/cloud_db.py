@@ -133,9 +133,13 @@ def sync_order_to_cloud(order):
 
 def pull_and_sync_all_orders_from_cloud():
     """
-    Download latest sessions & orders from Cloud DB and ensure they exist in local SQLite.
+    Download latest sessions, menu & orders from Cloud DB and ensure they exist in local SQLite.
     Called before serving kitchen/POS/admin API requests.
     """
+    try:
+        pull_and_sync_menu_from_cloud()
+    except Exception:
+        pass
     from tables.models import RestaurantTable, CustomerSession
     from menu.models import MenuItem
     from orders.models import Order, OrderItem
@@ -276,3 +280,83 @@ def pull_and_sync_all_orders_from_cloud():
 
         except Exception as err:
             logger.debug(f"[CLOUD_SYNC_ITEM_ERR] Order {ord_num}: {err}")
+
+
+def sync_menu_item_to_cloud(item):
+    """Upsert MenuItem to InsForge Cloud DB."""
+    if not item:
+        return
+    payload = {
+        "id": item.id,
+        "category_name": item.category.name if item.category else "Starters",
+        "name": item.name,
+        "description": item.description or "",
+        "price": str(item.price),
+        "emoji": item.emoji or "🍽️",
+        "image_url": item.image_url or (item.image.url if item.image else ""),
+        "available": item.available,
+        "is_vegetarian": item.is_vegetarian,
+        "is_bestseller": item.is_bestseller,
+        "is_deleted": getattr(item, 'is_deleted', False),
+        "updated_at": timezone.now().isoformat()
+    }
+    _make_cloud_request("/api/database/records/orderless_menu?on_conflict=id", method="POST", data=payload)
+
+
+def delete_menu_item_from_cloud(item_id):
+    """Mark MenuItem as is_deleted in InsForge Cloud DB."""
+    if not item_id:
+        return
+    payload = {
+        "is_deleted": True,
+        "available": False,
+        "updated_at": timezone.now().isoformat()
+    }
+    _make_cloud_request(f"/api/database/records/orderless_menu?id=eq.{item_id}", method="PATCH", data=payload)
+
+
+def pull_and_sync_menu_from_cloud():
+    """Sync all active menu items from InsForge Cloud DB to local SQLite."""
+    from menu.models import MenuCategory, MenuItem
+    
+    try:
+        cloud_items = _make_cloud_request("/api/database/records/orderless_menu?order=id.asc&limit=100")
+        if not cloud_items or not isinstance(cloud_items, list):
+            return
+
+        for citem in cloud_items:
+            mid = citem.get('id')
+            if not mid:
+                continue
+            
+            is_del = bool(citem.get('is_deleted', False))
+            if is_del:
+                # Remove or soft delete locally
+                MenuItem.objects.filter(id=mid).update(is_deleted=True, available=False)
+                continue
+
+            cat_name = citem.get('category_name', 'Starters')
+            category, _ = MenuCategory.objects.get_or_create(
+                name=cat_name,
+                defaults={'icon': '🍽️', 'display_order': 1, 'active': True}
+            )
+
+            p_val = Decimal(str(citem.get('price', '150.00')))
+            
+            MenuItem.objects.update_or_create(
+                id=mid,
+                defaults={
+                    'category': category,
+                    'name': citem.get('name', 'Dish'),
+                    'description': citem.get('description', ''),
+                    'price': p_val,
+                    'emoji': citem.get('emoji', '🍽️'),
+                    'image_url': citem.get('image_url', ''),
+                    'available': bool(citem.get('available', True)),
+                    'is_vegetarian': bool(citem.get('is_vegetarian', False)),
+                    'is_bestseller': bool(citem.get('is_bestseller', False)),
+                    'is_deleted': False
+                }
+            )
+    except Exception as e:
+        logger.debug(f"[CLOUD_PULL_MENU_ERR] {e}")
