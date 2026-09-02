@@ -4,6 +4,9 @@
 {% block title %}Kitchen Display System (KDS) | {{ restaurant_name }}{% endblock %}
 
 {% block body %}
+<!-- Audio Element for Kitchen Order Chime -->
+<audio id="kdsAlertAudio" preload="auto" src="{% static 'audio/kds_alert.mp3' %}" playsinline></audio>
+
 <!-- Audio Alert Banner for Autoplay Compliance -->
 <div id="audioUnlockBanner" style="display:none; background: linear-gradient(135deg, var(--roasted-walnut) 0%, var(--deep-espresso) 100%); border-bottom: 2px solid var(--tan-accent); padding: 0.75rem 1.25rem; color: #fff; z-index: 1000;">
     <div class="container-fluid d-flex align-items-center justify-content-between flex-wrap gap-2" style="max-width: 1400px; margin:0 auto;">
@@ -135,99 +138,123 @@ function getCookie(name) {
 }
 function getCSRF() { return getCookie('csrftoken') || CSRF_TOKEN; }
 
-/* --- WebAudio Kitchen Alarm Manager --- */
+/* --- Kitchen Audio Alarm Manager (Custom Audio Alert) --- */
 const KitchenAlertManager = (() => {
-    let audioCtx = null;
+    let alertAudio = null;
     let isMuted = false;
     let isUnlocked = false;
-    let alarmInterval = null;
+    let isAlarmActive = false;
 
-    function getAudioContext() {
-        if (!audioCtx) {
-            const AudioContext = window.AudioContext || window.webkitAudioContext;
-            audioCtx = new AudioContext();
+    function getAudioElement() {
+        if (!alertAudio) {
+            alertAudio = document.getElementById('kdsAlertAudio');
+            if (!alertAudio) {
+                alertAudio = new Audio("{% static 'audio/kds_alert.mp3' %}");
+                alertAudio.id = 'kdsAlertAudio';
+                alertAudio.preload = 'auto';
+                document.body.appendChild(alertAudio);
+            }
         }
-        if (audioCtx.state === 'suspended') {
-            audioCtx.resume();
-        }
-        return audioCtx;
+        return alertAudio;
     }
 
     function checkAutoplayStatus() {
-        try {
-            const ctx = getAudioContext();
-            if (ctx.state === 'running') {
+        const audio = getAudioElement();
+        if (!audio) return;
+
+        // Test autoplay permission
+        const playPromise = audio.play();
+        if (playPromise !== undefined) {
+            playPromise.then(() => {
                 isUnlocked = true;
-                document.getElementById('audioUnlockBanner').style.display = 'none';
-            } else {
-                document.getElementById('audioUnlockBanner').style.display = 'block';
-            }
-        } catch (e) {
-            document.getElementById('audioUnlockBanner').style.display = 'block';
+                if (!isAlarmActive) {
+                    audio.pause();
+                    audio.currentTime = 0;
+                }
+                const banner = document.getElementById('audioUnlockBanner');
+                if (banner) banner.style.display = 'none';
+            }).catch(() => {
+                isUnlocked = false;
+                const banner = document.getElementById('audioUnlockBanner');
+                if (banner) banner.style.display = 'block';
+            });
         }
     }
 
     function unlockAudio() {
-        try {
-            const ctx = getAudioContext();
-            ctx.resume().then(() => {
-                isUnlocked = true;
-                document.getElementById('audioUnlockBanner').style.display = 'none';
-                playSingleChime();
-                showToast('success', 'Kitchen audio alert activated!');
-            });
-        } catch (e) {
-            console.warn('Audio unlock error:', e);
-        }
+        const audio = getAudioElement();
+        if (!audio) return;
+
+        audio.play().then(() => {
+            isUnlocked = true;
+            const banner = document.getElementById('audioUnlockBanner');
+            if (banner) banner.style.display = 'none';
+            if (!isAlarmActive) {
+                setTimeout(() => {
+                    if (!isAlarmActive) {
+                        audio.pause();
+                        audio.currentTime = 0;
+                    }
+                }, 3500);
+            }
+            showToast('success', 'Kitchen safety alert sound activated!');
+        }).catch(e => {
+            console.warn('Audio unlock warning:', e);
+        });
     }
 
     function playSingleChime() {
         if (isMuted) return;
+        const audio = getAudioElement();
+        if (!audio) return;
+
         try {
-            const ctx = getAudioContext();
-            const now = ctx.currentTime;
-
-            // Beep 1 (High chime)
-            const osc1 = ctx.createOscillator();
-            const gain1 = ctx.createGain();
-            osc1.type = 'sine';
-            osc1.frequency.setValueAtTime(880, now); // A5
-            gain1.gain.setValueAtTime(0.25, now);
-            gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
-            osc1.connect(gain1);
-            gain1.connect(ctx.destination);
-            osc1.start(now);
-            osc1.stop(now + 0.35);
-
-            // Beep 2 (Harmonic chime)
-            const osc2 = ctx.createOscillator();
-            const gain2 = ctx.createGain();
-            osc2.type = 'sine';
-            osc2.frequency.setValueAtTime(1174.66, now + 0.18); // D6
-            gain2.gain.setValueAtTime(0.3, now + 0.18);
-            gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.55);
-            osc2.connect(gain2);
-            gain2.connect(ctx.destination);
-            osc2.start(now + 0.18);
-            osc2.stop(now + 0.55);
-
+            audio.loop = false;
+            audio.currentTime = 0;
+            const playPromise = audio.play();
+            if (playPromise !== undefined) {
+                playPromise.then(() => {
+                    isUnlocked = true;
+                    const banner = document.getElementById('audioUnlockBanner');
+                    if (banner) banner.style.display = 'none';
+                }).catch(e => {
+                    console.warn('Playback blocked:', e);
+                    const banner = document.getElementById('audioUnlockBanner');
+                    if (banner) banner.style.display = 'block';
+                });
+            }
         } catch (e) {
-            console.warn('Chime play error:', e);
+            console.warn('Alert audio play error:', e);
         }
     }
 
     function checkAndTriggerContinuousAlarm(unacceptedCount) {
+        const audio = getAudioElement();
+        if (!audio) return;
+
         if (unacceptedCount > 0 && !isMuted) {
-            if (!alarmInterval) {
-                playSingleChime();
-                alarmInterval = setInterval(() => {
-                    playSingleChime();
-                }, 3500);
+            isAlarmActive = true;
+            audio.loop = true;
+            if (audio.paused) {
+                audio.currentTime = 0;
+                const playPromise = audio.play();
+                if (playPromise !== undefined) {
+                    playPromise.then(() => {
+                        isUnlocked = true;
+                        const banner = document.getElementById('audioUnlockBanner');
+                        if (banner) banner.style.display = 'none';
+                    }).catch(e => {
+                        console.warn('Autoplay blocked alert audio:', e);
+                        const banner = document.getElementById('audioUnlockBanner');
+                        if (banner) banner.style.display = 'block';
+                    });
+                }
             }
         } else {
-            if (alarmInterval) {
-                clearInterval(alarmInterval);
-                alarmInterval = null;
+            isAlarmActive = false;
+            if (audio && !audio.paused) {
+                audio.pause();
+                audio.currentTime = 0;
             }
         }
     }
@@ -237,19 +264,20 @@ const KitchenAlertManager = (() => {
         const icon = document.getElementById('soundIcon');
         const text = document.getElementById('soundText');
         const btn = document.getElementById('soundToggleBtn');
+        const audio = getAudioElement();
 
         if (isMuted) {
-            icon.className = 'bi bi-volume-mute-fill';
-            text.textContent = 'Muted';
-            btn.classList.replace('btn-outline-light', 'btn-outline-danger');
-            if (alarmInterval) {
-                clearInterval(alarmInterval);
-                alarmInterval = null;
+            if (icon) icon.className = 'bi bi-volume-mute-fill';
+            if (text) text.textContent = 'Muted';
+            if (btn) btn.classList.replace('btn-outline-light', 'btn-outline-danger');
+            if (audio && !audio.paused) {
+                audio.pause();
+                audio.currentTime = 0;
             }
         } else {
-            icon.className = 'bi bi-volume-up-fill';
-            text.textContent = 'Sound ON';
-            btn.classList.replace('btn-outline-danger', 'btn-outline-light');
+            if (icon) icon.className = 'bi bi-volume-up-fill';
+            if (text) text.textContent = 'Sound ON';
+            if (btn) btn.classList.replace('btn-outline-danger', 'btn-outline-light');
             unlockAudio();
         }
     }
