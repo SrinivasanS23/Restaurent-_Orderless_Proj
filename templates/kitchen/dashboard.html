@@ -159,48 +159,35 @@ const KitchenAlertManager = (() => {
     }
 
     function checkAutoplayStatus() {
-        const audio = getAudioElement();
-        if (!audio) return;
-
-        // Test autoplay permission
-        const playPromise = audio.play();
-        if (playPromise !== undefined) {
-            playPromise.then(() => {
-                isUnlocked = true;
-                if (!isAlarmActive) {
-                    audio.pause();
-                    audio.currentTime = 0;
-                }
-                const banner = document.getElementById('audioUnlockBanner');
-                if (banner) banner.style.display = 'none';
-            }).catch(() => {
-                isUnlocked = false;
-                const banner = document.getElementById('audioUnlockBanner');
-                if (banner) banner.style.display = 'block';
-            });
-        }
+        // Listen for first user click anywhere to unlock audio playback smoothly
+        const unlockOnFirstClick = () => {
+            unlockAudio(false);
+            document.removeEventListener('click', unlockOnFirstClick);
+            document.removeEventListener('touchstart', unlockOnFirstClick);
+        };
+        document.addEventListener('click', unlockOnFirstClick, { once: true });
+        document.addEventListener('touchstart', unlockOnFirstClick, { once: true });
     }
 
-    function unlockAudio() {
+    function unlockAudio(showNotification = true) {
+        isUnlocked = true;
+        const banner = document.getElementById('audioUnlockBanner');
+        if (banner) banner.style.display = 'none';
+
         const audio = getAudioElement();
         if (!audio) return;
 
-        audio.play().then(() => {
-            isUnlocked = true;
-            const banner = document.getElementById('audioUnlockBanner');
-            if (banner) banner.style.display = 'none';
-            if (!isAlarmActive) {
-                setTimeout(() => {
-                    if (!isAlarmActive) {
-                        audio.pause();
-                        audio.currentTime = 0;
-                    }
-                }, 3500);
-            }
-            showToast('success', 'Kitchen safety alert sound activated!');
-        }).catch(e => {
-            console.warn('Audio unlock warning:', e);
-        });
+        // If unaccepted new orders exist right now, trigger alarm, otherwise stay silent
+        const unaccepted = document.getElementById('colCountNew') ? parseInt(document.getElementById('colCountNew').textContent || '0', 10) : 0;
+        if (unaccepted > 0 && !isMuted) {
+            startAlarm();
+        } else {
+            audio.load();
+        }
+
+        if (showNotification) {
+            showToast('success', 'Kitchen audio alert enabled!');
+        }
     }
 
     function playSingleChime() {
@@ -228,34 +215,47 @@ const KitchenAlertManager = (() => {
         }
     }
 
-    function checkAndTriggerContinuousAlarm(unacceptedCount) {
+    function startAlarm() {
+        if (isMuted) return;
         const audio = getAudioElement();
         if (!audio) return;
 
+        isAlarmActive = true;
+        audio.loop = true;
+        if (audio.paused) {
+            audio.currentTime = 0;
+            const playPromise = audio.play();
+            if (playPromise !== undefined) {
+                playPromise.then(() => {
+                    isUnlocked = true;
+                    const banner = document.getElementById('audioUnlockBanner');
+                    if (banner) banner.style.display = 'none';
+                }).catch(e => {
+                    console.warn('Autoplay blocked alert audio:', e);
+                    const banner = document.getElementById('audioUnlockBanner');
+                    if (banner) banner.style.display = 'block';
+                });
+            }
+        }
+    }
+
+    function stopAlarm() {
+        isAlarmActive = false;
+        const audio = getAudioElement();
+        if (audio) {
+            audio.pause();
+            audio.currentTime = 0;
+            audio.loop = false;
+        }
+    }
+
+    function checkAndTriggerContinuousAlarm(unacceptedCount) {
+        // Sound plays ONLY when there are incoming unaccepted orders (ORDER_CREATED)
+        // As soon as the chef accepts the order (ORDER_CREATED -> PREPARING), it immediately stops!
         if (unacceptedCount > 0 && !isMuted) {
-            isAlarmActive = true;
-            audio.loop = true;
-            if (audio.paused) {
-                audio.currentTime = 0;
-                const playPromise = audio.play();
-                if (playPromise !== undefined) {
-                    playPromise.then(() => {
-                        isUnlocked = true;
-                        const banner = document.getElementById('audioUnlockBanner');
-                        if (banner) banner.style.display = 'none';
-                    }).catch(e => {
-                        console.warn('Autoplay blocked alert audio:', e);
-                        const banner = document.getElementById('audioUnlockBanner');
-                        if (banner) banner.style.display = 'block';
-                    });
-                }
-            }
+            startAlarm();
         } else {
-            isAlarmActive = false;
-            if (audio && !audio.paused) {
-                audio.pause();
-                audio.currentTime = 0;
-            }
+            stopAlarm();
         }
     }
 
@@ -264,21 +264,19 @@ const KitchenAlertManager = (() => {
         const icon = document.getElementById('soundIcon');
         const text = document.getElementById('soundText');
         const btn = document.getElementById('soundToggleBtn');
-        const audio = getAudioElement();
 
         if (isMuted) {
             if (icon) icon.className = 'bi bi-volume-mute-fill';
             if (text) text.textContent = 'Muted';
             if (btn) btn.classList.replace('btn-outline-light', 'btn-outline-danger');
-            if (audio && !audio.paused) {
-                audio.pause();
-                audio.currentTime = 0;
-            }
+            stopAlarm();
         } else {
             if (icon) icon.className = 'bi bi-volume-up-fill';
             if (text) text.textContent = 'Sound ON';
             if (btn) btn.classList.replace('btn-outline-danger', 'btn-outline-light');
-            unlockAudio();
+            unlockAudio(false);
+            const unaccepted = document.getElementById('colCountNew') ? parseInt(document.getElementById('colCountNew').textContent || '0', 10) : 0;
+            checkAndTriggerContinuousAlarm(unaccepted);
         }
     }
 
@@ -286,6 +284,8 @@ const KitchenAlertManager = (() => {
         checkAutoplayStatus,
         unlockAudio,
         playSingleChime,
+        startAlarm,
+        stopAlarm,
         checkAndTriggerContinuousAlarm,
         toggleMute
     };
