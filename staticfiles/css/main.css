@@ -1,49 +1,54 @@
 /* ==========================================================================
-   OrderLess Restaurant System — Design System v4.0 (Authentic Royal Indian Culinary Theme)
+   OrderLess Restaurant System — Design System v5.0 (Earthy Artisan Culinary Theme)
    Palette:
-     - Warm Ivory / Cream Background:  #FAF7F2
-     - Spiced Amber Accent:            #E2C29D
-     - Royal Saffron Flame:            #EA580C
-     - Roasted Chestnut / Dark Walnut: #44281D
-     - Deep Obsidian Espresso:         #1C130E
-     - Vibrant Herb Green:             #16A34A
-     - Kashmiri Chilli Red:            #DC2626
+     - Deep Forest Olive:   #3D4A2F (rgb: 61, 74, 47)
+     - Muted Sage Herb:     #7C8A5B (rgb: 124, 138, 91)
+     - Warm Peach Accent:   #FFD8BF (rgb: 255, 216, 191)
+     - Vanilla Linen Cream: #FFF4E9 (rgb: 255, 244, 233)
+     - Roasted Chestnut:    #6A4C3B (rgb: 106, 76, 59)
    ========================================================================== */
 
 :root {
-    /* Brand Color Tokens */
-    --bg-cream: #FAF7F2;
-    --bg-surface: #FFFDF9;
-    --tan-accent: #E2C29D;
-    --cognac-gold: #EA580C;
-    --roasted-walnut: #44281D;
-    --deep-espresso: #1C130E;
+    /* Exact User Palette Tokens */
+    --color-deep-olive: #3D4A2F;
+    --color-sage-herb: #7C8A5B;
+    --color-warm-peach: #FFD8BF;
+    --color-vanilla-cream: #FFF4E9;
+    --color-chestnut: #6A4C3B;
 
-    /* Saffron & Spice Accents */
-    --saffron-gold: #F59E0B;
-    --saffron-amber: #D97706;
-    --terracotta-flame: #EA580C;
-    --terracotta-dark: #C2410C;
-    --curry-leaf-green: #16A34A;
-    --chilli-ruby: #DC2626;
+    /* Semantic Brand Color Tokens */
+    --bg-cream: #FFF4E9;
+    --bg-surface: #FFFFFF;
+    --tan-accent: #FFD8BF;
+    --cognac-gold: #7C8A5B;
+    --roasted-walnut: #6A4C3B;
+    --deep-espresso: #3D4A2F;
+
+    /* Saffron & Earth Accents */
+    --saffron-gold: #7C8A5B;
+    --saffron-amber: #6A4C3B;
+    --terracotta-flame: #6A4C3B;
+    --terracotta-dark: #3D4A2F;
+    --curry-leaf-green: #3D4A2F;
+    --chilli-ruby: #a83232;
 
     /* Semantic Aliases */
-    --primary: #EA580C;
-    --primary-hover: #C2410C;
-    --primary-active: #9A3412;
-    --text-primary: #1C130E;
-    --text-secondary: #44281D;
-    --text-muted: #786458;
-    --text-light: #FAF7F2;
+    --primary: #6A4C3B;
+    --primary-hover: #3D4A2F;
+    --primary-active: #29341F;
+    --text-primary: #3D4A2F;
+    --text-secondary: #6A4C3B;
+    --text-muted: #7C8A5B;
+    --text-light: #FFF4E9;
 
     /* Glass Surfaces */
-    --glass-bg: rgba(250, 247, 242, 0.92);
-    --glass-bg-dark: rgba(28, 19, 14, 0.96);
-    --glass-card: rgba(255, 255, 255, 0.90);
-    --glass-border: rgba(226, 194, 157, 0.50);
-    --glass-border-strong: rgba(234, 88, 12, 0.45);
-    --glass-shadow: 0 10px 30px -6px rgba(28, 19, 14, 0.08), 0 4px 10px rgba(28, 19, 14, 0.04);
-    --glass-shadow-lg: 0 20px 48px -10px rgba(28, 19, 14, 0.16), 0 8px 24px rgba(28, 19, 14, 0.08);
+    --glass-bg: rgba(255, 244, 233, 0.92);
+    --glass-bg-dark: rgba(61, 74, 47, 0.96);
+    --glass-card: rgba(255, 255, 255, 0.92);
+    --glass-border: rgba(255, 216, 191, 0.65);
+    --glass-border-strong: rgba(124, 138, 91, 0.55);
+    --glass-shadow: 0 10px 30px -6px rgba(61, 74, 47, 0.08), 0 4px 10px rgba(61, 74, 47, 0.04);
+    --glass-shadow-lg: 0 20px 48px -10px rgba(61, 74, 47, 0.16), 0 8px 24px rgba(61, 74, 47, 0.08);
 
     /* Status Colors */
     --success: #15803d;
@@ -72,9 +77,9 @@
 body {
     background-color: var(--bg-cream);
     background-image: 
-        radial-gradient(at 10% 10%, rgba(226, 194, 157, 0.28) 0px, transparent 50%),
-        radial-gradient(at 90% 90%, rgba(234, 88, 12, 0.12) 0px, transparent 50%),
-        radial-gradient(at 50% 50%, rgba(250, 247, 242, 0.95) 0px, transparent 80%);
+        radial-gradient(at 10% 10%, rgba(255, 216, 191, 0.35) 0px, transparent 50%),
+        radial-gradient(at 90% 90%, rgba(124, 138, 91, 0.16) 0px, transparent 50%),
+        radial-gradient(at 50% 50%, rgba(255, 244, 233, 0.95) 0px, transparent 80%);
     background-attachment: fixed;
     color: var(--text-primary);
     font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -89,7 +94,7 @@ body {
    CUSTOMER TABLE (T01 - T10) DEDICATED ARTWORK BACKGROUND
    ========================================================================== */
 body.customer-table-body {
-    background-color: #FAF7F2;
+    background-color: #FFF4E9;
     position: relative;
     min-height: 100vh;
 }
@@ -102,7 +107,7 @@ body.customer-table-body::before {
     width: 100vw;
     height: 100vh;
     background-image: 
-        linear-gradient(rgba(255, 253, 249, 0.80), rgba(254, 250, 242, 0.85)),
+        linear-gradient(rgba(255, 244, 233, 0.82), rgba(255, 244, 233, 0.88)),
         url('/static/images/table_pattern_bg.jpg');
     background-size: cover;
     background-position: center center;
@@ -154,16 +159,16 @@ h1, h2, h3, h4, h5, h6 {
     -webkit-backdrop-filter: blur(20px);
     border-bottom: 1px solid var(--glass-border);
     padding: 0.85rem 1.25rem;
-    box-shadow: 0 4px 20px rgba(28, 19, 14, 0.04);
+    box-shadow: 0 4px 20px rgba(61, 74, 47, 0.04);
 }
 
 .admin-app-header,
 .kds-app-header,
 .pos-app-header {
-    background: linear-gradient(180deg, #1C130E 0%, #17100B 100%) !important;
-    border-bottom: 2px solid var(--primary) !important;
-    color: var(--bg-cream) !important;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3) !important;
+    background: linear-gradient(180deg, #3D4A2F 0%, #2A3320 100%) !important;
+    border-bottom: 2px solid #7C8A5B !important;
+    color: #FFF4E9 !important;
+    box-shadow: 0 8px 24px rgba(61, 74, 47, 0.3) !important;
 }
 
 .app-header .header-inner {
@@ -219,7 +224,7 @@ h1, h2, h3, h4, h5, h6 {
     display: inline-flex;
     align-items: center;
     gap: 0.4rem;
-    box-shadow: 0 4px 12px rgba(28, 19, 14, 0.2);
+    box-shadow: 0 4px 12px rgba(61, 74, 47, 0.2);
     border: 1px solid var(--tan-accent);
 }
 
@@ -258,16 +263,16 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .btn-premium-primary {
-    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-hover) 100%);
-    color: #ffffff !important;
-    box-shadow: 0 6px 18px rgba(234, 88, 12, 0.35);
+    background: linear-gradient(135deg, #6A4C3B 0%, #3D4A2F 100%);
+    color: #FFF4E9 !important;
+    box-shadow: 0 4px 14px rgba(106, 76, 59, 0.35);
 }
 
 .btn-premium-primary:hover:not(:disabled) {
-    background: linear-gradient(135deg, #F97316 0%, var(--primary) 100%);
-    box-shadow: 0 8px 24px rgba(234, 88, 12, 0.45);
+    background: linear-gradient(135deg, #7C8A5B 0%, #6A4C3B 100%);
+    box-shadow: 0 6px 20px rgba(124, 138, 91, 0.45);
     transform: translateY(-2px);
-    color: #ffffff !important;
+    color: #FFF4E9 !important;
 }
 
 .btn-premium-primary:active:not(:disabled) {
@@ -338,10 +343,10 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .category-pill.active {
-    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-hover) 100%);
-    color: #ffffff;
-    border-color: var(--primary);
-    box-shadow: 0 4px 14px rgba(234, 88, 12, 0.35);
+    background: linear-gradient(135deg, #3D4A2F 0%, #6A4C3B 100%);
+    color: #FFF4E9;
+    border-color: #3D4A2F;
+    box-shadow: 0 4px 14px rgba(61, 74, 47, 0.35);
 }
 
 /* --- Dish Card Design --- */
@@ -386,7 +391,7 @@ h1, h2, h3, h4, h5, h6 {
     font-size: 2.4rem;
     line-height: 1;
     display: inline-block;
-    filter: drop-shadow(0 4px 8px rgba(28, 19, 14, 0.15));
+    filter: drop-shadow(0 4px 8px rgba(61, 74, 47, 0.15));
 }
 
 .dish-badges {
@@ -543,12 +548,12 @@ h1, h2, h3, h4, h5, h6 {
     width: calc(100% - 2.5rem);
     max-width: 500px;
     z-index: 1050;
-    background: linear-gradient(135deg, #1C130E 0%, #291811 100%);
-    color: var(--bg-cream);
+    background: linear-gradient(135deg, #3D4A2F 0%, #2A3320 100%);
+    color: #FFF4E9;
     padding: 0.85rem 1.25rem;
     border-radius: var(--radius-xl);
-    border: 1.5px solid var(--primary);
-    box-shadow: 0 16px 48px rgba(28, 19, 14, 0.45), 0 0 24px rgba(234, 88, 12, 0.25);
+    border: 1.5px solid #FFD8BF;
+    box-shadow: 0 16px 48px rgba(61, 74, 47, 0.45), 0 0 24px rgba(255, 216, 191, 0.3);
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -580,8 +585,8 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .floating-cart-btn {
-    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-hover) 100%);
-    color: #ffffff;
+    background: linear-gradient(135deg, #6A4C3B 0%, #7C8A5B 100%);
+    color: #FFF4E9;
     border: none;
     border-radius: var(--radius-full);
     padding: 0.55rem 1.25rem;
@@ -592,12 +597,13 @@ h1, h2, h3, h4, h5, h6 {
     align-items: center;
     gap: 0.4rem;
     transition: all 0.2s ease;
-    box-shadow: 0 4px 14px rgba(234, 88, 12, 0.35);
+    box-shadow: 0 4px 14px rgba(106, 76, 59, 0.35);
 }
 
 .floating-cart-btn:hover {
-    background: var(--tan-accent);
-    color: var(--deep-espresso);
+    background: linear-gradient(135deg, #7C8A5B 0%, #3D4A2F 100%);
+    color: #FFF4E9;
+    transform: scale(1.03);
 }
 
 /* --- Sliding Cart Drawer / Bottom Sheet --- */
@@ -607,7 +613,7 @@ h1, h2, h3, h4, h5, h6 {
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(28, 19, 14, 0.6);
+    background: rgba(61, 74, 47, 0.6);
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
     z-index: 1100;
@@ -632,7 +638,7 @@ h1, h2, h3, h4, h5, h6 {
     background: var(--bg-cream);
     border-top: 1px solid var(--tan-accent);
     border-radius: 28px 28px 0 0;
-    box-shadow: 0 -16px 50px rgba(28, 19, 14, 0.35);
+    box-shadow: 0 -16px 50px rgba(61, 74, 47, 0.35);
     z-index: 1110;
     display: flex;
     flex-direction: column;
@@ -765,7 +771,7 @@ h1, h2, h3, h4, h5, h6 {
     border: 1px solid var(--glass-border);
     border-radius: var(--radius-md);
     padding: 1rem;
-    box-shadow: 0 4px 14px rgba(28, 19, 14, 0.08);
+    box-shadow: 0 4px 14px rgba(61, 74, 47, 0.08);
     transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
@@ -943,7 +949,7 @@ h1, h2, h3, h4, h5, h6 {
     background: var(--deep-espresso);
     border-color: var(--deep-espresso);
     color: #ffffff;
-    box-shadow: 0 4px 12px rgba(28, 19, 14, 0.2);
+    box-shadow: 0 4px 12px rgba(61, 74, 47, 0.2);
 }
 
 .pos-order-card {
@@ -960,13 +966,13 @@ h1, h2, h3, h4, h5, h6 {
 .pos-order-card:hover {
     border-color: var(--cognac-gold);
     transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(28, 19, 14, 0.1);
+    box-shadow: 0 8px 20px rgba(61, 74, 47, 0.1);
 }
 
 .pos-order-card.selected {
     border-color: var(--primary);
-    background: linear-gradient(135deg, rgba(255, 255, 255, 1) 0%, rgba(250, 247, 242, 0.85) 100%);
-    box-shadow: 0 8px 24px rgba(234, 88, 12, 0.25);
+    background: linear-gradient(135deg, rgba(255, 255, 255, 1) 0%, rgba(255, 244, 233, 0.9) 100%);
+    box-shadow: 0 8px 24px rgba(106, 76, 59, 0.22);
     border-left: 6px solid var(--primary);
 }
 
@@ -1012,9 +1018,9 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .dash-tab-btn.active {
-    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-hover) 100%);
-    color: #ffffff;
-    box-shadow: 0 4px 14px rgba(234, 88, 12, 0.3);
+    background: linear-gradient(135deg, var(--deep-espresso) 0%, var(--primary) 100%);
+    color: #FFF4E9;
+    box-shadow: 0 4px 14px rgba(61, 74, 47, 0.3);
 }
 
 .dash-tab-pane {
@@ -1037,7 +1043,7 @@ h1, h2, h3, h4, h5, h6 {
 
 .table-matrix-card:hover {
     transform: translateY(-3px);
-    box-shadow: 0 10px 25px rgba(28, 19, 14, 0.12);
+    box-shadow: 0 10px 25px rgba(61, 74, 47, 0.12);
 }
 
 .table-matrix-card.occupied {
