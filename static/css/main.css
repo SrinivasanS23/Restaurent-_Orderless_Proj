@@ -1,38 +1,49 @@
 /* ==========================================================================
-   OrderLess Restaurant System — Design System v3.5
+   OrderLess Restaurant System — Design System v4.0 (Authentic Royal Indian Culinary Theme)
    Palette:
-     - Cream Background:   #F6EEE3
-     - Warm Tan Accent:    #D6B89A
-     - Cognac Caramel:     #B2835A
-     - Roasted Walnut:     #654032
-     - Deep Espresso:      #3D2923
+     - Warm Ivory / Cream Background:  #FAF7F2
+     - Spiced Amber Accent:            #E2C29D
+     - Royal Saffron Flame:            #EA580C
+     - Roasted Chestnut / Dark Walnut: #44281D
+     - Deep Obsidian Espresso:         #1C130E
+     - Vibrant Herb Green:             #16A34A
+     - Kashmiri Chilli Red:            #DC2626
    ========================================================================== */
 
 :root {
     /* Brand Color Tokens */
-    --bg-cream: #F6EEE3;
-    --tan-accent: #D6B89A;
-    --cognac-gold: #B2835A;
-    --roasted-walnut: #654032;
-    --deep-espresso: #3D2923;
+    --bg-cream: #FAF7F2;
+    --bg-surface: #FFFDF9;
+    --tan-accent: #E2C29D;
+    --cognac-gold: #EA580C;
+    --roasted-walnut: #44281D;
+    --deep-espresso: #1C130E;
+
+    /* Saffron & Spice Accents */
+    --saffron-gold: #F59E0B;
+    --saffron-amber: #D97706;
+    --terracotta-flame: #EA580C;
+    --terracotta-dark: #C2410C;
+    --curry-leaf-green: #16A34A;
+    --chilli-ruby: #DC2626;
 
     /* Semantic Aliases */
-    --primary: #B2835A;
-    --primary-hover: #654032;
-    --primary-active: #3D2923;
-    --text-primary: #3D2923;
-    --text-secondary: #654032;
-    --text-muted: #8c7365;
-    --text-light: #F6EEE3;
+    --primary: #EA580C;
+    --primary-hover: #C2410C;
+    --primary-active: #9A3412;
+    --text-primary: #1C130E;
+    --text-secondary: #44281D;
+    --text-muted: #786458;
+    --text-light: #FAF7F2;
 
     /* Glass Surfaces */
-    --glass-bg: rgba(246, 238, 227, 0.88);
-    --glass-bg-dark: rgba(61, 41, 35, 0.94);
-    --glass-card: rgba(255, 255, 255, 0.72);
-    --glass-border: rgba(214, 184, 154, 0.45);
-    --glass-border-strong: rgba(178, 131, 90, 0.55);
-    --glass-shadow: 0 12px 36px -8px rgba(61, 41, 35, 0.12), 0 4px 12px rgba(61, 41, 35, 0.06);
-    --glass-shadow-lg: 0 20px 48px -10px rgba(61, 41, 35, 0.22), 0 8px 24px rgba(61, 41, 35, 0.12);
+    --glass-bg: rgba(250, 247, 242, 0.92);
+    --glass-bg-dark: rgba(28, 19, 14, 0.96);
+    --glass-card: rgba(255, 255, 255, 0.90);
+    --glass-border: rgba(226, 194, 157, 0.50);
+    --glass-border-strong: rgba(234, 88, 12, 0.45);
+    --glass-shadow: 0 10px 30px -6px rgba(28, 19, 14, 0.08), 0 4px 10px rgba(28, 19, 14, 0.04);
+    --glass-shadow-lg: 0 20px 48px -10px rgba(28, 19, 14, 0.16), 0 8px 24px rgba(28, 19, 14, 0.08);
 
     /* Status Colors */
     --success: #15803d;
@@ -61,9 +72,9 @@
 body {
     background-color: var(--bg-cream);
     background-image: 
-        radial-gradient(at 10% 10%, rgba(214, 184, 154, 0.25) 0px, transparent 50%),
-        radial-gradient(at 90% 90%, rgba(178, 131, 90, 0.18) 0px, transparent 50%),
-        radial-gradient(at 50% 50%, rgba(246, 238, 227, 0.9) 0px, transparent 80%);
+        radial-gradient(at 10% 10%, rgba(226, 194, 157, 0.28) 0px, transparent 50%),
+        radial-gradient(at 90% 90%, rgba(234, 88, 12, 0.12) 0px, transparent 50%),
+        radial-gradient(at 50% 50%, rgba(250, 247, 242, 0.95) 0px, transparent 80%);
     background-attachment: fixed;
     color: var(--text-primary);
     font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -72,6 +83,32 @@ body {
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     min-height: 100vh;
+}
+
+/* ==========================================================================
+   CUSTOMER TABLE (T01 - T10) DEDICATED ARTWORK BACKGROUND
+   ========================================================================== */
+body.customer-table-body {
+    background-color: #FAF7F2;
+    position: relative;
+    min-height: 100vh;
+}
+
+body.customer-table-body::before {
+    content: "";
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-image: 
+        linear-gradient(rgba(255, 253, 249, 0.80), rgba(254, 250, 242, 0.85)),
+        url('/static/images/table_pattern_bg.jpg');
+    background-size: cover;
+    background-position: center center;
+    background-repeat: no-repeat;
+    z-index: -1;
+    pointer-events: none;
 }
 
 h1, h2, h3, h4, h5, h6 {
@@ -101,7 +138,7 @@ h1, h2, h3, h4, h5, h6 {
     background: var(--glass-bg-dark);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
-    border: 1px solid rgba(214, 184, 154, 0.25);
+    border: 1px solid rgba(226, 194, 157, 0.25);
     border-radius: var(--radius-lg);
     box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35);
     color: var(--bg-cream);
@@ -112,11 +149,21 @@ h1, h2, h3, h4, h5, h6 {
     position: sticky;
     top: 0;
     z-index: 100;
-    background: rgba(246, 238, 227, 0.92);
+    background: rgba(255, 253, 249, 0.94);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
     border-bottom: 1px solid var(--glass-border);
     padding: 0.85rem 1.25rem;
+    box-shadow: 0 4px 20px rgba(28, 19, 14, 0.04);
+}
+
+.admin-app-header,
+.kds-app-header,
+.pos-app-header {
+    background: linear-gradient(180deg, #1C130E 0%, #17100B 100%) !important;
+    border-bottom: 2px solid var(--primary) !important;
+    color: var(--bg-cream) !important;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3) !important;
 }
 
 .app-header .header-inner {
@@ -172,12 +219,12 @@ h1, h2, h3, h4, h5, h6 {
     display: inline-flex;
     align-items: center;
     gap: 0.4rem;
-    box-shadow: 0 4px 12px rgba(61, 41, 35, 0.2);
+    box-shadow: 0 4px 12px rgba(28, 19, 14, 0.2);
     border: 1px solid var(--tan-accent);
 }
 
 .customer-chip {
-    background: rgba(178, 131, 90, 0.15);
+    background: rgba(234, 88, 12, 0.15);
     color: var(--deep-espresso);
     font-weight: 700;
     font-size: 0.8rem;
@@ -211,16 +258,16 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .btn-premium-primary {
-    background: linear-gradient(135deg, var(--cognac-gold) 0%, var(--roasted-walnut) 100%);
-    color: #ffffff;
-    box-shadow: 0 6px 18px rgba(101, 64, 50, 0.28);
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-hover) 100%);
+    color: #ffffff !important;
+    box-shadow: 0 6px 18px rgba(234, 88, 12, 0.35);
 }
 
 .btn-premium-primary:hover:not(:disabled) {
-    background: linear-gradient(135deg, var(--roasted-walnut) 0%, var(--deep-espresso) 100%);
-    box-shadow: 0 8px 24px rgba(61, 41, 35, 0.38);
+    background: linear-gradient(135deg, #F97316 0%, var(--primary) 100%);
+    box-shadow: 0 8px 24px rgba(234, 88, 12, 0.45);
     transform: translateY(-2px);
-    color: #ffffff;
+    color: #ffffff !important;
 }
 
 .btn-premium-primary:active:not(:disabled) {
@@ -291,10 +338,10 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .category-pill.active {
-    background: var(--deep-espresso);
-    color: var(--bg-cream);
-    border-color: var(--deep-espresso);
-    box-shadow: 0 4px 14px rgba(61, 41, 35, 0.22);
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-hover) 100%);
+    color: #ffffff;
+    border-color: var(--primary);
+    box-shadow: 0 4px 14px rgba(234, 88, 12, 0.35);
 }
 
 /* --- Dish Card Design --- */
@@ -339,7 +386,7 @@ h1, h2, h3, h4, h5, h6 {
     font-size: 2.4rem;
     line-height: 1;
     display: inline-block;
-    filter: drop-shadow(0 4px 8px rgba(61, 41, 35, 0.15));
+    filter: drop-shadow(0 4px 8px rgba(28, 19, 14, 0.15));
 }
 
 .dish-badges {
@@ -413,7 +460,7 @@ h1, h2, h3, h4, h5, h6 {
     justify-content: space-between;
     gap: 0.75rem;
     padding-top: 0.75rem;
-    border-top: 1px solid rgba(214, 184, 154, 0.3);
+    border-top: 1px solid rgba(226, 194, 157, 0.3);
 }
 
 .dish-price {
@@ -437,7 +484,7 @@ h1, h2, h3, h4, h5, h6 {
     align-items: center;
     gap: 0.35rem;
     transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-    box-shadow: 0 4px 12px rgba(178, 131, 90, 0.3);
+    box-shadow: 0 4px 12px rgba(234, 88, 12, 0.3);
 }
 
 .add-btn:hover {
@@ -456,7 +503,7 @@ h1, h2, h3, h4, h5, h6 {
     border: 1px solid var(--cognac-gold);
     border-radius: var(--radius-md);
     overflow: hidden;
-    box-shadow: 0 4px 12px rgba(178, 131, 90, 0.15);
+    box-shadow: 0 4px 12px rgba(234, 88, 12, 0.15);
 }
 
 .stepper-btn {
@@ -475,7 +522,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .stepper-btn:hover {
-    background: rgba(214, 184, 154, 0.25);
+    background: rgba(226, 194, 157, 0.25);
     color: var(--roasted-walnut);
 }
 
@@ -494,14 +541,14 @@ h1, h2, h3, h4, h5, h6 {
     left: 50%;
     transform: translateX(-50%) translateY(120%);
     width: calc(100% - 2.5rem);
-    max-width: 480px;
+    max-width: 500px;
     z-index: 1050;
-    background: var(--deep-espresso);
+    background: linear-gradient(135deg, #1C130E 0%, #291811 100%);
     color: var(--bg-cream);
     padding: 0.85rem 1.25rem;
     border-radius: var(--radius-xl);
-    border: 1px solid var(--tan-accent);
-    box-shadow: 0 16px 48px rgba(61, 41, 35, 0.45);
+    border: 1.5px solid var(--primary);
+    box-shadow: 0 16px 48px rgba(28, 19, 14, 0.45), 0 0 24px rgba(234, 88, 12, 0.25);
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -533,7 +580,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .floating-cart-btn {
-    background: var(--cognac-gold);
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-hover) 100%);
     color: #ffffff;
     border: none;
     border-radius: var(--radius-full);
@@ -545,6 +592,7 @@ h1, h2, h3, h4, h5, h6 {
     align-items: center;
     gap: 0.4rem;
     transition: all 0.2s ease;
+    box-shadow: 0 4px 14px rgba(234, 88, 12, 0.35);
 }
 
 .floating-cart-btn:hover {
@@ -559,7 +607,7 @@ h1, h2, h3, h4, h5, h6 {
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(61, 41, 35, 0.6);
+    background: rgba(28, 19, 14, 0.6);
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
     z-index: 1100;
@@ -584,7 +632,7 @@ h1, h2, h3, h4, h5, h6 {
     background: var(--bg-cream);
     border-top: 1px solid var(--tan-accent);
     border-radius: 28px 28px 0 0;
-    box-shadow: 0 -16px 50px rgba(61, 41, 35, 0.35);
+    box-shadow: 0 -16px 50px rgba(28, 19, 14, 0.35);
     z-index: 1110;
     display: flex;
     flex-direction: column;
@@ -597,7 +645,7 @@ h1, h2, h3, h4, h5, h6 {
 
 .drawer-header {
     padding: 1.25rem 1.5rem;
-    border-bottom: 1px solid rgba(214, 184, 154, 0.4);
+    border-bottom: 1px solid rgba(226, 194, 157, 0.4);
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -615,7 +663,7 @@ h1, h2, h3, h4, h5, h6 {
     justify-content: space-between;
     gap: 0.75rem;
     padding: 0.85rem 0;
-    border-bottom: 1px solid rgba(214, 184, 154, 0.25);
+    border-bottom: 1px solid rgba(226, 194, 157, 0.25);
 }
 
 .cart-item-details {
@@ -636,7 +684,7 @@ h1, h2, h3, h4, h5, h6 {
 .drawer-footer {
     padding: 1.25rem 1.5rem;
     background: #ffffff;
-    border-top: 1px solid rgba(214, 184, 154, 0.4);
+    border-top: 1px solid rgba(226, 194, 157, 0.4);
 }
 
 .bill-row {
@@ -659,7 +707,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .desk-payment-notice {
-    background: rgba(178, 131, 90, 0.12);
+    background: rgba(234, 88, 12, 0.12);
     border: 1px solid var(--tan-accent);
     border-radius: var(--radius-md);
     padding: 0.75rem 1rem;
@@ -717,7 +765,7 @@ h1, h2, h3, h4, h5, h6 {
     border: 1px solid var(--glass-border);
     border-radius: var(--radius-md);
     padding: 1rem;
-    box-shadow: 0 4px 14px rgba(61, 41, 35, 0.08);
+    box-shadow: 0 4px 14px rgba(28, 19, 14, 0.08);
     transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
@@ -895,12 +943,12 @@ h1, h2, h3, h4, h5, h6 {
     background: var(--deep-espresso);
     border-color: var(--deep-espresso);
     color: #ffffff;
-    box-shadow: 0 4px 12px rgba(61, 41, 35, 0.2);
+    box-shadow: 0 4px 12px rgba(28, 19, 14, 0.2);
 }
 
 .pos-order-card {
     background: #ffffff;
-    border: 1.5px solid rgba(214, 184, 154, 0.4);
+    border: 1.5px solid rgba(226, 194, 157, 0.4);
     border-radius: 18px;
     padding: 1.1rem;
     margin-bottom: 0.75rem;
@@ -912,14 +960,14 @@ h1, h2, h3, h4, h5, h6 {
 .pos-order-card:hover {
     border-color: var(--cognac-gold);
     transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(61, 41, 35, 0.1);
+    box-shadow: 0 8px 20px rgba(28, 19, 14, 0.1);
 }
 
 .pos-order-card.selected {
-    border-color: var(--cognac-gold);
-    background: linear-gradient(135deg, rgba(255, 255, 255, 1) 0%, rgba(246, 238, 227, 0.6) 100%);
-    box-shadow: 0 8px 24px rgba(178, 131, 90, 0.25);
-    border-left: 6px solid var(--cognac-gold);
+    border-color: var(--primary);
+    background: linear-gradient(135deg, rgba(255, 255, 255, 1) 0%, rgba(250, 247, 242, 0.85) 100%);
+    box-shadow: 0 8px 24px rgba(234, 88, 12, 0.25);
+    border-left: 6px solid var(--primary);
 }
 
 .denomination-btn {
@@ -959,14 +1007,14 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .dash-tab-btn:hover {
-    background: rgba(214, 184, 154, 0.25);
+    background: rgba(226, 194, 157, 0.25);
     color: var(--deep-espresso);
 }
 
 .dash-tab-btn.active {
-    background: var(--deep-espresso);
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-hover) 100%);
     color: #ffffff;
-    box-shadow: 0 4px 14px rgba(61, 41, 35, 0.25);
+    box-shadow: 0 4px 14px rgba(234, 88, 12, 0.3);
 }
 
 .dash-tab-pane {
@@ -989,7 +1037,7 @@ h1, h2, h3, h4, h5, h6 {
 
 .table-matrix-card:hover {
     transform: translateY(-3px);
-    box-shadow: 0 10px 25px rgba(61, 41, 35, 0.12);
+    box-shadow: 0 10px 25px rgba(28, 19, 14, 0.12);
 }
 
 .table-matrix-card.occupied {
@@ -1011,7 +1059,7 @@ h1, h2, h3, h4, h5, h6 {
     padding: 0.85rem 1rem;
     border-radius: 16px;
     background: var(--bg-cream);
-    border: 1px solid rgba(214, 184, 154, 0.4);
+    border: 1px solid rgba(226, 194, 157, 0.4);
     transition: all 0.25s ease;
 }
 

@@ -3,11 +3,11 @@
 
 {% block title %}Order #{{ order_number }} Live Status — {{ restaurant_name }}{% endblock %}
 {% block meta_description %}Live interactive order tracking and status for Order #{{ order_number }} at {{ restaurant_name }}{% endblock %}
-{% block body_class %}tracking-page{% endblock %}
+{% block body_class %}tracking-page customer-table-body{% endblock %}
 
 {% block body %}
 <!-- App Header -->
-<header class="app-header" style="background: var(--deep-espresso); color: var(--bg-cream); border-bottom: 2px solid var(--tan-accent);">
+<header class="app-header" style="background: var(--deep-espresso); color: var(--bg-cream); border-bottom: 2px solid var(--primary);">
     <div class="header-inner" style="max-width: 900px;">
         <a href="/" class="brand-logo text-white">
             <span class="logo-icon">🍽️</span>
