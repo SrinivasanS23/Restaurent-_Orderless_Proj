@@ -41,14 +41,22 @@ def customer_menu_view(request, table_number):
         logger.warning(f"[INVALID_TABLE_REQUEST] Table='{table_number}'")
         raise Http404(f"Table '{table_number}' does not exist. Valid dining tables are T01 to T10.")
 
+    table = None
     try:
-        table, _ = RestaurantTable.objects.get_or_create(
-            table_number=norm_table,
-            defaults={'active': True}
-        )
+        table = RestaurantTable.objects.filter(table_number=norm_table).first()
+        if not table:
+            table, _ = RestaurantTable.objects.get_or_create(
+                table_number=norm_table,
+                defaults={'active': True}
+            )
     except Exception as e:
         logger.error(f"[CUSTOMER_MENU_DB_ERROR] Table='{norm_table}' Error: {e}", exc_info=True)
-        raise
+        class FallbackTable:
+            table_number = norm_table
+            display_number = norm_table.replace('T', '')
+            active = True
+            qr_token = ''
+        table = FallbackTable()
 
     if not table.active:
         return render(request, 'customer/table_unavailable.html', {
