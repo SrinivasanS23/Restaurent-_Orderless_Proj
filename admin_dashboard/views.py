@@ -538,7 +538,7 @@ def export_customers_csv(request):
 # MENU MANAGEMENT (ADD, EDIT, DELETE DISHES) CRUD APIS
 # =========================================================================
 
-@api_view(['GET', 'POST'])
+@api_view(['GET', 'POST', 'DELETE'])
 @csrf_exempt
 @authentication_classes([])
 @permission_classes([AllowAny])
@@ -607,6 +607,42 @@ def menu_items_api(request):
             'item': MenuItemSerializer(item).data
         }, status=status.HTTP_201_CREATED)
 
+    elif request.method == 'DELETE':
+        data = request.data
+        item_ids = data.get('item_ids', [])
+        if not item_ids and 'item_id' in data:
+            item_ids = [data['item_id']]
+
+        if not item_ids:
+            return Response({'error': 'Please select at least one dish to delete.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            item_ids = [int(i) for i in item_ids]
+        except (ValueError, TypeError):
+            return Response({'error': 'Invalid dish IDs provided.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # 1. Sync delete in bulk to InsForge Cloud DB
+        try:
+            from utils.cloud_db import delete_menu_items_bulk_from_cloud
+            delete_menu_items_bulk_from_cloud(item_ids)
+        except Exception as e:
+            logger.error(f"[CLOUD_BULK_DEL_ERR] {e}")
+
+        # 2. Unlink order items and delete in local SQLite
+        try:
+            from orders.models import OrderItem
+            OrderItem.objects.filter(menu_item_id__in=item_ids).update(menu_item=None)
+            MenuItem.objects.filter(id__in=item_ids).update(is_deleted=True, available=False)
+            MenuItem.objects.filter(id__in=item_ids).delete()
+        except Exception as e:
+            logger.error(f"[LOCAL_BULK_DEL_ERR] {e}")
+
+        count = len(item_ids)
+        return Response({
+            'message': f"Successfully removed {count} {'dishes' if count > 1 else 'dish'} from menu.",
+            'deleted_ids': item_ids
+        }, status=status.HTTP_200_OK)
+
 
 @api_view(['GET', 'PUT', 'PATCH', 'DELETE'])
 @csrf_exempt
@@ -621,6 +657,13 @@ def menu_item_detail_api(request, item_id):
     try:
         item = MenuItem.objects.get(id=item_id)
     except MenuItem.DoesNotExist:
+        if request.method == 'DELETE':
+            try:
+                from utils.cloud_db import delete_menu_item_from_cloud
+                delete_menu_item_from_cloud(item_id)
+            except Exception:
+                pass
+            return Response({'message': 'Menu item removed from menu successfully.'}, status=status.HTTP_200_OK)
         return Response({'error': 'Menu item not found.'}, status=status.HTTP_404_NOT_FOUND)
     
     if request.method == 'GET':

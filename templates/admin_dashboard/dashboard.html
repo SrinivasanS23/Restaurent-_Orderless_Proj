@@ -164,9 +164,17 @@
                     </h4>
                     <div class="small text-muted">Toggle dishes In Stock / Out of Stock in 1-click. Updates customers immediately.</div>
                 </div>
-                <button class="btn-premium btn-premium-primary" onclick="openAddDishModal()">
-                    <i class="bi bi-plus-lg"></i> Add New Dish
-                </button>
+                <div class="d-flex align-items-center gap-2 flex-wrap">
+                    <button type="button" class="btn btn-outline-secondary rounded-pill px-3 fw-bold" id="btnSelectAllDishes" onclick="toggleSelectAllDishes()" style="font-size:0.85rem; border-color:var(--tan-accent); color:var(--deep-espresso); background:#ffffff;">
+                        <i class="bi bi-check2-all me-1"></i> Select all
+                    </button>
+                    <button type="button" class="btn btn-danger rounded-pill px-3 fw-bold" id="btnDeleteSelectedDishes" onclick="openBulkDeleteModal()" style="display:none; font-size:0.85rem; box-shadow:0 4px 14px rgba(220,38,38,0.25);">
+                        <i class="bi bi-trash-fill me-1"></i> Delete Selected (<span id="selectedDishesCount">0</span>)
+                    </button>
+                    <button type="button" class="btn-premium btn-premium-primary" onclick="openAddDishModal()">
+                        <i class="bi bi-plus-lg"></i> Add New Dish
+                    </button>
+                </div>
             </div>
 
             <!-- Category Filter Pills -->
@@ -466,6 +474,25 @@
 
 </main>
 
+<!-- Delete Confirmation Modal (In-App, never blocked by browser) -->
+<div id="deleteConfirmModal" style="display:none; position:fixed; inset:0; background:rgba(23,58,51,0.72); backdrop-filter:blur(6px); z-index:1070; align-items:center; justify-content:center; padding:1rem;">
+    <div class="glass-panel p-4" style="background:#ffffff; max-width:440px; width:100%; border-radius:22px; border:2px solid var(--tan-accent); box-shadow:0 20px 40px rgba(0,0,0,0.25); text-align:center;">
+        <div style="width:60px; height:60px; border-radius:50%; background:rgba(220,38,38,0.1); color:#dc2626; display:flex; align-items:center; justify-content:center; font-size:1.8rem; margin:0 auto 1rem;">
+            <i class="bi bi-trash3-fill"></i>
+        </div>
+        <h5 class="fw-bold mb-2" id="deleteModalTitle" style="color:var(--deep-espresso);">Remove Dish from Menu?</h5>
+        <p class="small text-muted mb-4" id="deleteModalMsg" style="font-size:0.9rem; line-height:1.4;">
+            Are you sure you want to remove this dish? It will be taken off customer tables immediately.
+        </p>
+        <div class="d-flex gap-2 justify-content-center">
+            <button type="button" class="btn btn-outline-secondary rounded-pill px-4" onclick="closeDeleteConfirmModal()">Cancel</button>
+            <button type="button" class="btn btn-danger rounded-pill px-4 fw-bold" id="btnConfirmDelete" onclick="executePendingDelete()">
+                Yes, Delete
+            </button>
+        </div>
+    </div>
+</div>
+
 <!-- Add Dish Modal (with Device Image Upload + Emoji selector) -->
 <div id="addDishModal" style="display:none; position:fixed; inset:0; background:rgba(61,41,35,0.75); backdrop-filter:blur(8px); z-index:1060; align-items:center; justify-content:center; padding:1rem;">
     <div class="glass-panel p-4" style="background:#ffffff; max-width:540px; width:100%; border-radius:24px; border:2px solid var(--tan-accent); box-shadow:0 20px 40px rgba(61,41,35,0.2);">
@@ -714,17 +741,83 @@ async function loadMenuItems() {
     }
 }
 
+let selectedDishIds = new Set();
+let pendingDeleteAction = null;
+
+function getVisibleMenuItems() {
+    if (activeMenuCat === 'ALL') return allMenuItems;
+    return allMenuItems.filter(i => (i.category === activeMenuCat || (i.category && i.category.id === activeMenuCat)));
+}
+
+function updateSelectionUI() {
+    const countEl = document.getElementById('selectedDishesCount');
+    const bulkBtn = document.getElementById('btnDeleteSelectedDishes');
+    const selectAllBtn = document.getElementById('btnSelectAllDishes');
+
+    const count = selectedDishIds.size;
+    if (countEl) countEl.textContent = count;
+    if (bulkBtn) bulkBtn.style.display = count > 0 ? 'inline-flex' : 'none';
+
+    const visibleItems = getVisibleMenuItems();
+    const allSelected = visibleItems.length > 0 && visibleItems.every(i => selectedDishIds.has(i.id));
+
+    if (selectAllBtn) {
+        if (allSelected) {
+            selectAllBtn.innerHTML = '<i class="bi bi-x-circle me-1"></i> Deselect all';
+        } else {
+            selectAllBtn.innerHTML = '<i class="bi bi-check2-all me-1"></i> Select all';
+        }
+    }
+
+    visibleItems.forEach(item => {
+        const isSel = selectedDishIds.has(item.id);
+        const cardInner = document.getElementById(`menu-card-inner-${item.id}`);
+        const chk = document.getElementById(`dish-select-${item.id}`);
+
+        if (chk) chk.checked = isSel;
+        if (cardInner) {
+            cardInner.style.borderColor = isSel ? 'var(--forest-green)' : 'var(--tan-accent)';
+            cardInner.style.borderWidth = isSel ? '2px' : '1px';
+            if (isSel) {
+                cardInner.style.boxShadow = '0 6px 18px rgba(15,94,74,0.18)';
+            } else {
+                cardInner.style.boxShadow = '';
+            }
+        }
+    });
+}
+
+function toggleDishSelection(itemId, isChecked) {
+    if (isChecked) {
+        selectedDishIds.add(itemId);
+    } else {
+        selectedDishIds.delete(itemId);
+    }
+    updateSelectionUI();
+}
+
+function toggleSelectAllDishes() {
+    const visibleItems = getVisibleMenuItems();
+    if (visibleItems.length === 0) return;
+
+    const allSelected = visibleItems.every(i => selectedDishIds.has(i.id));
+    if (allSelected) {
+        visibleItems.forEach(i => selectedDishIds.delete(i.id));
+    } else {
+        visibleItems.forEach(i => selectedDishIds.add(i.id));
+    }
+    updateSelectionUI();
+}
+
 function renderMenuItemsGrid() {
     const grid = document.getElementById('menuItemsGrid');
     if (!grid) return;
 
-    let items = allMenuItems;
-    if (activeMenuCat !== 'ALL') {
-        items = allMenuItems.filter(i => (i.category === activeMenuCat || (i.category && i.category.id === activeMenuCat)));
-    }
+    let items = getVisibleMenuItems();
 
     if (items.length === 0) {
         grid.innerHTML = `<div class="col-12 text-center py-4 text-muted">No dishes in this category.</div>`;
+        updateSelectionUI();
         return;
     }
 
@@ -734,13 +827,18 @@ function renderMenuItemsGrid() {
             ? `<img src="${imgSrc}" alt="${item.name}" style="width:48px; height:48px; border-radius:14px; object-fit:cover; box-shadow:0 4px 10px rgba(0,0,0,0.08);" />`
             : `<span style="font-size: 2rem;">${item.emoji || '🍽️'}</span>`;
 
+        const isSelected = selectedDishIds.has(item.id);
+
         return `
         <div class="col-md-6 col-lg-4 col-xl-3" id="menu-card-${item.id}">
-            <div class="glass-panel p-3 h-100 d-flex flex-column justify-content-between" id="menu-card-inner-${item.id}" style="background:#ffffff; border-color:var(--tan-accent); border-top: 4px solid ${item.available ? '#16a34a' : '#dc2626'}; border-radius:18px; transition: border-color 0.25s ease;">
+            <div class="glass-panel p-3 h-100 d-flex flex-column justify-content-between" id="menu-card-inner-${item.id}" style="background:#ffffff; border-color:${isSelected ? 'var(--forest-green)' : 'var(--tan-accent)'}; border-width:${isSelected ? '2px' : '1px'}; border-top: 4px solid ${item.available ? '#16a34a' : '#dc2626'}; border-radius:18px; transition: border-color 0.25s ease, box-shadow 0.25s ease; ${isSelected ? 'box-shadow: 0 6px 18px rgba(15,94,74,0.18);' : ''}">
                 <div>
                     <div class="d-flex justify-content-between align-items-start mb-2">
-                        ${iconHtml}
-                        <div class="form-check form-switch">
+                        <div class="d-flex align-items-center gap-2">
+                            <input class="form-check-input dish-select-box" type="checkbox" id="dish-select-${item.id}" ${isSelected ? 'checked' : ''} onchange="toggleDishSelection(${item.id}, this.checked)" title="Select this dish for bulk action" style="cursor:pointer; width:1.25em; height:1.25em; margin:0;">
+                            ${iconHtml}
+                        </div>
+                        <div class="form-check form-switch m-0">
                             <input class="form-check-input" type="checkbox" role="switch" id="stock-switch-${item.id}" ${item.available ? 'checked' : ''} onchange="toggleDishStock(${item.id}, this.checked)" title="Toggle In-Stock / Out-of-Stock" style="cursor:pointer; width:2.5em; height:1.35em;">
                         </div>
                     </div>
@@ -757,13 +855,15 @@ function renderMenuItemsGrid() {
 
                 <div class="d-flex justify-content-between align-items-center pt-2 border-top mt-2">
                     <strong style="color:var(--deep-espresso); font-size:1.15rem;">₹${parseFloat(item.price).toFixed(2)}</strong>
-                    <button class="btn btn-sm btn-outline-danger p-1 px-2" style="border-radius:8px;" onclick="deleteDish(${item.id})" id="delete-btn-${item.id}" title="Remove Dish from Menu">
-                        <i class="bi bi-trash"></i>
+                    <button type="button" class="btn btn-sm btn-outline-danger p-1 px-2" style="border-radius:8px; pointer-events:auto;" onclick="openSingleDeleteModal(${item.id})" id="delete-btn-${item.id}" title="Remove Dish from Menu">
+                        <i class="bi bi-trash" style="pointer-events:none;"></i>
                     </button>
                 </div>
             </div>
         </div>`;
     }).join('');
+
+    updateSelectionUI();
 }
 
 async function toggleDishStock(itemId, isAvailable) {
@@ -888,55 +988,141 @@ function updateEmojiPreview(val) {
     }
 }
 
-async function deleteDish(itemId) {
-    const item = allMenuItems.find(i => i.id === itemId);
+function openSingleDeleteModal(itemId) {
+    const item = allMenuItems.find(i => i.id == itemId);
     const name = item ? item.name : 'this dish';
 
-    if (!confirm(`Are you sure you want to remove '${name}' from the menu?`)) return;
+    pendingDeleteAction = { type: 'single', id: itemId, name: name };
 
-    const delBtn = document.getElementById(`delete-btn-${itemId}`);
-    if (delBtn) {
-        delBtn.disabled = true;
-        delBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status"></span>';
+    const title = document.getElementById('deleteModalTitle');
+    const msg = document.getElementById('deleteModalMsg');
+    const btn = document.getElementById('btnConfirmDelete');
+
+    if (title) title.textContent = `Remove '${name}'?`;
+    if (msg) msg.textContent = `Are you sure you want to remove '${name}' from the menu? It will be removed from customer tables immediately.`;
+    if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = 'Yes, Delete Dish';
     }
 
-    try {
-        const res = await fetch(`/dashboard/api/menu-items/${itemId}/`, {
-            method: 'DELETE',
-            headers: {
-                'X-CSRFToken': getCSRF(),
-                'Content-Type': 'application/json'
-            }
-        });
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok) throw new Error(data.error || 'Failed to remove dish');
+    const modal = document.getElementById('deleteConfirmModal');
+    if (modal) modal.style.display = 'flex';
+}
 
-        const card = document.getElementById(`menu-card-${itemId}`);
+function openBulkDeleteModal() {
+    if (selectedDishIds.size === 0) return;
+
+    const count = selectedDishIds.size;
+    pendingDeleteAction = { type: 'bulk', ids: Array.from(selectedDishIds) };
+
+    const title = document.getElementById('deleteModalTitle');
+    const msg = document.getElementById('deleteModalMsg');
+    const btn = document.getElementById('btnConfirmDelete');
+
+    if (title) title.textContent = `Remove ${count} Selected Dishes?`;
+    if (msg) msg.textContent = `Are you sure you want to permanently remove ${count} selected dishes from the menu? They will be removed from customer tables immediately.`;
+    if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = `Yes, Delete ${count} Dishes`;
+    }
+
+    const modal = document.getElementById('deleteConfirmModal');
+    if (modal) modal.style.display = 'flex';
+}
+
+function closeDeleteConfirmModal() {
+    const modal = document.getElementById('deleteConfirmModal');
+    if (modal) modal.style.display = 'none';
+    pendingDeleteAction = null;
+}
+
+async function executePendingDelete() {
+    if (!pendingDeleteAction) return;
+
+    const btn = document.getElementById('btnConfirmDelete');
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status"></span> Deleting...';
+    }
+
+    if (pendingDeleteAction.type === 'single') {
+        const itemId = pendingDeleteAction.id;
+        const name = pendingDeleteAction.name;
+
+        try {
+            const res = await fetch(`/dashboard/api/menu-items/${itemId}/`, {
+                method: 'DELETE',
+                headers: {
+                    'X-CSRFToken': getCSRF(),
+                    'Content-Type': 'application/json'
+                }
+            });
+            const data = await res.json().catch(() => ({}));
+            
+            selectedDishIds.delete(itemId);
+            animateRemoveCards([itemId]);
+            closeDeleteConfirmModal();
+            showToast('info', data.message || `Removed '${name}' from menu.`);
+        } catch (e) {
+            if (btn) {
+                btn.disabled = false;
+                btn.textContent = 'Yes, Delete Dish';
+            }
+            showToast('error', e.message || 'Failed to delete dish.');
+        }
+    } else if (pendingDeleteAction.type === 'bulk') {
+        const ids = pendingDeleteAction.ids;
+        try {
+            const res = await fetch('/dashboard/api/menu-items/', {
+                method: 'DELETE',
+                headers: {
+                    'X-CSRFToken': getCSRF(),
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ item_ids: ids })
+            });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(data.error || 'Failed to delete selected dishes');
+
+            ids.forEach(id => selectedDishIds.delete(id));
+            animateRemoveCards(ids);
+            closeDeleteConfirmModal();
+            showToast('info', data.message || `Removed ${ids.length} dishes from menu.`);
+        } catch (e) {
+            if (btn) {
+                btn.disabled = false;
+                btn.textContent = `Yes, Delete ${ids.length} Dishes`;
+            }
+            showToast('error', e.message || 'Failed to delete selected dishes.');
+        }
+    }
+}
+
+function animateRemoveCards(itemIds) {
+    const idSet = new Set(itemIds);
+    itemIds.forEach(id => {
+        const card = document.getElementById(`menu-card-${id}`);
         if (card) {
             card.style.transition = 'all 0.3s ease';
             card.style.opacity = '0';
             card.style.transform = 'scale(0.85)';
-            setTimeout(() => {
-                card.remove();
-                allMenuItems = allMenuItems.filter(i => i.id !== itemId);
-                const grid = document.getElementById('menuItemsGrid');
-                if (grid && (!grid.children || grid.children.length === 0)) {
-                    grid.innerHTML = `<div class="col-12 text-center py-4 text-muted">No dishes in this category.</div>`;
-                }
-            }, 300);
-        } else {
-            allMenuItems = allMenuItems.filter(i => i.id !== itemId);
-            renderMenuItemsGrid();
+            setTimeout(() => card.remove(), 300);
         }
+    });
 
-        showToast('info', data.message || `Removed '${name}' from menu.`);
-    } catch (e) {
-        if (delBtn) {
-            delBtn.disabled = false;
-            delBtn.innerHTML = '<i class="bi bi-trash"></i>';
+    setTimeout(() => {
+        allMenuItems = allMenuItems.filter(i => !idSet.has(i.id));
+        updateSelectionUI();
+        const grid = document.getElementById('menuItemsGrid');
+        if (grid && (!grid.children || grid.children.length === 0)) {
+            grid.innerHTML = `<div class="col-12 text-center py-4 text-muted">No dishes in this category.</div>`;
         }
-        showToast('error', e.message || 'Failed to delete dish.');
-    }
+    }, 320);
+}
+
+// Backward compatibility alias
+function deleteDish(itemId) {
+    openSingleDeleteModal(itemId);
 }
 
 function openAddDishModal() {

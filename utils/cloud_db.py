@@ -319,6 +319,17 @@ def delete_menu_item_from_cloud(item_id):
     _make_cloud_request(f"/api/database/records/orderless_menu?id=eq.{item_id}", method="DELETE")
 
 
+def delete_menu_items_bulk_from_cloud(item_ids):
+    """Mark and remove multiple MenuItems in InsForge Cloud DB."""
+    if not item_ids:
+        return
+    for item_id in item_ids:
+        try:
+            delete_menu_item_from_cloud(item_id)
+        except Exception as e:
+            logger.debug(f"[CLOUD_BULK_DEL_ERR] {item_id}: {e}")
+
+
 def pull_and_sync_menu_from_cloud():
     """Sync all active menu items from InsForge Cloud DB to local SQLite."""
     from menu.models import MenuCategory, MenuItem
