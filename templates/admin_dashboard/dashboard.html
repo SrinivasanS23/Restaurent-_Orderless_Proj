@@ -735,20 +735,20 @@ function renderMenuItemsGrid() {
             : `<span style="font-size: 2rem;">${item.emoji || '🍽️'}</span>`;
 
         return `
-        <div class="col-md-6 col-lg-4 col-xl-3">
-            <div class="glass-panel p-3 h-100 d-flex flex-column justify-content-between" style="background:#ffffff; border-color:var(--tan-accent); border-top: 4px solid ${item.available ? '#16a34a' : '#dc2626'}; border-radius:18px;">
+        <div class="col-md-6 col-lg-4 col-xl-3" id="menu-card-${item.id}">
+            <div class="glass-panel p-3 h-100 d-flex flex-column justify-content-between" id="menu-card-inner-${item.id}" style="background:#ffffff; border-color:var(--tan-accent); border-top: 4px solid ${item.available ? '#16a34a' : '#dc2626'}; border-radius:18px; transition: border-color 0.25s ease;">
                 <div>
                     <div class="d-flex justify-content-between align-items-start mb-2">
                         ${iconHtml}
                         <div class="form-check form-switch">
-                            <input class="form-check-input" type="checkbox" role="switch" ${item.available ? 'checked' : ''} onchange="toggleDishStock(${item.id}, this.checked)" title="Toggle In-Stock / Out-of-Stock">
+                            <input class="form-check-input" type="checkbox" role="switch" id="stock-switch-${item.id}" ${item.available ? 'checked' : ''} onchange="toggleDishStock(${item.id}, this.checked)" title="Toggle In-Stock / Out-of-Stock" style="cursor:pointer; width:2.5em; height:1.35em;">
                         </div>
                     </div>
                     <h5 class="fw-bold mb-1" style="color:var(--deep-espresso); font-size:1.05rem;">${item.name}</h5>
                     <div class="d-flex gap-1 mb-2 flex-wrap">
                         ${item.is_vegetarian ? '<span class="badge bg-success" style="font-size:0.65rem;">VEG</span>' : '<span class="badge bg-danger" style="font-size:0.65rem;">NON-VEG</span>'}
                         ${item.is_bestseller ? '<span class="badge bg-warning text-dark" style="font-size:0.65rem;">BESTSELLER</span>' : ''}
-                        <span class="badge ${item.available ? 'bg-success-subtle text-success' : 'bg-danger-subtle text-danger'}" style="font-size:0.65rem;">
+                        <span class="badge ${item.available ? 'bg-success-subtle text-success' : 'bg-danger-subtle text-danger'}" style="font-size:0.65rem;" id="stock-badge-${item.id}">
                             ${item.available ? 'IN STOCK' : 'OUT OF STOCK'}
                         </span>
                     </div>
@@ -757,7 +757,7 @@ function renderMenuItemsGrid() {
 
                 <div class="d-flex justify-content-between align-items-center pt-2 border-top mt-2">
                     <strong style="color:var(--deep-espresso); font-size:1.15rem;">₹${parseFloat(item.price).toFixed(2)}</strong>
-                    <button class="btn btn-sm btn-outline-danger p-1 px-2" style="border-radius:8px;" onclick="deleteDish(${item.id}, this.dataset.dishName)" data-dish-name="${encodeURIComponent(item.name)}" title="Remove Dish from Menu">
+                    <button class="btn btn-sm btn-outline-danger p-1 px-2" style="border-radius:8px;" onclick="deleteDish(${item.id})" id="delete-btn-${item.id}" title="Remove Dish from Menu">
                         <i class="bi bi-trash"></i>
                     </button>
                 </div>
@@ -769,9 +769,25 @@ function renderMenuItemsGrid() {
 async function toggleDishStock(itemId, isAvailable) {
     const item = allMenuItems.find(i => i.id === itemId);
     const oldVal = item ? item.available : !isAvailable;
+
     if (item) {
         item.available = isAvailable;
-        renderMenuItemsGrid();
+    }
+
+    // Targeted in-place DOM update so switches stay responsive and never flicker
+    const cardInner = document.getElementById(`menu-card-inner-${itemId}`);
+    const badge = document.getElementById(`stock-badge-${itemId}`);
+    const switchEl = document.getElementById(`stock-switch-${itemId}`);
+
+    if (cardInner) {
+        cardInner.style.borderTopColor = isAvailable ? '#16a34a' : '#dc2626';
+    }
+    if (badge) {
+        badge.className = `badge ${isAvailable ? 'bg-success-subtle text-success' : 'bg-danger-subtle text-danger'}`;
+        badge.textContent = isAvailable ? 'IN STOCK' : 'OUT OF STOCK';
+    }
+    if (switchEl) {
+        switchEl.checked = isAvailable;
     }
 
     try {
@@ -786,14 +802,16 @@ async function toggleDishStock(itemId, isAvailable) {
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Failed to update item stock');
 
-        showToast('success', data.message || `Dish availability updated.`);
-        await loadMenuItems();
+        showToast('success', `${item ? item.name : 'Dish'} is now ${isAvailable ? 'In Stock' : 'Out of Stock'}.`);
     } catch (e) {
-        if (item) {
-            item.available = oldVal;
-            renderMenuItemsGrid();
+        if (item) item.available = oldVal;
+        if (cardInner) cardInner.style.borderTopColor = oldVal ? '#16a34a' : '#dc2626';
+        if (badge) {
+            badge.className = `badge ${oldVal ? 'bg-success-subtle text-success' : 'bg-danger-subtle text-danger'}`;
+            badge.textContent = oldVal ? 'IN STOCK' : 'OUT OF STOCK';
         }
-        showToast('error', e.message);
+        if (switchEl) switchEl.checked = oldVal;
+        showToast('error', e.message || 'Failed to update stock');
     }
 }
 
@@ -870,19 +888,17 @@ function updateEmojiPreview(val) {
     }
 }
 
-async function deleteDish(itemId, encodedName) {
-    let name = 'this dish';
-    try {
-        name = decodeURIComponent(encodedName);
-    } catch (e) {
-        name = encodedName || 'this dish';
-    }
+async function deleteDish(itemId) {
+    const item = allMenuItems.find(i => i.id === itemId);
+    const name = item ? item.name : 'this dish';
 
     if (!confirm(`Are you sure you want to remove '${name}' from the menu?`)) return;
 
-    const previousItems = [...allMenuItems];
-    allMenuItems = allMenuItems.filter(i => i.id !== itemId);
-    renderMenuItemsGrid();
+    const delBtn = document.getElementById(`delete-btn-${itemId}`);
+    if (delBtn) {
+        delBtn.disabled = true;
+        delBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status"></span>';
+    }
 
     try {
         const res = await fetch(`/dashboard/api/menu-items/${itemId}/`, {
@@ -895,11 +911,30 @@ async function deleteDish(itemId, encodedName) {
         const data = await res.json().catch(() => ({}));
         if (!res.ok) throw new Error(data.error || 'Failed to remove dish');
 
+        const card = document.getElementById(`menu-card-${itemId}`);
+        if (card) {
+            card.style.transition = 'all 0.3s ease';
+            card.style.opacity = '0';
+            card.style.transform = 'scale(0.85)';
+            setTimeout(() => {
+                card.remove();
+                allMenuItems = allMenuItems.filter(i => i.id !== itemId);
+                const grid = document.getElementById('menuItemsGrid');
+                if (grid && (!grid.children || grid.children.length === 0)) {
+                    grid.innerHTML = `<div class="col-12 text-center py-4 text-muted">No dishes in this category.</div>`;
+                }
+            }, 300);
+        } else {
+            allMenuItems = allMenuItems.filter(i => i.id !== itemId);
+            renderMenuItemsGrid();
+        }
+
         showToast('info', data.message || `Removed '${name}' from menu.`);
-        await loadMenuItems();
     } catch (e) {
-        allMenuItems = previousItems;
-        renderMenuItemsGrid();
+        if (delBtn) {
+            delBtn.disabled = false;
+            delBtn.innerHTML = '<i class="bi bi-trash"></i>';
+        }
         showToast('error', e.message || 'Failed to delete dish.');
     }
 }

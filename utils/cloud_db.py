@@ -328,6 +328,7 @@ def pull_and_sync_menu_from_cloud():
         if not cloud_items or not isinstance(cloud_items, list):
             return
 
+        active_cloud_ids = set()
         for citem in cloud_items:
             mid = citem.get('id')
             if not mid:
@@ -339,6 +340,7 @@ def pull_and_sync_menu_from_cloud():
                 MenuItem.objects.filter(id=mid).update(is_deleted=True, available=False)
                 continue
 
+            active_cloud_ids.add(mid)
             cat_name = citem.get('category_name', 'Starters')
             category, _ = MenuCategory.objects.get_or_create(
                 name=cat_name,
@@ -362,5 +364,9 @@ def pull_and_sync_menu_from_cloud():
                     'is_deleted': False
                 }
             )
+
+        # Mark any local items NOT in active_cloud_ids as deleted so they NEVER reappear
+        if active_cloud_ids:
+            MenuItem.objects.exclude(id__in=active_cloud_ids).update(is_deleted=True, available=False)
     except Exception as e:
         logger.debug(f"[CLOUD_PULL_MENU_ERR] {e}")
