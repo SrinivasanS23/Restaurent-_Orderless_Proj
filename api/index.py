@@ -16,12 +16,19 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
 # Ensure sqlite database exists in /tmp with write permissions on serverless cold starts
 sqlite_src = PROJECT_ROOT / 'db.sqlite3'
 sqlite_dst = Path('/tmp/db.sqlite3')
-if not sqlite_dst.exists() and sqlite_src.exists():
-    try:
-        shutil.copyfile(str(sqlite_src), str(sqlite_dst))
-        os.chmod(str(sqlite_dst), 0o666)
-    except Exception as e:
-        print(f"[VERCEL_INIT_DB_COPY_ERROR]: {e}")
+if not sqlite_dst.exists():
+    if sqlite_src.exists():
+        try:
+            shutil.copyfile(str(sqlite_src), str(sqlite_dst))
+            os.chmod(str(sqlite_dst), 0o666)
+        except Exception as e:
+            print(f"[VERCEL_INIT_DB_COPY_ERROR]: {e}")
+    else:
+        try:
+            from django.core.management import call_command
+            call_command('migrate', interactive=False)
+        except Exception as e:
+            print(f"[VERCEL_INIT_MIGRATE_ERROR]: {e}")
 
 # Initialize PyMySQL as MySQLdb for MySQL 8 backend
 import pymysql
