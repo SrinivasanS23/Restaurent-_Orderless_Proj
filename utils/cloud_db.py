@@ -283,7 +283,7 @@ def pull_and_sync_all_orders_from_cloud():
 
 
 def sync_menu_item_to_cloud(item):
-    """Upsert MenuItem to InsForge Cloud DB."""
+    """Upsert or update MenuItem in InsForge Cloud DB with direct PATCH & fallback POST."""
     if not item:
         return
     payload = {
@@ -294,17 +294,20 @@ def sync_menu_item_to_cloud(item):
         "price": str(item.price),
         "emoji": item.emoji or "🍽️",
         "image_url": item.image_url or (item.image.url if item.image else ""),
-        "available": item.available,
-        "is_vegetarian": item.is_vegetarian,
-        "is_bestseller": item.is_bestseller,
-        "is_deleted": getattr(item, 'is_deleted', False),
+        "available": bool(item.available),
+        "is_vegetarian": bool(item.is_vegetarian),
+        "is_bestseller": bool(item.is_bestseller),
+        "is_deleted": bool(getattr(item, 'is_deleted', False)),
         "updated_at": timezone.now().isoformat()
     }
-    _make_cloud_request("/api/database/records/orderless_menu?on_conflict=id", method="POST", data=payload)
+    # First attempt direct PATCH on existing record by id
+    patched = _make_cloud_request(f"/api/database/records/orderless_menu?id=eq.{item.id}", method="PATCH", data=payload)
+    if not patched:
+        _make_cloud_request("/api/database/records/orderless_menu?on_conflict=id", method="POST", data=payload)
 
 
 def delete_menu_item_from_cloud(item_id):
-    """Mark MenuItem as is_deleted in InsForge Cloud DB."""
+    """Mark MenuItem as is_deleted and remove from active Cloud DB records."""
     if not item_id:
         return
     payload = {
@@ -313,6 +316,7 @@ def delete_menu_item_from_cloud(item_id):
         "updated_at": timezone.now().isoformat()
     }
     _make_cloud_request(f"/api/database/records/orderless_menu?id=eq.{item_id}", method="PATCH", data=payload)
+    _make_cloud_request(f"/api/database/records/orderless_menu?id=eq.{item_id}", method="DELETE")
 
 
 def pull_and_sync_menu_from_cloud():

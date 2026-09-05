@@ -23,6 +23,12 @@ def customer_home_view(request):
 def _get_menu_categories_json():
     """Helper to fetch active categories and serialized menu items for instant first paint."""
     try:
+        from utils.cloud_db import pull_and_sync_menu_from_cloud
+        pull_and_sync_menu_from_cloud()
+    except Exception:
+        pass
+
+    try:
         categories = MenuCategory.objects.filter(active=True).prefetch_related('items')
         serializer = MenuCategorySerializer(categories, many=True)
         return json.dumps(serializer.data)

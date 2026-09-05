@@ -665,6 +665,14 @@ def menu_item_detail_api(request, item_id):
             item.is_bestseller = bool(data['is_bestseller'])
             
         item.save()
+
+        # Sync availability and edits immediately to InsForge Cloud DB
+        try:
+            from utils.cloud_db import sync_menu_item_to_cloud
+            sync_menu_item_to_cloud(item)
+        except Exception as e:
+            logger.error(f"[MENU_ITEM_PATCH_CLOUD_ERR] {e}")
+
         return Response({
             'message': f"Menu item '{item.name}' updated successfully.",
             'item': MenuItemSerializer(item).data
@@ -673,22 +681,25 @@ def menu_item_detail_api(request, item_id):
     elif request.method == 'DELETE':
         item_name = item.name
         item_id = item.id
+        
+        # 1. Sync delete to InsForge Cloud DB immediately
+        try:
+            from utils.cloud_db import delete_menu_item_from_cloud
+            delete_menu_item_from_cloud(item_id)
+        except Exception as e:
+            logger.error(f"[CLOUD_DELETE_ERR] {e}")
+
+        # 2. Mark deleted and unavailable locally
         item.is_deleted = True
         item.available = False
         item.save()
 
-        # Unlink past orders so deletion succeeds cleanly
+        # 3. Unlink past order items and delete locally
         try:
             item.order_items.all().update(menu_item=None)
             item.delete()
-        except Exception:
-            pass
-
-        try:
-            from utils.cloud_db import delete_menu_item_from_cloud
-            delete_menu_item_from_cloud(item_id)
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug(f"[LOCAL_DELETE_ERR] {e}")
 
         return Response({'message': f"Menu item '{item_name}' removed from menu successfully."}, status=status.HTTP_200_OK)
 

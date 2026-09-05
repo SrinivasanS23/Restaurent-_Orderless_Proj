@@ -767,6 +767,13 @@ function renderMenuItemsGrid() {
 }
 
 async function toggleDishStock(itemId, isAvailable) {
+    const item = allMenuItems.find(i => i.id === itemId);
+    const oldVal = item ? item.available : !isAvailable;
+    if (item) {
+        item.available = isAvailable;
+        renderMenuItemsGrid();
+    }
+
     try {
         const res = await fetch(`/dashboard/api/menu-items/${itemId}/`, {
             method: 'PATCH',
@@ -780,10 +787,13 @@ async function toggleDishStock(itemId, isAvailable) {
         if (!res.ok) throw new Error(data.error || 'Failed to update item stock');
 
         showToast('success', data.message || `Dish availability updated.`);
-        loadMenuItems();
+        await loadMenuItems();
     } catch (e) {
+        if (item) {
+            item.available = oldVal;
+            renderMenuItemsGrid();
+        }
         showToast('error', e.message);
-        loadMenuItems();
     }
 }
 
@@ -869,6 +879,11 @@ async function deleteDish(itemId, encodedName) {
     }
 
     if (!confirm(`Are you sure you want to remove '${name}' from the menu?`)) return;
+
+    const previousItems = [...allMenuItems];
+    allMenuItems = allMenuItems.filter(i => i.id !== itemId);
+    renderMenuItemsGrid();
+
     try {
         const res = await fetch(`/dashboard/api/menu-items/${itemId}/`, {
             method: 'DELETE',
@@ -883,6 +898,8 @@ async function deleteDish(itemId, encodedName) {
         showToast('info', data.message || `Removed '${name}' from menu.`);
         await loadMenuItems();
     } catch (e) {
+        allMenuItems = previousItems;
+        renderMenuItemsGrid();
         showToast('error', e.message || 'Failed to delete dish.');
     }
 }
