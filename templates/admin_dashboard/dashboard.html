@@ -8,18 +8,6 @@
 {% block extra_css %}
 <style>
 /* Dashboard Mobile & Touch Optimizations */
-@media (min-width: 1200px) {
-    .row-cols-xl-5 > * {
-        flex: 0 0 20%;
-        max-width: 20%;
-    }
-}
-@media (max-width: 575.98px) {
-    .col-12-mobile-odd {
-        flex: 0 0 100% !important;
-        max-width: 100% !important;
-    }
-}
 .dash-tabs-scroll-container {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
@@ -122,9 +110,9 @@
 <!-- Main Dashboard Container -->
 <main class="container-fluid py-4 px-3 px-xl-4" style="max-width: 1650px; margin: 0 auto;">
 
-    <!-- Revenue & Financial Performance Cards Row (5 Cards) -->
-    <div class="row g-2 g-sm-3 mb-2 mb-md-3 row-cols-2 row-cols-md-3 row-cols-xl-5">
-        <!-- 1. TOTAL REVENUE -->
+    <!-- Revenue & Operational Performance Cards (2 Rows of 4 Columns) -->
+    <div class="row g-2 g-sm-3 mb-3 mb-md-4 row-cols-2 row-cols-md-4">
+        <!-- ROW 1, COL 1: TOTAL REVENUE -->
         <div class="col">
             <div class="glass-panel p-2.5 p-sm-3 h-100" style="background: #ffffff; border-color: var(--tan-accent); border-left: 5px solid #16a34a;">
                 <div class="d-flex align-items-center justify-content-between mb-1">
@@ -136,7 +124,7 @@
             </div>
         </div>
 
-        <!-- 2. TODAY'S REVENUE -->
+        <!-- ROW 1, COL 2: TODAY'S REVENUE -->
         <div class="col">
             <div class="glass-panel p-2.5 p-sm-3 h-100" style="background: #ffffff; border-color: var(--tan-accent); border-left: 5px solid #0F5E4A;">
                 <div class="d-flex align-items-center justify-content-between mb-1">
@@ -148,7 +136,7 @@
             </div>
         </div>
 
-        <!-- 3. THIS WEEK REVENUE -->
+        <!-- ROW 1, COL 3: THIS WEEK REVENUE -->
         <div class="col">
             <div class="glass-panel p-2.5 p-sm-3 h-100" style="background: #ffffff; border-color: var(--tan-accent); border-left: 5px solid #2563eb;">
                 <div class="d-flex align-items-center justify-content-between mb-1">
@@ -160,7 +148,7 @@
             </div>
         </div>
 
-        <!-- 4. THIS MONTH REVENUE -->
+        <!-- ROW 1, COL 4: THIS MONTH REVENUE -->
         <div class="col">
             <div class="glass-panel p-2.5 p-sm-3 h-100" style="background: #ffffff; border-color: var(--tan-accent); border-left: 5px solid #7c3aed;">
                 <div class="d-flex align-items-center justify-content-between mb-1">
@@ -172,8 +160,8 @@
             </div>
         </div>
 
-        <!-- 5. LAST BILL VALUE -->
-        <div class="col col-12-mobile-odd">
+        <!-- ROW 2, COL 1: LAST BILL VALUE -->
+        <div class="col">
             <div class="glass-panel p-2.5 p-sm-3 h-100" style="background: #ffffff; border-color: var(--tan-accent); border-left: 5px solid #d97706;">
                 <div class="d-flex align-items-center justify-content-between mb-1">
                     <span class="small fw-bold text-muted text-uppercase kpi-title" style="font-size:0.72rem; letter-spacing:0.02em;">LAST BILL VALUE</span>
@@ -185,43 +173,40 @@
                 </div>
             </div>
         </div>
-    </div>
 
-    <!-- Operations & Dining Room Row -->
-    <div class="row g-2 g-sm-3 mb-3 mb-md-4">
-        <!-- 1. Total Orders Placed -->
-        <div class="col-6 col-lg-4">
+        <!-- ROW 2, COL 2: ORDERS PLACED -->
+        <div class="col">
             <div class="glass-panel p-2.5 p-sm-3 h-100" style="background: #ffffff; border-color: var(--tan-accent); border-left: 5px solid #f59e0b;">
                 <div class="d-flex align-items-center justify-content-between mb-1">
-                    <span class="small fw-bold text-muted text-uppercase kpi-title" style="font-size:0.75rem;">Orders Placed</span>
+                    <span class="small fw-bold text-muted text-uppercase kpi-title" style="font-size:0.72rem; letter-spacing:0.02em;">ORDERS PLACED</span>
                     <span class="kpi-icon" style="font-size: 1.25rem;">📦</span>
                 </div>
                 <h2 id="kpiOrders" class="kpi-num" style="font-family: var(--font-heading); font-weight: 900; color: var(--deep-espresso); margin-bottom: 0.15rem; font-size: 1.45rem;">0</h2>
-                <div class="small text-muted kpi-sub" style="font-size:0.75rem;"><span id="kpiActiveOrders" class="fw-bold text-warning">0</span> active now</div>
+                <div class="small text-muted kpi-sub" style="font-size:0.72rem;"><span id="kpiActiveOrders" class="fw-bold text-warning">0</span> active now</div>
             </div>
         </div>
 
-        <!-- 2. Active Tables Occupied -->
-        <div class="col-6 col-lg-4">
-            <div class="glass-panel p-2.5 p-sm-3 h-100" style="background: #ffffff; border-color: var(--tan-accent); border-left: 5px solid #2563eb;">
+        <!-- ROW 2, COL 3: TABLES OCCUPIED -->
+        <div class="col">
+            <div class="glass-panel p-2.5 p-sm-3 h-100" style="background: #ffffff; border-color: var(--tan-accent); border-left: 5px solid #0284c7;">
                 <div class="d-flex align-items-center justify-content-between mb-1">
-                    <span class="small fw-bold text-muted text-uppercase kpi-title" style="font-size:0.75rem;">Tables Occupied</span>
+                    <span class="small fw-bold text-muted text-uppercase kpi-title" style="font-size:0.72rem; letter-spacing:0.02em;">TABLES OCCUPIED</span>
                     <span class="kpi-icon" style="font-size: 1.25rem;">🪑</span>
                 </div>
                 <h2 id="kpiTables" class="kpi-num" style="font-family: var(--font-heading); font-weight: 900; color: var(--deep-espresso); margin-bottom: 0.15rem; font-size: 1.45rem;">0 / 10</h2>
-                <div class="small text-muted kpi-sub" style="font-size:0.75rem;"><span id="kpiTablesAvail" class="fw-bold text-primary">10</span> available</div>
+                <div class="small text-muted kpi-sub" style="font-size:0.72rem;"><span id="kpiTablesAvail" class="fw-bold text-primary">10</span> available</div>
             </div>
         </div>
 
-        <!-- 3. Average Ticket / Customer Count -->
-        <div class="col-12 col-lg-4">
-            <div class="glass-panel p-2.5 p-sm-3 h-100" style="background: #ffffff; border-color: var(--tan-accent); border-left: 5px solid var(--cognac-gold);">
+        <!-- ROW 2, COL 4: AVG BILL TICKET -->
+        <div class="col">
+            <div class="glass-panel p-2.5 p-sm-3 h-100" style="background: #ffffff; border-color: var(--tan-accent); border-left: 5px solid var(--cognac-gold, #c29d59);">
                 <div class="d-flex align-items-center justify-content-between mb-1">
-                    <span class="small fw-bold text-muted text-uppercase kpi-title" style="font-size:0.75rem;">Avg Bill Ticket</span>
+                    <span class="small fw-bold text-muted text-uppercase kpi-title" style="font-size:0.72rem; letter-spacing:0.02em;">AVG BILL TICKET</span>
                     <span class="kpi-icon" style="font-size: 1.25rem;">⭐</span>
                 </div>
                 <h2 id="kpiAvgBill" class="kpi-num" style="font-family: var(--font-heading); font-weight: 900; color: var(--deep-espresso); margin-bottom: 0.15rem; font-size: 1.45rem;">₹0.00</h2>
-                <div class="small text-muted kpi-sub" style="font-size:0.75rem;"><span id="kpiCustCount" class="fw-bold" style="color:var(--roasted-walnut);">0</span> unique guests</div>
+                <div class="small text-muted kpi-sub" style="font-size:0.72rem;"><span id="kpiCustCount" class="fw-bold" style="color:var(--roasted-walnut);">0</span> unique guests</div>
             </div>
         </div>
     </div>
