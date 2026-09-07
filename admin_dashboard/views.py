@@ -4,7 +4,7 @@ from django.views.decorators.csrf import csrf_exempt
 import csv
 import io
 import re
-from datetime import datetime, time, date
+from datetime import datetime, time, date, timedelta
 from decimal import Decimal
 from django.shortcuts import render
 from django.http import HttpResponse
@@ -53,6 +53,11 @@ def dashboard_stats_api(request):
     start_of_today = timezone.make_aware(datetime.combine(today, time.min))
     end_of_today = timezone.make_aware(datetime.combine(today, time.max))
     
+    # Week Range (Current Week starting Monday)
+    start_of_week_date = today - timedelta(days=today.weekday())
+    start_of_week = timezone.make_aware(datetime.combine(start_of_week_date, time.min))
+    end_of_week = timezone.make_aware(datetime.combine(start_of_week_date + timedelta(days=7), time.min))
+
     # Month Range (Current Month)
     start_of_month = timezone.make_aware(datetime(today.year, today.month, 1, 0, 0, 0))
     if today.month == 12:
@@ -77,6 +82,16 @@ def dashboard_stats_api(request):
         payment_status='PAID'
     ).distinct()
     today_sales = today_paid.aggregate(total=Sum('total_amount'))['total'] or 0
+    today_paid_count = today_paid.count()
+
+    # Week Revenue
+    week_paid = Order.objects.filter(
+        Q(paid_at__gte=start_of_week, paid_at__lt=end_of_week) |
+        Q(created_at__gte=start_of_week, created_at__lt=end_of_week, payment_status='PAID'),
+        payment_status='PAID'
+    ).distinct()
+    week_sales = week_paid.aggregate(total=Sum('total_amount'))['total'] or 0
+    week_paid_count = week_paid.count()
     
     # Monthly Revenue
     month_paid = Order.objects.filter(
@@ -85,6 +100,7 @@ def dashboard_stats_api(request):
         payment_status='PAID'
     ).distinct()
     month_sales = month_paid.aggregate(total=Sum('total_amount'))['total'] or 0
+    month_paid_count = month_paid.count()
 
     # Yearly Revenue
     year_paid = Order.objects.filter(
@@ -97,6 +113,17 @@ def dashboard_stats_api(request):
     all_paid = Order.objects.filter(payment_status='PAID').distinct()
     all_time_revenue = all_paid.aggregate(total=Sum('total_amount'))['total'] or 0
     paid_orders = all_paid.count()
+
+    # Last Bill Value (Most recent paid bill, or latest active bill)
+    last_bill_order = Order.objects.filter(payment_status='PAID').order_by('-paid_at', '-id').first()
+    if not last_bill_order:
+        last_bill_order = Order.objects.exclude(order_status='CANCELLED').order_by('-created_at', '-id').first()
+    
+    last_bill_value = last_bill_order.total_amount if last_bill_order else 0
+    last_bill_number = last_bill_order.order_number if last_bill_order else None
+    last_bill_table = last_bill_order.table.table_number if (last_bill_order and last_bill_order.table) else None
+    last_bill_time = (last_bill_order.paid_at or last_bill_order.created_at) if last_bill_order else None
+    last_bill_time_str = last_bill_time.strftime('%I:%M %p') if last_bill_time else ''
     
     # Active orders count in restaurant (pending payment or cooking)
     pending_payments = Order.objects.filter(payment_status='PENDING').exclude(order_status='CANCELLED').count()
@@ -115,10 +142,17 @@ def dashboard_stats_api(request):
         'total_orders': total_orders,
         'total_orders_count': total_orders,
         'today_sales': str(today_sales),
-        'total_revenue': str(display_revenue),
-        'today_order_count': today_order_count,
+        'today_paid_count': today_paid_count,
+        'week_sales': str(week_sales),
+        'week_paid_count': week_paid_count,
         'month_sales': str(month_sales),
+        'month_paid_count': month_paid_count,
         'year_sales': str(year_sales),
+        'total_revenue': str(display_revenue),
+        'last_bill_value': str(last_bill_value),
+        'last_bill_order_number': last_bill_number,
+        'last_bill_table': last_bill_table,
+        'last_bill_time': last_bill_time_str,
         'paid_orders': paid_orders,
         'paid_orders_count': paid_orders,
         'pending_payments': pending_payments,

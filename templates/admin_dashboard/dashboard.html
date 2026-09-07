@@ -8,6 +8,18 @@
 {% block extra_css %}
 <style>
 /* Dashboard Mobile & Touch Optimizations */
+@media (min-width: 1200px) {
+    .row-cols-xl-5 > * {
+        flex: 0 0 20%;
+        max-width: 20%;
+    }
+}
+@media (max-width: 575.98px) {
+    .col-12-mobile-odd {
+        flex: 0 0 100% !important;
+        max-width: 100% !important;
+    }
+}
 .dash-tabs-scroll-container {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
@@ -110,53 +122,106 @@
 <!-- Main Dashboard Container -->
 <main class="container-fluid py-4 px-3 px-xl-4" style="max-width: 1650px; margin: 0 auto;">
 
-    <!-- Top KPI Cards Row -->
-    <div class="row g-2 g-sm-3 mb-3 mb-md-4">
-        <!-- 1. Total Revenue -->
-        <div class="col-6 col-lg-3">
+    <!-- Revenue & Financial Performance Cards Row (5 Cards) -->
+    <div class="row g-2 g-sm-3 mb-2 mb-md-3 row-cols-2 row-cols-md-3 row-cols-xl-5">
+        <!-- 1. TOTAL REVENUE -->
+        <div class="col">
             <div class="glass-panel p-2.5 p-sm-3 h-100" style="background: #ffffff; border-color: var(--tan-accent); border-left: 5px solid #16a34a;">
                 <div class="d-flex align-items-center justify-content-between mb-1">
-                    <span class="small fw-bold text-muted text-uppercase kpi-title" style="font-size:0.75rem;">Total Revenue</span>
-                    <span class="kpi-icon" style="font-size: 1.3rem;">💰</span>
+                    <span class="small fw-bold text-muted text-uppercase kpi-title" style="font-size:0.72rem; letter-spacing:0.02em;">TOTAL REVENUE</span>
+                    <span class="kpi-icon" style="font-size: 1.25rem;">💰</span>
                 </div>
-                <h2 id="kpiRevenue" class="kpi-num" style="font-family: var(--font-heading); font-weight: 900; color: var(--deep-espresso); margin-bottom: 0.15rem; font-size: 1.55rem;">₹0.00</h2>
-                <div class="small text-muted kpi-sub" style="font-size:0.75rem;"><span id="kpiPaidCount" class="fw-bold text-success">0</span> paid bills</div>
+                <h2 id="kpiRevenue" class="kpi-num" style="font-family: var(--font-heading); font-weight: 900; color: var(--deep-espresso); margin-bottom: 0.15rem; font-size: 1.45rem;">₹0.00</h2>
+                <div class="small text-muted kpi-sub" style="font-size:0.72rem;"><span id="kpiPaidCount" class="fw-bold text-success">0</span> paid bills</div>
             </div>
         </div>
 
-        <!-- 2. Total Orders Placed -->
-        <div class="col-6 col-lg-3">
+        <!-- 2. TODAY'S REVENUE -->
+        <div class="col">
+            <div class="glass-panel p-2.5 p-sm-3 h-100" style="background: #ffffff; border-color: var(--tan-accent); border-left: 5px solid #0F5E4A;">
+                <div class="d-flex align-items-center justify-content-between mb-1">
+                    <span class="small fw-bold text-muted text-uppercase kpi-title" style="font-size:0.72rem; letter-spacing:0.02em;">TODAY'S REVENUE</span>
+                    <span class="kpi-icon" style="font-size: 1.25rem;">⚡</span>
+                </div>
+                <h2 id="kpiTodayRevenue" class="kpi-num" style="font-family: var(--font-heading); font-weight: 900; color: #0F5E4A; margin-bottom: 0.15rem; font-size: 1.45rem;">₹0.00</h2>
+                <div class="small text-muted kpi-sub" style="font-size:0.72rem;"><span id="kpiTodayPaidCount" class="fw-bold" style="color:#0F5E4A;">0</span> paid today</div>
+            </div>
+        </div>
+
+        <!-- 3. THIS WEEK REVENUE -->
+        <div class="col">
+            <div class="glass-panel p-2.5 p-sm-3 h-100" style="background: #ffffff; border-color: var(--tan-accent); border-left: 5px solid #2563eb;">
+                <div class="d-flex align-items-center justify-content-between mb-1">
+                    <span class="small fw-bold text-muted text-uppercase kpi-title" style="font-size:0.72rem; letter-spacing:0.02em;">THIS WEEK REVENUE</span>
+                    <span class="kpi-icon" style="font-size: 1.25rem;">📈</span>
+                </div>
+                <h2 id="kpiWeekRevenue" class="kpi-num" style="font-family: var(--font-heading); font-weight: 900; color: var(--deep-espresso); margin-bottom: 0.15rem; font-size: 1.45rem;">₹0.00</h2>
+                <div class="small text-muted kpi-sub" style="font-size:0.72rem;"><span id="kpiWeekPaidCount" class="fw-bold text-primary">0</span> paid this week</div>
+            </div>
+        </div>
+
+        <!-- 4. THIS MONTH REVENUE -->
+        <div class="col">
+            <div class="glass-panel p-2.5 p-sm-3 h-100" style="background: #ffffff; border-color: var(--tan-accent); border-left: 5px solid #7c3aed;">
+                <div class="d-flex align-items-center justify-content-between mb-1">
+                    <span class="small fw-bold text-muted text-uppercase kpi-title" style="font-size:0.72rem; letter-spacing:0.02em;">THIS MONTH REVENUE</span>
+                    <span class="kpi-icon" style="font-size: 1.25rem;">🗓️</span>
+                </div>
+                <h2 id="kpiMonthRevenue" class="kpi-num" style="font-family: var(--font-heading); font-weight: 900; color: var(--deep-espresso); margin-bottom: 0.15rem; font-size: 1.45rem;">₹0.00</h2>
+                <div class="small text-muted kpi-sub" style="font-size:0.72rem;"><span id="kpiMonthPaidCount" class="fw-bold" style="color:#7c3aed;">0</span> paid this month</div>
+            </div>
+        </div>
+
+        <!-- 5. LAST BILL VALUE -->
+        <div class="col col-12-mobile-odd">
             <div class="glass-panel p-2.5 p-sm-3 h-100" style="background: #ffffff; border-color: var(--tan-accent); border-left: 5px solid #d97706;">
                 <div class="d-flex align-items-center justify-content-between mb-1">
-                    <span class="small fw-bold text-muted text-uppercase kpi-title" style="font-size:0.75rem;">Orders Placed</span>
-                    <span class="kpi-icon" style="font-size: 1.3rem;">📦</span>
+                    <span class="small fw-bold text-muted text-uppercase kpi-title" style="font-size:0.72rem; letter-spacing:0.02em;">LAST BILL VALUE</span>
+                    <span class="kpi-icon" style="font-size: 1.25rem;">🧾</span>
                 </div>
-                <h2 id="kpiOrders" class="kpi-num" style="font-family: var(--font-heading); font-weight: 900; color: var(--deep-espresso); margin-bottom: 0.15rem; font-size: 1.55rem;">0</h2>
+                <h2 id="kpiLastBillValue" class="kpi-num" style="font-family: var(--font-heading); font-weight: 900; color: var(--deep-espresso); margin-bottom: 0.15rem; font-size: 1.45rem;">₹0.00</h2>
+                <div class="small text-muted kpi-sub text-truncate" style="font-size:0.72rem;">
+                    <span id="kpiLastBillOrder" class="fw-bold" style="color:#d97706;">None</span> · <span id="kpiLastBillTable">No bills yet</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Operations & Dining Room Row -->
+    <div class="row g-2 g-sm-3 mb-3 mb-md-4">
+        <!-- 1. Total Orders Placed -->
+        <div class="col-6 col-lg-4">
+            <div class="glass-panel p-2.5 p-sm-3 h-100" style="background: #ffffff; border-color: var(--tan-accent); border-left: 5px solid #f59e0b;">
+                <div class="d-flex align-items-center justify-content-between mb-1">
+                    <span class="small fw-bold text-muted text-uppercase kpi-title" style="font-size:0.75rem;">Orders Placed</span>
+                    <span class="kpi-icon" style="font-size: 1.25rem;">📦</span>
+                </div>
+                <h2 id="kpiOrders" class="kpi-num" style="font-family: var(--font-heading); font-weight: 900; color: var(--deep-espresso); margin-bottom: 0.15rem; font-size: 1.45rem;">0</h2>
                 <div class="small text-muted kpi-sub" style="font-size:0.75rem;"><span id="kpiActiveOrders" class="fw-bold text-warning">0</span> active now</div>
             </div>
         </div>
 
-        <!-- 3. Active Tables Occupied -->
-        <div class="col-6 col-lg-3">
+        <!-- 2. Active Tables Occupied -->
+        <div class="col-6 col-lg-4">
             <div class="glass-panel p-2.5 p-sm-3 h-100" style="background: #ffffff; border-color: var(--tan-accent); border-left: 5px solid #2563eb;">
                 <div class="d-flex align-items-center justify-content-between mb-1">
-                    <span class="small fw-bold text-muted text-uppercase kpi-title" style="font-size:0.75rem;">Tables</span>
-                    <span class="kpi-icon" style="font-size: 1.3rem;">🪑</span>
+                    <span class="small fw-bold text-muted text-uppercase kpi-title" style="font-size:0.75rem;">Tables Occupied</span>
+                    <span class="kpi-icon" style="font-size: 1.25rem;">🪑</span>
                 </div>
-                <h2 id="kpiTables" class="kpi-num" style="font-family: var(--font-heading); font-weight: 900; color: var(--deep-espresso); margin-bottom: 0.15rem; font-size: 1.55rem;">0 / 10</h2>
+                <h2 id="kpiTables" class="kpi-num" style="font-family: var(--font-heading); font-weight: 900; color: var(--deep-espresso); margin-bottom: 0.15rem; font-size: 1.45rem;">0 / 10</h2>
                 <div class="small text-muted kpi-sub" style="font-size:0.75rem;"><span id="kpiTablesAvail" class="fw-bold text-primary">10</span> available</div>
             </div>
         </div>
 
-        <!-- 4. Average Ticket / Customer Count -->
-        <div class="col-6 col-lg-3">
+        <!-- 3. Average Ticket / Customer Count -->
+        <div class="col-12 col-lg-4">
             <div class="glass-panel p-2.5 p-sm-3 h-100" style="background: #ffffff; border-color: var(--tan-accent); border-left: 5px solid var(--cognac-gold);">
                 <div class="d-flex align-items-center justify-content-between mb-1">
-                    <span class="small fw-bold text-muted text-uppercase kpi-title" style="font-size:0.75rem;">Avg Bill</span>
-                    <span class="kpi-icon" style="font-size: 1.3rem;">⭐</span>
+                    <span class="small fw-bold text-muted text-uppercase kpi-title" style="font-size:0.75rem;">Avg Bill Ticket</span>
+                    <span class="kpi-icon" style="font-size: 1.25rem;">⭐</span>
                 </div>
-                <h2 id="kpiAvgBill" class="kpi-num" style="font-family: var(--font-heading); font-weight: 900; color: var(--deep-espresso); margin-bottom: 0.15rem; font-size: 1.55rem;">₹0.00</h2>
-                <div class="small text-muted kpi-sub" style="font-size:0.75rem;"><span id="kpiCustCount" class="fw-bold" style="color:var(--roasted-walnut);">0</span> guests</div>
+                <h2 id="kpiAvgBill" class="kpi-num" style="font-family: var(--font-heading); font-weight: 900; color: var(--deep-espresso); margin-bottom: 0.15rem; font-size: 1.45rem;">₹0.00</h2>
+                <div class="small text-muted kpi-sub" style="font-size:0.75rem;"><span id="kpiCustCount" class="fw-bold" style="color:var(--roasted-walnut);">0</span> unique guests</div>
             </div>
         </div>
     </div>
@@ -801,14 +866,51 @@ async function loadDashboardStats() {
         if (!res.ok) return;
         const data = await res.json();
 
-        document.getElementById('kpiRevenue').textContent = `₹${parseFloat(data.total_revenue || 0).toFixed(2)}`;
-        document.getElementById('kpiPaidCount').textContent = data.paid_orders_count || 0;
-        document.getElementById('kpiOrders').textContent = data.total_orders_count || 0;
-        document.getElementById('kpiActiveOrders').textContent = data.active_orders_count || 0;
-        document.getElementById('kpiTables').textContent = `${data.occupied_tables || 0} / 10`;
-        document.getElementById('kpiTablesAvail').textContent = `${10 - (data.occupied_tables || 0)}`;
-        document.getElementById('kpiAvgBill').textContent = `₹${parseFloat(data.average_ticket || 0).toFixed(2)}`;
-        document.getElementById('kpiCustCount').textContent = data.unique_customers_count || 0;
+        // 1. TOTAL REVENUE
+        const elRev = document.getElementById('kpiRevenue');
+        if (elRev) elRev.textContent = `₹${parseFloat(data.total_revenue || 0).toFixed(2)}`;
+        const elPaidCount = document.getElementById('kpiPaidCount');
+        if (elPaidCount) elPaidCount.textContent = data.paid_orders_count || 0;
+
+        // 2. TODAY'S REVENUE
+        const elToday = document.getElementById('kpiTodayRevenue');
+        if (elToday) elToday.textContent = `₹${parseFloat(data.today_sales || 0).toFixed(2)}`;
+        const elTodayCount = document.getElementById('kpiTodayPaidCount');
+        if (elTodayCount) elTodayCount.textContent = data.today_paid_count !== undefined ? data.today_paid_count : 0;
+
+        // 3. THIS WEEK REVENUE
+        const elWeek = document.getElementById('kpiWeekRevenue');
+        if (elWeek) elWeek.textContent = `₹${parseFloat(data.week_sales || 0).toFixed(2)}`;
+        const elWeekCount = document.getElementById('kpiWeekPaidCount');
+        if (elWeekCount) elWeekCount.textContent = data.week_paid_count !== undefined ? data.week_paid_count : 0;
+
+        // 4. THIS MONTH REVENUE
+        const elMonth = document.getElementById('kpiMonthRevenue');
+        if (elMonth) elMonth.textContent = `₹${parseFloat(data.month_sales || 0).toFixed(2)}`;
+        const elMonthCount = document.getElementById('kpiMonthPaidCount');
+        if (elMonthCount) elMonthCount.textContent = data.month_paid_count !== undefined ? data.month_paid_count : 0;
+
+        // 5. LAST BILL VALUE
+        const elLastBill = document.getElementById('kpiLastBillValue');
+        if (elLastBill) elLastBill.textContent = `₹${parseFloat(data.last_bill_value || 0).toFixed(2)}`;
+        const elLastOrder = document.getElementById('kpiLastBillOrder');
+        if (elLastOrder) elLastOrder.textContent = data.last_bill_order_number ? `#${data.last_bill_order_number}` : 'None';
+        const elLastTable = document.getElementById('kpiLastBillTable');
+        if (elLastTable) elLastTable.textContent = data.last_bill_table ? `Table ${data.last_bill_table}` : 'No bills yet';
+
+        // Operations Metrics
+        const elOrders = document.getElementById('kpiOrders');
+        if (elOrders) elOrders.textContent = data.total_orders_count || 0;
+        const elActiveOrders = document.getElementById('kpiActiveOrders');
+        if (elActiveOrders) elActiveOrders.textContent = data.active_orders_count || 0;
+        const elTables = document.getElementById('kpiTables');
+        if (elTables) elTables.textContent = `${data.occupied_tables || 0} / 10`;
+        const elTablesAvail = document.getElementById('kpiTablesAvail');
+        if (elTablesAvail) elTablesAvail.textContent = `${10 - (data.occupied_tables || 0)}`;
+        const elAvgBill = document.getElementById('kpiAvgBill');
+        if (elAvgBill) elAvgBill.textContent = `₹${parseFloat(data.average_ticket || 0).toFixed(2)}`;
+        const elCustCount = document.getElementById('kpiCustCount');
+        if (elCustCount) elCustCount.textContent = data.unique_customers_count || 0;
     } catch (e) {
         console.debug('Stats fetch error:', e);
     }
