@@ -5,26 +5,93 @@
 {% block meta_description %}Executive payment counter terminal for billing and settlement at {{ restaurant_name }}{% endblock %}
 {% block body_class %}pos-page{% endblock %}
 
+{% block extra_css %}
+<style>
+/* Responsive POS Styles */
+.pos-filter-btn {
+    white-space: nowrap;
+    border-radius: 50rem;
+    padding: 0.35rem 0.95rem;
+    font-size: 0.82rem;
+    font-weight: 600;
+    border: 1px solid var(--tan-accent);
+    background: #ffffff;
+    color: var(--deep-espresso);
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+}
+.pos-filter-btn.active, .pos-filter-btn:hover {
+    background: var(--forest-green, #0F5E4A);
+    color: #ffffff;
+    border-color: var(--forest-green, #0F5E4A);
+}
+.pos-view-btn {
+    border: none;
+    background: transparent;
+    color: var(--roasted-walnut, #6c757d);
+    transition: all 0.2s ease;
+    font-weight: 700;
+}
+.pos-view-btn.active {
+    background: var(--forest-green, #0F5E4A) !important;
+    color: #ffffff !important;
+    box-shadow: 0 4px 12px rgba(15,94,74,0.25);
+}
+@media (max-width: 991.98px) {
+    .pos-app-header .header-inner {
+        padding: 0.6rem 0.8rem;
+    }
+    #posQueuePanel {
+        height: auto !important;
+        min-height: 380px;
+        max-height: calc(100vh - 240px);
+    }
+    #billTerminalCard {
+        min-height: auto !important;
+    }
+    .pos-order-card {
+        padding: 0.75rem !important;
+        margin-bottom: 0.65rem !important;
+    }
+    .denomination-btn {
+        padding: 0.35rem 0.75rem !important;
+        font-size: 0.82rem !important;
+    }
+}
+@media (min-width: 992px) {
+    #posQueueColumn, #posBillColumn {
+        display: block !important;
+    }
+    #posQueuePanel {
+        height: calc(100vh - 190px);
+    }
+    #billTerminalCard {
+        min-height: calc(100vh - 190px);
+    }
+}
+</style>
+{% endblock %}
+
 {% block body %}
 <!-- App Header -->
 <header class="app-header pos-app-header" style="background: var(--deep-espresso); color: var(--bg-cream); border-bottom: 2px solid #0F5E4A;">
-    <div class="header-inner" style="max-width: 1550px;">
-        <div class="d-flex align-items-center gap-3">
-            <a href="/" class="brand-logo text-white">
-                <span class="logo-text text-white fw-bold">Payment Counter (POS)</span>
+    <div class="header-inner d-flex align-items-center justify-content-between" style="max-width: 1550px; padding: 0.65rem 1rem;">
+        <div class="d-flex align-items-center gap-2">
+            <a href="/" class="brand-logo text-white text-decoration-none d-flex align-items-center gap-2">
+                <span class="logo-text text-white fw-bold" style="font-size: 1.1rem;">POS Desk</span>
             </a>
-            <span class="badge bg-success text-white fw-bold px-2 py-1" style="font-size: 0.75rem;">DESK TERMINAL</span>
+            <span class="badge bg-success text-white fw-bold px-2 py-1 d-none d-sm-inline" style="font-size: 0.7rem;">TERMINAL</span>
         </div>
 
-        <div class="d-flex align-items-center gap-2">
-            <a href="/dashboard/" class="btn btn-sm btn-outline-light rounded-pill px-3">
-                <i class="bi bi-speedometer2"></i> Admin
+        <div class="d-flex align-items-center gap-1 gap-sm-2">
+            <a href="/dashboard/" class="btn btn-sm btn-outline-light rounded-pill px-2 px-sm-3" title="Admin Operations Dashboard">
+                <i class="bi bi-speedometer2"></i> <span class="d-none d-sm-inline">Admin</span>
             </a>
-            <a href="/kitchen/" class="btn btn-sm btn-outline-light rounded-pill px-3">
-                <i class="bi bi-fire"></i> KDS
+            <a href="/kitchen/" class="btn btn-sm btn-outline-light rounded-pill px-2 px-sm-3" title="Kitchen Display System">
+                <i class="bi bi-fire"></i> <span class="d-none d-sm-inline">KDS</span>
             </a>
-            <a href="/logout/" class="btn btn-sm btn-danger rounded-pill px-3">
-                <i class="bi bi-box-arrow-right"></i> Logout
+            <a href="/logout/" class="btn btn-sm btn-danger rounded-pill px-2 px-sm-3" title="Logout">
+                <i class="bi bi-box-arrow-right"></i> <span class="d-none d-sm-inline">Logout</span>
             </a>
         </div>
     </div>
@@ -36,42 +103,54 @@
     <!-- Top Filter & Search Bar -->
     <div class="glass-panel p-3 mb-3 d-flex align-items-center justify-content-between flex-wrap gap-3" style="background: #ffffff; border-color: var(--tan-accent);">
         <!-- Search Input -->
-        <div class="d-flex align-items-center gap-2 flex-grow-1" style="max-width: 480px;">
-            <div class="input-group">
+        <div class="d-flex align-items-center gap-2 flex-grow-1 w-100 w-md-auto" style="max-width: 480px;">
+            <div class="input-group w-100">
                 <span class="input-group-text" style="background: var(--bg-cream); border-color: var(--tan-accent); color: var(--roasted-walnut);"><i class="bi bi-search"></i></span>
-                <input type="text" id="posSearchInput" class="form-control" placeholder="Search by Order # (e.g. ORD-BEK3) or Table (T01-T10)..." onkeyup="if(event.key==='Enter') searchOrder()" style="border-color: var(--tan-accent); font-weight: 600;">
-                <button class="btn-premium btn-premium-primary" onclick="searchOrder()" style="padding: 0.45rem 1.25rem;">
+                <input type="text" id="posSearchInput" class="form-control" placeholder="Search Order # or Table..." onkeyup="if(event.key==='Enter') searchOrder()" style="border-color: var(--tan-accent); font-weight: 600; font-size:16px;">
+                <button class="btn-premium btn-premium-primary" onclick="searchOrder()" style="padding: 0.45rem 1.1rem; font-size:0.88rem;">
                     Search
                 </button>
             </div>
         </div>
 
-        <!-- Filter Status Pills -->
-        <div class="d-flex align-items-center gap-2 flex-wrap">
+        <!-- Filter Status Pills (Horizontal Swipeable Ribbon) -->
+        <div class="d-flex align-items-center gap-2 flex-nowrap w-100 w-lg-auto" style="overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; padding-bottom: 2px;">
             <button class="pos-filter-btn active" id="filterAll" onclick="setPosFilter('ALL', this)">
-                All Orders (<span id="countAll">0</span>)
+                All (<span id="countAll">0</span>)
             </button>
             <button class="pos-filter-btn" id="filterPayable" onclick="setPosFilter('PAYABLE', this)">
-                ⚡ Ready to Pay (<span id="countPayable">0</span>)
+                ⚡ Ready (<span id="countPayable">0</span>)
             </button>
             <button class="pos-filter-btn" id="filterKitchen" onclick="setPosFilter('KITCHEN', this)">
-                🔥 In Kitchen (<span id="countKitchen">0</span>)
+                🔥 Kitchen (<span id="countKitchen">0</span>)
             </button>
             <button class="pos-filter-btn" id="filterPaid" onclick="setPosFilter('PAID', this)">
                 ✅ Settled (<span id="countPaid">0</span>)
             </button>
-            <button class="btn btn-sm btn-outline-secondary rounded-pill px-3" onclick="loadAllOrders()" title="Refresh">
-                <i class="bi bi-arrow-clockwise"></i> Refresh
+            <button class="btn btn-sm btn-outline-secondary rounded-pill px-3 flex-shrink-0" onclick="loadAllOrders()" title="Refresh">
+                <i class="bi bi-arrow-clockwise"></i>
             </button>
         </div>
     </div>
 
-    <!-- 2-Column Split Terminal -->
+    <!-- Mobile View Segmented Switcher (<992px only) -->
+    <div class="d-lg-none mb-3">
+        <div class="glass-panel p-1 d-flex gap-1" style="background:#ffffff; border-color:var(--tan-accent); border-radius:50rem;">
+            <button type="button" class="btn flex-fill rounded-pill pos-view-btn active py-2" id="posMobileTabQueue" onclick="setPosMobileView('queue')">
+                <i class="bi bi-receipt me-1"></i> Orders Queue (<span id="mobileQueueCountBadge">0</span>)
+            </button>
+            <button type="button" class="btn flex-fill rounded-pill pos-view-btn py-2" id="posMobileTabBill" onclick="setPosMobileView('bill')">
+                <i class="bi bi-credit-card me-1"></i> Active Bill <span class="badge bg-danger ms-1" id="mobileBillActiveDot" style="display:none; font-size:0.6rem;">●</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- 2-Column Split Terminal (Side-by-side on lg+, tabbed toggle on mobile) -->
     <div class="row g-3">
         
-        <!-- LEFT COLUMN: Order Queue (40%) -->
-        <div class="col-lg-5 col-xl-4">
-            <div class="glass-panel p-3" style="background: #ffffff; border-color: var(--tan-accent); height: calc(100vh - 190px); display: flex; flex-direction: column;">
+        <!-- LEFT COLUMN: Order Queue -->
+        <div class="col-lg-5 col-xl-4" id="posQueueColumn">
+            <div class="glass-panel p-3" id="posQueuePanel" style="background: #ffffff; border-color: var(--tan-accent); display: flex; flex-direction: column;">
                 <div class="d-flex align-items-center justify-content-between mb-2 pb-2 border-bottom">
                     <strong style="color: var(--deep-espresso); font-size: 1rem;"><i class="bi bi-receipt"></i> Dining Orders Queue</strong>
                     <span class="badge bg-light text-dark border" id="queueCountBadge">0 active</span>
@@ -88,7 +167,7 @@
         </div>
 
         <!-- RIGHT COLUMN: Selected Order Bill & Payment Terminal (60%) -->
-        <div class="col-lg-7 col-xl-8">
+        <div class="col-lg-7 col-xl-8" id="posBillColumn">
             <div class="glass-panel" id="billTerminalCard" style="background: #ffffff; border-color: var(--tan-accent); min-height: calc(100vh - 190px); display: flex; flex-direction: column;">
                 
                 <!-- Empty State -->
@@ -236,6 +315,10 @@ function updateCounts() {
     document.getElementById('countKitchen').textContent = kitchen;
     document.getElementById('countPaid').textContent = paid;
     document.getElementById('queueCountBadge').textContent = `${payable} ready to pay`;
+    const mobileBadge = document.getElementById('mobileQueueCountBadge');
+    if (mobileBadge) mobileBadge.textContent = `${payable}`;
+    const dot = document.getElementById('mobileBillActiveDot');
+    if (dot) dot.style.display = selectedOrder ? 'inline-block' : 'none';
 }
 
 function renderOrderQueue() {
@@ -295,6 +378,37 @@ function renderOrderQueue() {
     }).join('');
 }
 
+let posMobileActiveTab = 'queue';
+
+function setPosMobileView(view) {
+    posMobileActiveTab = view;
+    const qBtn = document.getElementById('posMobileTabQueue');
+    const bBtn = document.getElementById('posMobileTabBill');
+    const qCol = document.getElementById('posQueueColumn');
+    const bCol = document.getElementById('posBillColumn');
+
+    if (window.innerWidth < 992) {
+        if (view === 'queue') {
+            if (qBtn) qBtn.classList.add('active');
+            if (bBtn) bBtn.classList.remove('active');
+            if (qCol) qCol.style.display = 'block';
+            if (bCol) bCol.style.display = 'none';
+        } else {
+            if (bBtn) bBtn.classList.add('active');
+            if (qBtn) qBtn.classList.remove('active');
+            if (bCol) bCol.style.display = 'block';
+            if (qCol) qCol.style.display = 'none';
+        }
+    } else {
+        if (qCol) qCol.style.display = 'block';
+        if (bCol) bCol.style.display = 'block';
+    }
+}
+
+window.addEventListener('resize', () => {
+    setPosMobileView(posMobileActiveTab);
+});
+
 async function selectOrder(orderNumber) {
     if (!orderNumber) return;
     const cleanNum = orderNumber.trim().toUpperCase().replace('#', '');
@@ -303,6 +417,10 @@ async function selectOrder(orderNumber) {
         selectedOrder = found;
         renderOrderQueue();
         renderBill();
+        if (window.innerWidth < 992) {
+            setPosMobileView('bill');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
     } else {
         try {
             const res = await fetch(`/api/payments/desk/order/${encodeURIComponent(cleanNum)}/`);
@@ -310,6 +428,10 @@ async function selectOrder(orderNumber) {
                 selectedOrder = await res.json();
                 renderOrderQueue();
                 renderBill();
+                if (window.innerWidth < 992) {
+                    setPosMobileView('bill');
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                }
             }
         } catch (e) {
             console.debug('selectOrder fetch err:', e);
@@ -359,8 +481,11 @@ function renderBill() {
     container.innerHTML = `
     <div class="d-flex justify-content-between align-items-start mb-3 pb-3 border-bottom flex-wrap gap-2">
         <div>
-            <div class="d-flex align-items-center gap-2">
-                <h3 style="font-family:var(--font-heading); color:var(--deep-espresso); font-weight:800; margin:0;">
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+                <button type="button" class="btn btn-sm btn-outline-dark rounded-pill d-lg-none px-2 py-1 me-1" onclick="setPosMobileView('queue')" title="Back to Orders Queue">
+                    <i class="bi bi-arrow-left"></i> Queue
+                </button>
+                <h3 style="font-family:var(--font-heading); color:var(--deep-espresso); font-weight:800; margin:0; font-size:1.35rem;">
                     Tax Invoice #${o.order_number}
                 </h3>
                 <span class="table-indicator-badge">TABLE ${o.table_display || o.table_number}</span>

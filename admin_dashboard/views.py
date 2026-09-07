@@ -706,6 +706,9 @@ def menu_item_detail_api(request, item_id):
             
         if 'is_bestseller' in data:
             item.is_bestseller = bool(data['is_bestseller'])
+
+        if 'image_url' in data:
+            item.image_url = str(data['image_url']).strip()
             
         item.save()
 

@@ -5,26 +5,103 @@
 {% block meta_description %}Executive Admin Dashboard for {{ restaurant_name }}{% endblock %}
 {% block body_class %}dashboard-page{% endblock %}
 
+{% block extra_css %}
+<style>
+/* Dashboard Mobile & Touch Optimizations */
+.dash-tabs-scroll-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    flex: 1;
+}
+.dash-tabs-scroll-container::-webkit-scrollbar {
+    display: none;
+}
+.dash-tab-btn {
+    white-space: nowrap;
+    flex-shrink: 0;
+    border-radius: 50rem;
+    padding: 0.45rem 1.1rem;
+    font-size: 0.88rem;
+    font-weight: 700;
+    border: 1px solid var(--tan-accent);
+    background: #ffffff;
+    color: var(--deep-espresso);
+    transition: all 0.2s ease;
+}
+.dash-tab-btn.active, .dash-tab-btn:hover {
+    background: var(--forest-green, #0F5E4A);
+    color: #ffffff;
+    border-color: var(--forest-green, #0F5E4A);
+    box-shadow: 0 4px 12px rgba(15,94,74,0.2);
+}
+.category-pill {
+    white-space: nowrap;
+    border-radius: 50rem;
+    padding: 0.35rem 0.95rem;
+    font-size: 0.82rem;
+    font-weight: 600;
+    border: 1px solid var(--tan-accent);
+    background: #ffffff;
+    color: var(--deep-espresso);
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+}
+.category-pill.active, .category-pill:hover {
+    background: var(--forest-green, #0F5E4A);
+    color: #ffffff;
+    border-color: var(--forest-green, #0F5E4A);
+}
+@media (max-width: 575.98px) {
+    .admin-app-header .header-inner {
+        padding: 0.6rem 0.8rem;
+    }
+    .kpi-title {
+        font-size: 0.72rem !important;
+    }
+    .kpi-num {
+        font-size: 1.35rem !important;
+    }
+    .kpi-icon {
+        font-size: 1.2rem !important;
+    }
+    .kpi-sub {
+        font-size: 0.72rem !important;
+    }
+    .table td, .table th {
+        padding: 0.6rem 0.5rem !important;
+        font-size: 0.84rem !important;
+    }
+}
+@media (max-width: 767.98px) {
+    .dash-tab-pane > .glass-panel {
+        padding: 1rem !important;
+        border-radius: 18px !important;
+    }
+}
+</style>
+{% endblock %}
+
 {% block body %}
 <!-- Admin Top Header -->
 <header class="app-header admin-app-header" style="background: var(--deep-espresso); color: var(--bg-cream); border-bottom: 2px solid #0F5E4A;">
-    <div class="header-inner" style="max-width: 1600px;">
-        <div class="d-flex align-items-center gap-3">
-            <a href="/" class="brand-logo text-white">
-                <span class="logo-text text-white fw-bold">Admin Operations Control</span>
+    <div class="header-inner d-flex align-items-center justify-content-between" style="max-width: 1600px; padding: 0.65rem 1rem;">
+        <div class="d-flex align-items-center gap-2 gap-sm-3">
+            <a href="/" class="brand-logo text-white text-decoration-none d-flex align-items-center gap-2">
+                <span class="logo-text text-white fw-bold" style="font-size: 1.05rem;">Admin Operations</span>
             </a>
-            <span class="badge fw-bold px-2 py-1" style="font-size: 0.75rem; background: linear-gradient(135deg, #0F5E4A, #173A33); color: #F6F1E9; border: 1px solid #B8C4B2;">EXECUTIVE SUITE</span>
+            <span class="badge fw-bold px-2 py-1 d-none d-sm-inline" style="font-size: 0.7rem; background: linear-gradient(135deg, #0F5E4A, #173A33); color: #F6F1E9; border: 1px solid #B8C4B2;">SUITE</span>
         </div>
 
-        <div class="d-flex align-items-center gap-2">
-            <a href="/kitchen/" class="btn btn-sm btn-outline-light rounded-pill px-3">
-                <i class="bi bi-fire"></i> KDS
+        <div class="d-flex align-items-center gap-1 gap-sm-2">
+            <a href="/kitchen/" class="btn btn-sm btn-outline-light rounded-pill px-2 px-sm-3" title="Kitchen Display System">
+                <i class="bi bi-fire"></i> <span class="d-none d-sm-inline">KDS</span>
             </a>
-            <a href="/payment/" class="btn btn-sm btn-outline-light rounded-pill px-3">
-                <i class="bi bi-credit-card"></i> POS Desk
+            <a href="/payment/" class="btn btn-sm btn-outline-light rounded-pill px-2 px-sm-3" title="Payment Counter POS Desk">
+                <i class="bi bi-credit-card"></i> <span class="d-none d-sm-inline">POS Desk</span>
             </a>
-            <a href="/logout/" class="btn btn-sm btn-danger rounded-pill px-3">
-                <i class="bi bi-box-arrow-right"></i> Logout
+            <a href="/logout/" class="btn btn-sm btn-danger rounded-pill px-2 px-sm-3" title="Logout">
+                <i class="bi bi-box-arrow-right"></i> <span class="d-none d-sm-inline">Logout</span>
             </a>
         </div>
     </div>
@@ -34,59 +111,59 @@
 <main class="container-fluid py-4 px-3 px-xl-4" style="max-width: 1650px; margin: 0 auto;">
 
     <!-- Top KPI Cards Row -->
-    <div class="row g-3 mb-4">
+    <div class="row g-2 g-sm-3 mb-3 mb-md-4">
         <!-- 1. Total Revenue -->
         <div class="col-6 col-lg-3">
-            <div class="glass-panel p-3 h-100" style="background: #ffffff; border-color: var(--tan-accent); border-left: 5px solid #16a34a;">
+            <div class="glass-panel p-2.5 p-sm-3 h-100" style="background: #ffffff; border-color: var(--tan-accent); border-left: 5px solid #16a34a;">
                 <div class="d-flex align-items-center justify-content-between mb-1">
-                    <span class="small fw-bold text-muted text-uppercase">Total Revenue</span>
-                    <span style="font-size: 1.4rem;">💰</span>
+                    <span class="small fw-bold text-muted text-uppercase kpi-title" style="font-size:0.75rem;">Total Revenue</span>
+                    <span class="kpi-icon" style="font-size: 1.3rem;">💰</span>
                 </div>
-                <h2 id="kpiRevenue" style="font-family: var(--font-heading); font-weight: 900; color: var(--deep-espresso); margin-bottom: 0.2rem; font-size: 1.75rem;">₹0.00</h2>
-                <div class="small text-muted"><span id="kpiPaidCount" class="fw-bold text-success">0</span> paid transactions</div>
+                <h2 id="kpiRevenue" class="kpi-num" style="font-family: var(--font-heading); font-weight: 900; color: var(--deep-espresso); margin-bottom: 0.15rem; font-size: 1.55rem;">₹0.00</h2>
+                <div class="small text-muted kpi-sub" style="font-size:0.75rem;"><span id="kpiPaidCount" class="fw-bold text-success">0</span> paid bills</div>
             </div>
         </div>
 
         <!-- 2. Total Orders Placed -->
         <div class="col-6 col-lg-3">
-            <div class="glass-panel p-3 h-100" style="background: #ffffff; border-color: var(--tan-accent); border-left: 5px solid #d97706;">
+            <div class="glass-panel p-2.5 p-sm-3 h-100" style="background: #ffffff; border-color: var(--tan-accent); border-left: 5px solid #d97706;">
                 <div class="d-flex align-items-center justify-content-between mb-1">
-                    <span class="small fw-bold text-muted text-uppercase">Orders Placed</span>
-                    <span style="font-size: 1.4rem;">📦</span>
+                    <span class="small fw-bold text-muted text-uppercase kpi-title" style="font-size:0.75rem;">Orders Placed</span>
+                    <span class="kpi-icon" style="font-size: 1.3rem;">📦</span>
                 </div>
-                <h2 id="kpiOrders" style="font-family: var(--font-heading); font-weight: 900; color: var(--deep-espresso); margin-bottom: 0.2rem; font-size: 1.75rem;">0</h2>
-                <div class="small text-muted"><span id="kpiActiveOrders" class="fw-bold text-warning">0</span> active in restaurant</div>
+                <h2 id="kpiOrders" class="kpi-num" style="font-family: var(--font-heading); font-weight: 900; color: var(--deep-espresso); margin-bottom: 0.15rem; font-size: 1.55rem;">0</h2>
+                <div class="small text-muted kpi-sub" style="font-size:0.75rem;"><span id="kpiActiveOrders" class="fw-bold text-warning">0</span> active now</div>
             </div>
         </div>
 
         <!-- 3. Active Tables Occupied -->
         <div class="col-6 col-lg-3">
-            <div class="glass-panel p-3 h-100" style="background: #ffffff; border-color: var(--tan-accent); border-left: 5px solid #2563eb;">
+            <div class="glass-panel p-2.5 p-sm-3 h-100" style="background: #ffffff; border-color: var(--tan-accent); border-left: 5px solid #2563eb;">
                 <div class="d-flex align-items-center justify-content-between mb-1">
-                    <span class="small fw-bold text-muted text-uppercase">Table Occupancy</span>
-                    <span style="font-size: 1.4rem;">🪑</span>
+                    <span class="small fw-bold text-muted text-uppercase kpi-title" style="font-size:0.75rem;">Tables</span>
+                    <span class="kpi-icon" style="font-size: 1.3rem;">🪑</span>
                 </div>
-                <h2 id="kpiTables" style="font-family: var(--font-heading); font-weight: 900; color: var(--deep-espresso); margin-bottom: 0.2rem; font-size: 1.75rem;">0 / 10</h2>
-                <div class="small text-muted"><span id="kpiTablesAvail" class="fw-bold text-primary">10</span> available for guests</div>
+                <h2 id="kpiTables" class="kpi-num" style="font-family: var(--font-heading); font-weight: 900; color: var(--deep-espresso); margin-bottom: 0.15rem; font-size: 1.55rem;">0 / 10</h2>
+                <div class="small text-muted kpi-sub" style="font-size:0.75rem;"><span id="kpiTablesAvail" class="fw-bold text-primary">10</span> available</div>
             </div>
         </div>
 
         <!-- 4. Average Ticket / Customer Count -->
         <div class="col-6 col-lg-3">
-            <div class="glass-panel p-3 h-100" style="background: #ffffff; border-color: var(--tan-accent); border-left: 5px solid var(--cognac-gold);">
+            <div class="glass-panel p-2.5 p-sm-3 h-100" style="background: #ffffff; border-color: var(--tan-accent); border-left: 5px solid var(--cognac-gold);">
                 <div class="d-flex align-items-center justify-content-between mb-1">
-                    <span class="small fw-bold text-muted text-uppercase">Average Bill</span>
-                    <span style="font-size: 1.4rem;">⭐</span>
+                    <span class="small fw-bold text-muted text-uppercase kpi-title" style="font-size:0.75rem;">Avg Bill</span>
+                    <span class="kpi-icon" style="font-size: 1.3rem;">⭐</span>
                 </div>
-                <h2 id="kpiAvgBill" style="font-family: var(--font-heading); font-weight: 900; color: var(--deep-espresso); margin-bottom: 0.2rem; font-size: 1.75rem;">₹0.00</h2>
-                <div class="small text-muted"><span id="kpiCustCount" class="fw-bold" style="color:var(--roasted-walnut);">0</span> registered guests</div>
+                <h2 id="kpiAvgBill" class="kpi-num" style="font-family: var(--font-heading); font-weight: 900; color: var(--deep-espresso); margin-bottom: 0.15rem; font-size: 1.55rem;">₹0.00</h2>
+                <div class="small text-muted kpi-sub" style="font-size:0.75rem;"><span id="kpiCustCount" class="fw-bold" style="color:var(--roasted-walnut);">0</span> guests</div>
             </div>
         </div>
     </div>
 
-    <!-- Segmented Navigation Tabs -->
-    <div class="glass-panel p-2 mb-4 d-flex align-items-center justify-content-between flex-wrap gap-2" style="background: #ffffff; border-color: var(--tan-accent);">
-        <div class="d-flex gap-2 flex-wrap">
+    <!-- Segmented Navigation Tabs (Horizontally Swipeable Ribbon on mobile) -->
+    <div class="glass-panel p-1.5 p-sm-2 mb-3 mb-md-4 d-flex align-items-center justify-content-between gap-2" style="background: #ffffff; border-color: var(--tan-accent);">
+        <div class="dash-tabs-scroll-container d-flex gap-1.5 gap-sm-2 flex-nowrap align-items-center">
             <button class="dash-tab-btn active" onclick="switchDashTab('live-orders', this)">
                 <i class="bi bi-activity"></i> Live Orders Flow
             </button>
@@ -100,12 +177,12 @@
                 <i class="bi bi-people-fill"></i> Guest CRM
             </button>
             <button class="dash-tab-btn" onclick="switchDashTab('tables-matrix', this)">
-                <i class="bi bi-qr-code-scan"></i> Physical Tables &amp; QR
+                <i class="bi bi-qr-code-scan"></i> Tables &amp; QR
             </button>
         </div>
 
-        <button class="btn btn-sm btn-outline-secondary rounded-pill px-3" onclick="refreshCurrentTab()" title="Refresh Data">
-            <i class="bi bi-arrow-clockwise"></i> Refresh
+        <button class="btn btn-sm btn-outline-secondary rounded-pill px-2.5 px-sm-3 flex-shrink-0" onclick="refreshCurrentTab()" title="Refresh Data">
+            <i class="bi bi-arrow-clockwise"></i> <span class="d-none d-sm-inline">Refresh</span>
         </button>
     </div>
 
@@ -177,8 +254,8 @@
                 </div>
             </div>
 
-            <!-- Category Filter Pills -->
-            <div class="d-flex gap-2 mb-3 flex-wrap" id="menuCatPills">
+            <!-- Category Filter Pills (Horizontal Swipeable Ribbon) -->
+            <div class="d-flex gap-2 mb-3 flex-nowrap align-items-center" id="menuCatPills" style="overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; padding-bottom: 4px;">
                 <button class="category-pill active" onclick="filterMenuCat('ALL', this)">All Dishes</button>
             </div>
 
@@ -490,6 +567,101 @@
                 Yes, Delete
             </button>
         </div>
+    </div>
+</div>
+
+<!-- Edit Dish Modal (Names, Prices, Category, Image/Emoji, Veg, Stock) -->
+<div id="editDishModal" style="display:none; position:fixed; inset:0; background:rgba(23,58,51,0.72); backdrop-filter:blur(6px); z-index:1065; align-items:center; justify-content:center; padding:1rem; overflow-y:auto;">
+    <div class="glass-panel p-4" style="background:#ffffff; max-width:540px; width:100%; border-radius:24px; border:2px solid var(--tan-accent); box-shadow:0 20px 50px rgba(0,0,0,0.3); max-height:90vh; overflow-y:auto;">
+        <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
+            <h5 class="fw-bold m-0" style="color:var(--deep-espresso);"><i class="bi bi-pencil-square me-2 text-success"></i>Edit Menu Item</h5>
+            <button type="button" class="btn btn-sm text-muted" onclick="closeEditDishModal()"><i class="bi bi-x-lg fs-5"></i></button>
+        </div>
+        <form onsubmit="submitEditDish(event)">
+            <input type="hidden" id="editDishId">
+            
+            <!-- Dish Image / Icon with live preview -->
+            <div class="mb-3">
+                <label class="form-label small fw-bold">Dish Image / Icon</label>
+                <div class="p-3" style="background:var(--cream-bg); border-radius:16px; border:1px solid var(--tan-accent);">
+                    <div class="d-flex align-items-center gap-3 mb-2">
+                        <div id="editDishPreviewBox" style="width:58px; height:58px; border-radius:14px; background:#ffffff; border:1px dashed var(--tan-accent); display:flex; align-items:center; justify-content:center; overflow:hidden; flex-shrink:0;">
+                            <img id="editDishImgPreview" src="" alt="Dish Preview" style="width:100%; height:100%; object-fit:cover; display:none;" />
+                            <span id="editDishEmojiPreview" style="font-size:2.2rem;">🍽️</span>
+                        </div>
+                        <div class="flex-grow-1">
+                            <input type="file" id="editDishImageFile" class="form-control form-control-sm" accept="image/*" onchange="handleEditDishImageUpload(event)" style="font-size:0.82rem;">
+                            <div class="small text-muted mt-1" style="font-size:0.75rem;">Upload from device (JPG/PNG &lt; 5MB)</div>
+                        </div>
+                        <button type="button" class="btn btn-sm btn-outline-danger" id="editRemoveImgBtn" onclick="clearEditDishImage()" style="display:none;" title="Remove image">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <label class="small text-muted fw-bold mb-0">Or Emoji:</label>
+                        <input type="text" id="editDishEmoji" class="form-control form-control-sm text-center" style="width:70px; font-size:1.1rem;" maxlength="4" placeholder="🍽️" oninput="updateEditEmojiPreview(this.value)">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Name & Category -->
+            <div class="row g-2 mb-3">
+                <div class="col-md-7">
+                    <label class="form-label small fw-bold">Dish Name *</label>
+                    <input type="text" id="editDishName" class="form-control" required placeholder="e.g. Crispy Truffle Fries" style="font-size:16px;">
+                </div>
+                <div class="col-md-5">
+                    <label class="form-label small fw-bold">Category *</label>
+                    <select id="editDishCategory" class="form-select" required style="font-size:16px;">
+                        <!-- Populated dynamically -->
+                    </select>
+                </div>
+            </div>
+
+            <!-- Price & Attributes -->
+            <div class="row g-2 mb-3">
+                <div class="col-md-4">
+                    <label class="form-label small fw-bold">Price (₹) *</label>
+                    <input type="number" id="editDishPrice" class="form-control" step="0.01" min="1" required placeholder="180.00" style="font-size:16px;">
+                </div>
+                <div class="col-md-4 d-flex align-items-end">
+                    <div class="form-check form-switch pb-2">
+                        <input class="form-check-input" type="checkbox" role="switch" id="editDishVeg">
+                        <label class="form-check-label small fw-bold ms-1" for="editDishVeg">Vegetarian</label>
+                    </div>
+                </div>
+                <div class="col-md-4 d-flex align-items-end">
+                    <div class="form-check form-switch pb-2">
+                        <input class="form-check-input" type="checkbox" role="switch" id="editDishBestseller">
+                        <label class="form-check-label small fw-bold ms-1" for="editDishBestseller">Bestseller</label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Availability Switch -->
+            <div class="mb-3 p-2 rounded" style="background:rgba(22, 163, 74, 0.08); border:1px solid #16a34a;">
+                <div class="form-check form-switch m-0 d-flex align-items-center justify-content-between">
+                    <label class="form-check-label fw-bold small text-success m-0" for="editDishAvailable">
+                        <i class="bi bi-check-circle-fill me-1"></i> Available / In Stock for Customers
+                    </label>
+                    <input class="form-check-input" type="checkbox" role="switch" id="editDishAvailable" style="cursor:pointer; width:2.5em; height:1.35em;">
+                </div>
+            </div>
+
+            <!-- Description -->
+            <div class="mb-3">
+                <label class="form-label small fw-bold">Description</label>
+                <textarea id="editDishDesc" class="form-control" rows="2" placeholder="Freshly prepared with aromatic spices and herbs..." style="font-size:16px;"></textarea>
+            </div>
+
+            <!-- Modal Footer Buttons -->
+            <div class="d-flex justify-content-end gap-2 pt-2 border-top">
+                <button type="button" class="btn btn-outline-secondary rounded-pill px-4" onclick="closeEditDishModal()">Cancel</button>
+                <button type="submit" class="btn btn-primary rounded-pill px-4 fw-bold" id="saveEditDishBtn" style="background:var(--forest-green); border-color:var(--forest-green);">
+                    Save Changes
+                </button>
+            </div>
+        </form>
     </div>
 </div>
 
@@ -855,9 +1027,14 @@ function renderMenuItemsGrid() {
 
                 <div class="d-flex justify-content-between align-items-center pt-2 border-top mt-2">
                     <strong style="color:var(--deep-espresso); font-size:1.15rem;">₹${parseFloat(item.price).toFixed(2)}</strong>
-                    <button type="button" class="btn btn-sm btn-outline-danger p-1 px-2" style="border-radius:8px; pointer-events:auto;" onclick="openSingleDeleteModal(${item.id})" id="delete-btn-${item.id}" title="Remove Dish from Menu">
-                        <i class="bi bi-trash" style="pointer-events:none;"></i>
-                    </button>
+                    <div class="d-flex gap-1">
+                        <button type="button" class="btn btn-sm btn-outline-primary p-1 px-2" style="border-radius:8px; pointer-events:auto;" onclick="openEditDishModal(${item.id})" id="edit-btn-${item.id}" title="Edit Dish (Name, Price & Details)">
+                            <i class="bi bi-pencil-square" style="pointer-events:none;"></i>
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-danger p-1 px-2" style="border-radius:8px; pointer-events:auto;" onclick="openSingleDeleteModal(${item.id})" id="delete-btn-${item.id}" title="Remove Dish from Menu">
+                            <i class="bi bi-trash" style="pointer-events:none;"></i>
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>`;
@@ -1123,6 +1300,214 @@ function animateRemoveCards(itemIds) {
 // Backward compatibility alias
 function deleteDish(itemId) {
     openSingleDeleteModal(itemId);
+}
+
+
+let uploadedEditDishImageData = '';
+
+function openEditDishModal(itemId) {
+    const item = allMenuItems.find(i => i.id == itemId);
+    if (!item) {
+        showToast('error', 'Dish not found.');
+        return;
+    }
+
+    uploadedEditDishImageData = '';
+    document.getElementById('editDishId').value = item.id;
+    document.getElementById('editDishName').value = item.name || '';
+    document.getElementById('editDishPrice').value = parseFloat(item.price || 0).toFixed(2);
+    document.getElementById('editDishDesc').value = item.description || '';
+    document.getElementById('editDishEmoji').value = item.emoji || '🍽️';
+    document.getElementById('editDishVeg').checked = !!item.is_vegetarian;
+    document.getElementById('editDishBestseller').checked = !!item.is_bestseller;
+    document.getElementById('editDishAvailable').checked = item.available !== false;
+
+    // Populate category dropdown
+    const catSelect = document.getElementById('editDishCategory');
+    if (catSelect && allMenuCategories.length > 0) {
+        const itemCatId = (item.category && item.category.id) ? item.category.id : item.category;
+        catSelect.innerHTML = allMenuCategories.map(c => `
+            <option value="${c.id}" ${c.id == itemCatId ? 'selected' : ''}>
+                ${c.name}
+            </option>
+        `).join('');
+    }
+
+    // Image/Emoji preview
+    const previewImg = document.getElementById('editDishImgPreview');
+    const previewEmoji = document.getElementById('editDishEmojiPreview');
+    const removeBtn = document.getElementById('editRemoveImgBtn');
+    const fileInput = document.getElementById('editDishImageFile');
+    if (fileInput) fileInput.value = '';
+
+    const existingImg = item.image_url || (item.image && typeof item.image === 'string' ? item.image : '');
+    if (existingImg) {
+        uploadedEditDishImageData = existingImg;
+        if (previewImg) {
+            previewImg.src = existingImg;
+            previewImg.style.display = 'block';
+        }
+        if (previewEmoji) previewEmoji.style.display = 'none';
+        if (removeBtn) removeBtn.style.display = 'inline-block';
+    } else {
+        if (previewImg) previewImg.style.display = 'none';
+        if (previewEmoji) {
+            previewEmoji.textContent = item.emoji || '🍽️';
+            previewEmoji.style.display = 'inline';
+        }
+        if (removeBtn) removeBtn.style.display = 'none';
+    }
+
+    const modal = document.getElementById('editDishModal');
+    if (modal) modal.style.display = 'flex';
+}
+
+function closeEditDishModal() {
+    const modal = document.getElementById('editDishModal');
+    if (modal) modal.style.display = 'none';
+    uploadedEditDishImageData = '';
+}
+
+function handleEditDishImageUpload(event) {
+    const file = event.target.files && event.target.files[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+        showToast('error', 'Image size should be less than 5MB');
+        return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const img = new Image();
+        img.onload = function() {
+            const canvas = document.createElement('canvas');
+            const maxDim = 400;
+            let width = img.width;
+            let height = img.height;
+            if (width > height) {
+                if (width > maxDim) {
+                    height = Math.round((height * maxDim) / width);
+                    width = maxDim;
+                }
+            } else {
+                if (height > maxDim) {
+                    width = Math.round((width * maxDim) / height);
+                    height = maxDim;
+                }
+            }
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, width, height);
+            
+            uploadedEditDishImageData = canvas.toDataURL('image/jpeg', 0.85);
+
+            const previewImg = document.getElementById('editDishImgPreview');
+            const previewEmoji = document.getElementById('editDishEmojiPreview');
+            const removeBtn = document.getElementById('editRemoveImgBtn');
+
+            if (previewImg) {
+                previewImg.src = uploadedEditDishImageData;
+                previewImg.style.display = 'block';
+            }
+            if (previewEmoji) previewEmoji.style.display = 'none';
+            if (removeBtn) removeBtn.style.display = 'inline-block';
+        };
+        img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+}
+
+function clearEditDishImage() {
+    uploadedEditDishImageData = '';
+    const fileInput = document.getElementById('editDishImageFile');
+    if (fileInput) fileInput.value = '';
+    const previewImg = document.getElementById('editDishImgPreview');
+    const previewEmoji = document.getElementById('editDishEmojiPreview');
+    const removeBtn = document.getElementById('editRemoveImgBtn');
+    
+    if (previewImg) previewImg.style.display = 'none';
+    if (previewEmoji) previewEmoji.style.display = 'inline';
+    if (removeBtn) removeBtn.style.display = 'none';
+}
+
+function updateEditEmojiPreview(val) {
+    if (!uploadedEditDishImageData) {
+        const previewEmoji = document.getElementById('editDishEmojiPreview');
+        if (previewEmoji) previewEmoji.textContent = val.trim() || '🍽️';
+    }
+}
+
+async function submitEditDish(e) {
+    e.preventDefault();
+    const itemId = document.getElementById('editDishId').value;
+    const name = document.getElementById('editDishName').value.trim();
+    const catId = document.getElementById('editDishCategory').value;
+    const priceVal = document.getElementById('editDishPrice').value.trim();
+    const desc = document.getElementById('editDishDesc').value.trim();
+    const emoji = document.getElementById('editDishEmoji').value.trim() || '🍽️';
+    const isVeg = document.getElementById('editDishVeg').checked;
+    const isBestseller = document.getElementById('editDishBestseller').checked;
+    const isAvailable = document.getElementById('editDishAvailable').checked;
+
+    if (!name || name.length < 2) {
+        showToast('error', 'Dish name must be at least 2 characters.');
+        return;
+    }
+    const price = parseFloat(priceVal);
+    if (isNaN(price) || price <= 0) {
+        showToast('error', 'Please enter a valid price greater than ₹0.');
+        return;
+    }
+
+    const saveBtn = document.getElementById('saveEditDishBtn');
+    if (saveBtn) {
+        saveBtn.disabled = true;
+        saveBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Saving...';
+    }
+
+    try {
+        const payload = {
+            name: name,
+            category: catId,
+            price: price,
+            description: desc,
+            emoji: emoji,
+            image_url: uploadedEditDishImageData,
+            is_vegetarian: isVeg,
+            is_bestseller: isBestseller,
+            available: isAvailable
+        };
+
+        const res = await fetch(`/dashboard/api/menu-items/${itemId}/`, {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCSRF()
+            },
+            body: JSON.stringify(payload)
+        });
+
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Failed to update dish');
+
+        const idx = allMenuItems.findIndex(i => i.id == itemId);
+        if (idx !== -1 && data.item) {
+            allMenuItems[idx] = data.item;
+        }
+
+        renderMenuItemsGrid();
+        closeEditDishModal();
+        showToast('success', data.message || `Dish '${name}' updated successfully.`);
+    } catch (err) {
+        showToast('error', err.message || 'Failed to save changes.');
+    } finally {
+        if (saveBtn) {
+            saveBtn.disabled = false;
+            saveBtn.innerHTML = 'Save Changes';
+        }
+    }
 }
 
 function openAddDishModal() {
