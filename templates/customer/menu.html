@@ -19,7 +19,10 @@
                 <i class="bi bi-geo-alt-fill text-warning"></i> Table {{ table_display }}
             </span>
             <span id="headerCustName" class="customer-chip" style="display:none;"></span>
-            <button class="btn-premium btn-premium-primary" onclick="toggleCartDrawer()" style="padding: 0.45rem 0.9rem; font-size: 0.85rem;" id="headerCartBtn">
+            <button type="button" id="headerLoginBtn" class="btn btn-sm rounded-pill px-2.5 py-1" onclick="showCheckinModal()" style="display:none; font-size:0.8rem; font-weight:700; border: 1px solid var(--tan-accent); color:var(--cream-bg, #F6F1E9); background:rgba(255,255,255,0.12); transition:all 0.2s ease;">
+                <i class="bi bi-person-fill-check me-1"></i> Sign In
+            </button>
+            <button class="btn-premium btn-premium-primary" onclick="handleCartButtonClick()" style="padding: 0.45rem 0.9rem; font-size: 0.85rem;" id="headerCartBtn">
                 <i class="bi bi-cart3"></i>
                 <span id="headerCartCount" class="badge bg-white text-dark ms-1" style="border-radius:10px;">0</span>
             </button>
@@ -150,14 +153,15 @@
      CUSTOMER CHECK-IN MODAL (FIRST STEP)
      ========================================================================= -->
 <div id="checkinModal" class="checkin-modal-overlay">
-    <div class="checkin-card">
+    <div class="checkin-card position-relative">
+        <button type="button" class="btn-close btn-close-white position-absolute top-0 end-0 m-3" onclick="browseMenuWithoutLogin()" aria-label="Close" title="Browse menu" style="z-index: 10; opacity: 0.85; filter: drop-shadow(0 1px 2px rgba(0,0,0,0.5));"></button>
         <div class="checkin-card-header">
             <div style="font-size: 3rem; margin-bottom: 0.25rem;">🍽️</div>
             <h2 style="font-size: 1.65rem; font-weight: 800; margin-bottom: 0.35rem; color: #ffffff;">Welcome to {{ restaurant_name }}</h2>
             <div class="table-indicator-badge" style="background: var(--cognac-gold); color: #fff; font-size: 0.85rem; padding: 0.35rem 0.9rem;">
                 <i class="bi bi-geo-alt-fill"></i> Table {{ table_display }}
             </div>
-            <p class="small mt-2 mb-0" style="color: var(--tan-accent); opacity: 0.95;">Please enter your details to start your dining session.</p>
+            <p id="checkinSubtitleMsg" class="small mt-2 mb-0" style="color: var(--tan-accent); opacity: 0.95;">Please enter your details to start your dining session.</p>
         </div>
 
         <div class="checkin-card-body">
@@ -182,6 +186,14 @@
                 <button type="submit" id="checkinBtn" class="btn-premium btn-premium-primary w-100" style="padding: 0.85rem; font-size: 1rem;">
                     <i class="bi bi-check-circle-fill"></i> Start Ordering
                 </button>
+
+                <!-- Guest Menu Browsing Button -->
+                <div class="text-center mt-3 pt-2.5 border-top" style="border-color: rgba(23, 58, 51, 0.12) !important;">
+                    <button type="button" id="viewMenuBtn" class="btn btn-sm rounded-pill px-3.5 py-1.5" onclick="browseMenuWithoutLogin()" style="font-weight: 700; font-size: 0.88rem; color: var(--forest-green, #0F5E4A); border: 1.5px solid var(--forest-green, #0F5E4A); background: #ffffff; box-shadow: 0 2px 8px rgba(15, 94, 74, 0.1); transition: all 0.2s ease;">
+                        <i class="bi bi-book-half me-1.5"></i> View Menu
+                    </button>
+                    <div class="small text-muted mt-1" style="font-size: 0.76rem;">Browse our dishes &amp; prices without signing in</div>
+                </div>
             </form>
         </div>
     </div>
@@ -267,11 +279,40 @@ async function initCustomerSession() {
     }
 }
 
-function showCheckinModal() {
+let isGuestBrowsing = false;
+let pendingAddDishId = null;
+
+function browseMenuWithoutLogin() {
+    isGuestBrowsing = true;
+    hideCheckinModal();
+    updateHeaderWithCustomer(null);
+    showToast('info', 'Browsing menu as guest. Sign in anytime to add dishes & order.');
+}
+
+function showCheckinModal(dishId = null) {
+    if (dishId) {
+        pendingAddDishId = dishId;
+        const item = findMenuItem(dishId);
+        const subMsg = document.getElementById('checkinSubtitleMsg');
+        if (subMsg) {
+            subMsg.innerHTML = item
+                ? `<span class="badge bg-warning text-dark me-1">Sign-in Required</span> Please enter your details to add <strong>${item.name}</strong> to your order.`
+                : 'Please enter your details to start your dining session.';
+        }
+    } else {
+        const subMsg = document.getElementById('checkinSubtitleMsg');
+        if (subMsg) {
+            subMsg.textContent = 'Please enter your details to start your dining session.';
+        }
+    }
     const modal = document.getElementById('checkinModal');
     if (modal) {
         modal.classList.add('active');
         modal.style.display = 'flex';
+    }
+    const nameField = document.getElementById('custName');
+    if (nameField && modal && modal.style.display !== 'none') {
+        setTimeout(() => nameField.focus(), 200);
     }
 }
 
@@ -280,6 +321,10 @@ function hideCheckinModal() {
     if (modal) {
         modal.classList.remove('active');
         modal.style.display = 'none';
+    }
+    if (!customerSessionId) {
+        const loginBtn = document.getElementById('headerLoginBtn');
+        if (loginBtn) loginBtn.style.display = 'inline-flex';
     }
 }
 
@@ -296,14 +341,32 @@ function clearLocalSession() {
     if (phoneInput) phoneInput.value = '';
     const nameChip = document.getElementById('headerCustName');
     if (nameChip) nameChip.style.display = 'none';
+    const loginBtn = document.getElementById('headerLoginBtn');
+    if (loginBtn) loginBtn.style.display = 'inline-flex';
 }
 
 function updateHeaderWithCustomer(name) {
     const nameChip = document.getElementById('headerCustName');
-    if (nameChip && name) {
-        nameChip.textContent = `👤 ${name}`;
-        nameChip.style.display = 'inline-flex';
+    const loginBtn = document.getElementById('headerLoginBtn');
+    if (name) {
+        if (nameChip) {
+            nameChip.textContent = `👤 ${name}`;
+            nameChip.style.display = 'inline-flex';
+        }
+        if (loginBtn) loginBtn.style.display = 'none';
+    } else {
+        if (nameChip) nameChip.style.display = 'none';
+        if (loginBtn) loginBtn.style.display = 'inline-flex';
     }
+}
+
+function handleCartButtonClick() {
+    if (!customerSessionId) {
+        showCheckinModal();
+        showToast('error', 'Please enter your name & phone to start ordering.');
+        return;
+    }
+    toggleCartDrawer();
 }
 
 function showActiveOrderBanner(orderNumber, statusDisplay) {
@@ -362,6 +425,12 @@ async function handleCheckin(e) {
         updateHeaderWithCustomer(customerName);
         hideCheckinModal();
         showToast('success', `Welcome ${customerName}! Start browsing dishes.`);
+
+        if (pendingAddDishId) {
+            const addId = pendingAddDishId;
+            pendingAddDishId = null;
+            addToCart(addId);
+        }
 
     } catch (err) {
         showToast('error', err.message);
@@ -496,7 +565,7 @@ function findMenuItem(itemId) {
 
 function addToCart(itemId) {
     if (!customerSessionId) {
-        showCheckinModal();
+        showCheckinModal(itemId);
         showToast('error', 'Please enter your name & phone to start ordering.');
         return;
     }
@@ -516,6 +585,11 @@ function addToCart(itemId) {
 }
 
 function changeQuantity(itemId, delta) {
+    if (!customerSessionId) {
+        showCheckinModal(itemId);
+        showToast('error', 'Please enter your name & phone to start ordering.');
+        return;
+    }
     const numId = Number(itemId);
     if (!cart[numId]) return;
 
@@ -613,6 +687,11 @@ function updateCartUI() {
 }
 
 function toggleCartDrawer() {
+    if (!customerSessionId) {
+        showCheckinModal();
+        showToast('error', 'Please enter your name & phone to start ordering.');
+        return;
+    }
     const overlay = document.getElementById('cartDrawerOverlay');
     const drawer = document.getElementById('cartDrawer');
     if (!overlay || !drawer) return;
