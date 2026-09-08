@@ -42,6 +42,12 @@ def customer_menu_view(request, table_number):
     """Customer menu page — identified by table number from QR scan."""
     norm_table = table_number.upper().strip()
 
+    # Normalize numeric input (e.g. '1' -> 'T01', '10' -> 'T10')
+    if norm_table.isdigit():
+        num = int(norm_table)
+        if 1 <= num <= 10:
+            norm_table = f"T{num:02d}"
+
     # Validate table format T01 - T10
     if not re.match(r'^T(0[1-9]|10)$', norm_table):
         logger.warning(f"[INVALID_TABLE_REQUEST] Table='{table_number}'")
